@@ -1,4 +1,4 @@
-# Docker image for sentry node deployment
+# Script + Docker Image to run a harmony node automagically
 
 On any machine with docker (install [here](https://docs.docker.com/install/)) one could run a node, create a validator, and maintain it will 1 command.
 
@@ -6,7 +6,7 @@ On any machine with docker (install [here](https://docs.docker.com/install/)) on
 
 Download the `auto_node.sh` shell script:
 ```
-curl -O https://raw.githubusercontent.com/harmony-one/harmony-ops/master/devops/auto_node/scripts/auto_node.sh && chmod +x ./auto_node.sh && ./auto_node.sh setup
+curl -O https://raw.githubusercontent.com/harmony-one/auto-node/master/scripts/auto_node.sh && chmod +x ./auto_node.sh && ./auto_node.sh setup
 ```
 > For help on the parameters of `auto_node.sh` use the help option with `./auto_node.sh --help` 
 
