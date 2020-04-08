@@ -6,7 +6,7 @@ On any machine with docker (install [here](https://docs.docker.com/install/)) on
 
 Download the `auto_node.sh` shell script:
 ```
-curl -O https://raw.githubusercontent.com/harmony-one/auto-node/master/scripts/auto_node.sh && chmod +x ./auto_node.sh && ./auto_node.sh setup
+curl -OL https://harmony.one/auto-node && mv auto-node auto_node.sh && chmod +x ./auto_node.sh && ./auto_node.sh setup
 ```
 > For help on the parameters of `auto_node.sh` use the help option with `./auto_node.sh --help` 
 
