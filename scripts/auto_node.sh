@@ -73,7 +73,7 @@ case "${1}" in
     echo "[AutoNode] Using validator config at: $validator_config_path"
     echo "[AutoNode] Sharing node files on host machine at: $(pwd)/.${container_name}"
     echo "[AutoNode] Sharing CLI files on host machine at: ${HOME}/.hmy_cli"
-    echo "[AutoNode] Initlizing..."
+    echo "[AutoNode] Initializing..."
 
     # Warning: Assumption about CLI files, might have to change in the future...
     eval docker run --name "${container_name}" -v "$(pwd)/.${container_name}:/root/node" \
