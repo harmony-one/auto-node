@@ -79,7 +79,7 @@ case "${1}" in
     # Warning: Assumption about CLI files, might have to change in the future...
     eval docker run --name "${container_name}" -v "$(pwd)/.${container_name}:/root/node" \
      -v "${HOME}/.hmy_cli/:/root/.hmy_cli" -v "$(pwd)/${bls_keys_path}:/root/harmony_bls_keys" \
-     -it harmonyone/sentry "${@:2}"
+     --user root -it harmonyone/sentry "${@:2}"
     ;;
   "create-validator")
     docker exec -it "${container_name}" /root/create_validator.sh
@@ -123,6 +123,18 @@ case "${1}" in
     cp -r "$(pwd)/.${container_name}/bls_keys" "${2}"
     echo "Exported BLS keys to ${2}/bls_keys"
     ;;
+  "export-logs")
+    if [ ! -d "${2}" ]; then
+      echo "${2}" is not a directory.
+      exit
+    fi
+    export_dir="${2}/logs"
+    mkdir -p "${export_dir}"
+    cp -r "$(pwd)/.${container_name}/node_sh_logs" "${export_dir}"
+    cp -r "$(pwd)/.${container_name}/backups" "${export_dir}"
+    cp -r "$(pwd)/.${container_name}/latest" "${export_dir}"
+    echo "Exported node.sh logs to ${export_dir}"
+    ;;
   "hmy")
     docker exec -it "${container_name}" /root/bin/hmy "${@:2}"
     ;;
@@ -150,9 +162,10 @@ case "${1}" in
       [--container=<name>] version             Fetch the version for the harmony node binary and node.sh
       [--container=<name>] header              Fetch the latest header (shard chain) for the node
       [--container=<name>] headers             Fetch the latest headers (beacon and shard chain) for the node
-      [--container=<name>] export              Export the private keys associated with this node
       [--container=<name>] attach              Attach to the docker image to take a look around
+      [--container=<name>] export              Export the private keys associated with this node
       [--container=<name>] export-bls <path>   Export all BLS keys used by the node
+      [--container=<name>] export-logs <path>  Export all node logs to the given path
       [--container=<name>] hmy <CLI params>    Call the CLI where the localhost is the current node
       [--container=<name>] clean               Kills and remove the node's docker container and shared directory
       [--container=<name>] kill                Safely kill the node

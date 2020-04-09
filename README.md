@@ -34,13 +34,17 @@ $ ./auto_node.sh run --clean --auto-active --auto-interaction --auto-reset
 
 7. Get latest header of the node with `./auto_node.sh header`.
 
-8. Export the validator private key and BLS key associated with the node with `./auto_node.sh export`.
+8. Get node config info with `./auto_node.sh export`.
 
-9. Attach to the docker image (to look around / debug) with `./auto_node.sh attach`.
+9. Export the node's logs with  `./auto_node.sh export-logs`.
 
-10. Call the CLI with the node as localhost with `./auto_node.sh hmy <cli args>`.
+10. Export the validator private key and BLS key associated with the node with `./auto_node.sh export`.
 
-11. Kill and remove a node's docker container and shared directory with `./auto_node.sh clean`.
+11. Attach to the docker image (to look around / debug) with `./auto_node.sh attach`.
+
+12. Call the CLI with the node as localhost with `./auto_node.sh hmy <cli args>`.
+
+13. Kill and remove a node's docker container and shared directory with `./auto_node.sh clean`.
 
 ### A note on BLS keys
 

@@ -21,21 +21,32 @@ def get_latest_header(endpoint=default_endpoint):
     return json.loads(response.content)["result"]
 
 
-def get_first_block_hash(endpoint=default_endpoint):
-    payload = json.dumps({"id": "1", "jsonrpc": "2.0",
-                          "method": "hmy_getBlockByNumber",
-                          "params": ["0x1", False]})
-    headers = {
-        'Content-Type': 'application/json'
-    }
-    response = requests.request('POST', endpoint, headers=headers, data=payload, allow_redirects=False, timeout=3)
-    return json.loads(response.content)["result"]["hash"]
-
-
 def get_latest_headers(endpoint=default_endpoint):
     payload = json.dumps({"id": "1", "jsonrpc": "2.0",
                           "method": "hmy_getLatestChainHeaders",
                           "params": []})
+    headers = {
+        'Content-Type': 'application/json'
+    }
+    response = requests.request('POST', endpoint, headers=headers, data=payload, allow_redirects=False, timeout=3)
+    return json.loads(response.content)["result"]
+
+
+def get_sharding_structure(endpoint=default_endpoint):
+    payload = json.dumps({"id": "1", "jsonrpc": "2.0",
+                          "method": "hmy_getShardingStructure",
+                          "params": []})
+    headers = {
+        'Content-Type': 'application/json'
+    }
+    response = requests.request('POST', endpoint, headers=headers, data=payload, allow_redirects=False, timeout=3)
+    return json.loads(response.content)["result"]
+
+
+def get_block_by_number(number, endpoint=default_endpoint):
+    payload = json.dumps({"id": "1", "jsonrpc": "2.0",
+                          "method": "hmyv2_getBlockByNumber",
+                          "params": [number, {}]})
     headers = {
         'Content-Type': 'application/json'
     }

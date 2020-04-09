@@ -11,7 +11,6 @@ import shutil
 import getpass
 import traceback
 from argparse import RawTextHelpFormatter
-from multiprocessing.pool import ThreadPool
 from threading import Lock
 
 from pyhmy import (
@@ -25,10 +24,13 @@ from utils import *
 with open("./node/validator_config.json") as f:  # WARNING: assumption of copied file on docker run.
     validator_info = json.load(f)
 wallet_passphrase = ""  # WARNING: default passphrase is set here.
-bls_key_folder = "./node/bls_keys"
+bls_key_folder = "/root/node/bls_keys"
 shutil.rmtree(bls_key_folder, ignore_errors=True)
 os.makedirs(bls_key_folder, exist_ok=True)
 imported_bls_key_folder = "/root/harmony_bls_keys"  # WARNING: assumption made on auto_node.sh
+node_sh_out_path = "/root/node/node_sh_logs/out.log"  # WARNING: assumption made on auto_node.sh
+node_sh_err_path = "/root/node/node_sh_logs/err.log"  # WARNING: assumption made on auto_node.sh
+os.makedirs("/root/node/node_sh_logs", exist_ok=True)  # WARNING: assumption made on auto_node.sh
 
 env = os.environ
 node_script_source = "https://raw.githubusercontent.com/harmony-one/harmony/master/scripts/node.sh"
@@ -222,32 +224,29 @@ def import_node_info():
     return public_bls_keys
 
 
-def run_node(bls_keys_path, network, clean=False):
+def start_node(bls_keys_path, network, clean=False):
+    directory_lock.acquire()
+    os.chdir("/root/node")
+    if os.path.isfile("/root/node/node.sh"):
+        os.remove("/root/node/node.sh")
+    r = requests.get(node_script_source)
+    with open("node.sh", 'w') as f:
+        node_sh = r.content.decode()
+        # WARNING: Hack untill node.sh is changed for auto-node.
+        node_sh = node_sh.replace("save_pass_file=false", 'save_pass_file=true')
+        node_sh = node_sh.replace("sudo", '')
+        f.write(node_sh)
+    st = os.stat("node.sh")
+    os.chmod("node.sh", st.st_mode | stat.S_IEXEC)
+    node_args = ["./node.sh", "-N", network, "-z", "-f", bls_keys_path, "-M"]
+    if clean:
+        node_args.append("-c")
     print(f"{Typgpy.HEADER}Starting node!{Typgpy.ENDC}")
-    bls_keys_path = os.path.abspath(bls_keys_path)
-    try:
-        directory_lock.acquire()
-        os.chdir("/root/node")
-        r = requests.get(node_script_source)
-        with open("node.sh", 'w') as f:
-            node_sh = r.content.decode()
-            # WARNING: Hack untill node.sh is changed for auto-node.
-            node_sh = node_sh.replace("save_pass_file=false", 'save_pass_file=true')
-            node_sh = node_sh.replace("sudo", '')
-            f.write(node_sh)
-        st = os.stat("node.sh")
-        os.chmod("node.sh", st.st_mode | stat.S_IEXEC)
-        node_args = ["-N", network, "-z", "-f", bls_keys_path, "-M"]
-        if clean:
-            node_args.append("-c")
-        proc = pexpect.spawn("./node.sh", node_args, env=env, timeout=None)
-        if clean:
-            proc.sendline("Y")  # WARNING: assumption about interaction
-        directory_lock.release()
-        proc.expect(pexpect.EOF)  # Should never reach...
-    except KeyboardInterrupt:
-        directory_lock.release()
-        proc.close()
+    directory_lock.release()
+    with open(node_sh_out_path, 'w+') as fo:
+        with open(node_sh_err_path, 'w+') as fe:
+            pid = subprocess.Popen(node_args, env=env, stdout=fo, stderr=fe).pid
+    return pid
 
 
 def wait_for_node_liveliness():
@@ -380,21 +379,31 @@ def check_and_activate(address, epos_status_msg):
 
 def run():
     bls_keys = import_node_info()
+    shard = json_load(cli.single_call(f"hmy utility shard-for-bls {bls_keys[0]} -n {args.endpoint}"))['shard-id']
+    shard_endpoint = get_sharding_structure(args.endpoint)[shard]["http"]
     start_time = time.time()
-    ThreadPool(processes=1).apply_async(lambda: run_node(bls_key_folder, args.network, clean=args.clean))
+    pid = start_node(bls_key_folder, args.network, clean=args.clean)
     setup_validator(validator_info, bls_keys)
     wait_for_node_liveliness()
+    while get_latest_header('http://localhost:9500/')['blockNumber'] == 0:
+        pass
     directory_lock.acquire()
     curr_time = time.time()
     while curr_time - start_time < args.duration:
-        if args.auto_reset and get_first_block_hash('http://localhost:9500/') != get_first_block_hash(args.endpoint):
+        fb_hash = get_block_by_number(1, shard_endpoint)['hash']
+        fb_ref_hash = get_block_by_number(1, 'http://localhost:9500/')['hash']
+        if args.auto_reset and fb_hash != fb_ref_hash:
             print(f"\n{Typgpy.HEADER}== HARD RESETTING NODE =={Typgpy.ENDC}\n")
+            print(f"{Typgpy.HEADER}This block 1 hash: {fb_hash} !=  Chain block 1 hash: {fb_ref_hash}{Typgpy.ENDC}")
             directory_lock.release()
+            subprocess.call(["kill", "-9", f"{pid}"])
             subprocess.call(["killall", "-9", "harmony"])
             time.sleep(10)  # Sleep to ensure node is terminated b4 restart
-            ThreadPool(processes=1).apply_async(lambda: run_node(bls_key_folder, args.network, clean=True))
+            pid = start_node(bls_key_folder, args.network, clean=args.clean)
             setup_validator(validator_info, bls_keys)
             wait_for_node_liveliness()
+            while get_latest_header('http://localhost:9500/')['blockNumber'] == 0:
+                pass
             directory_lock.acquire()
         try:
             val_chain_info = get_validator_information(validator_info["validator-addr"], args.endpoint)
