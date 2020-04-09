@@ -81,6 +81,9 @@ case "${1}" in
      -v "${HOME}/.hmy_cli/:/root/.hmy_cli" -v "$(pwd)/${bls_keys_path}:/root/harmony_bls_keys" \
      -it harmonyone/sentry "${@:2}"
     ;;
+  "create-validator")
+    docker exec -it "${container_name}" /root/create_validator.sh
+    ;;
   "activate")
     docker exec -it "${container_name}" /root/activate.sh
     ;;
@@ -138,7 +141,8 @@ case "${1}" in
       Optional:            Param:              Help:
 
       [--container=<name>] run <run params>    Main execution to run a node. If errors are given
-                                                for other params, this needs to be ran. Use '-h' for run help msg.
+                                                for other params, this needs to be ran. Use '-h' for run help msg
+      [--container=<name>] create-validator    Send a create validator transaction with the given config
       [--container=<name>] activate            Make validator associated with node elegable for election in next epoch
       [--container=<name>] deactivate            Make validator associated with node NOT elegable for election in next epoch
       [--container=<name>] info                Fetch information for validator associated with node

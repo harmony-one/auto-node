@@ -50,4 +50,10 @@ COPY scripts/version.sh /root
 
 RUN chmod +x /root/version.sh
 
+COPY scripts/create_validator.sh /root
+
+COPY scripts/create_validator.py /root
+
+RUN chmod +x /root/create_validator.sh
+
 ENTRYPOINT ["/root/run.py"]

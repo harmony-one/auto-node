@@ -43,6 +43,8 @@ def parse_args():
                         help='Show this help message and exit')
     parser.add_argument("--auto-active", action="store_true",
                         help="Always try to set active when EPOS status is inactive.")
+    parser.add_argument("--auto-reset", action="store_true",
+                        help="Automatically reset node during hard resets.")
     parser.add_argument("--auto-interaction", action="store_true",
                         help="Say yes to all interaction (except wallet pw).")
     parser.add_argument("--clean", action="store_true", help="Clean shared node directory before starting node.")
@@ -221,6 +223,7 @@ def import_node_info():
 
 
 def run_node(bls_keys_path, network, clean=False):
+    print(f"{Typgpy.HEADER}Starting node!{Typgpy.ENDC}")
     bls_keys_path = os.path.abspath(bls_keys_path)
     try:
         directory_lock.acquire()
@@ -230,6 +233,7 @@ def run_node(bls_keys_path, network, clean=False):
             node_sh = r.content.decode()
             # WARNING: Hack untill node.sh is changed for auto-node.
             node_sh = node_sh.replace("save_pass_file=false", 'save_pass_file=true')
+            node_sh = node_sh.replace("sudo", '')
             f.write(node_sh)
         st = os.stat("node.sh")
         os.chmod("node.sh", st.st_mode | stat.S_IEXEC)
@@ -239,14 +243,23 @@ def run_node(bls_keys_path, network, clean=False):
         proc = pexpect.spawn("./node.sh", node_args, env=env, timeout=None)
         if clean:
             proc.sendline("Y")  # WARNING: assumption about interaction
-        time.sleep(15)  # Grace period for node to start
-        print(f"{Typgpy.HEADER}\n[!] Node Launched!\n{Typgpy.ENDC}")
         directory_lock.release()
         proc.expect(pexpect.EOF)  # Should never reach...
-        raise RuntimeError("Unexpected termination of Harmony Node...")
     except KeyboardInterrupt:
         directory_lock.release()
         proc.close()
+
+
+def wait_for_node_liveliness():
+    alive = False
+    while not alive:
+        try:
+            get_latest_headers("http://localhost:9500/")
+            alive = True
+        except requests.exceptions.ConnectionError:
+            time.sleep(.5)
+            pass
+    print(f"{Typgpy.HEADER}\n[!] Node Launched!\n{Typgpy.ENDC}")
 
 
 def add_key_to_validator(val_info, bls_pub_keys, passphrase):
@@ -296,7 +309,7 @@ def create_new_validator(val_info, bls_pub_keys, passphrase):
     else:
         print(f"{Typgpy.OKGREEN}Address: {val_info['validator-addr']} has enough funds{Typgpy.ENDC}")
     print(f"{Typgpy.OKBLUE}Verifying Node Sync...{Typgpy.ENDC}")
-    directory_lock.acquire()
+    wait_for_node_liveliness()
     curr_headers = get_latest_headers("http://localhost:9500/")
     curr_epoch_shard = curr_headers['shard-chain-header']['epoch']
     curr_epoch_beacon = curr_headers['beacon-chain-header']['epoch']
@@ -312,8 +325,14 @@ def create_new_validator(val_info, bls_pub_keys, passphrase):
         ref_epoch = get_latest_header(args.endpoint)['epoch']
     print(f"\n{Typgpy.OKGREEN}Node synced to current epoch{Typgpy.ENDC}")
     print(f"\n{Typgpy.OKBLUE}Sending create validator transaction...{Typgpy.ENDC}")
+    send_create_validator_tx(val_info, bls_pub_keys, passphrase, args.endpoint)
+    print()
+
+
+def send_create_validator_tx(val_info, bls_pub_keys, passphrase, endpoint):
+    directory_lock.acquire()
     os.chdir("/root/bin")  # Needed for implicit BLS key...
-    proc = cli.expect_call(f'hmy --node={args.endpoint} staking create-validator '
+    proc = cli.expect_call(f'hmy --node={endpoint} staking create-validator '
                            f'--validator-addr {val_info["validator-addr"]} --name "{val_info["name"]}" '
                            f'--identity "{val_info["identity"]}" --website "{val_info["website"]}" '
                            f'--security-contact "{val_info["security-contact"]}" --details "{val_info["details"]}" '
@@ -334,7 +353,6 @@ def create_new_validator(val_info, bls_pub_keys, passphrase):
         print(f"{Typgpy.FAIL}Failed to create validator!\n\tError: {e}"
               f"\n\tMsg:\n{proc.before.decode()}{Typgpy.ENDC}")
     directory_lock.release()
-    print()
 
 
 def setup_validator(val_info, bls_pub_keys):
@@ -360,36 +378,49 @@ def check_and_activate(address, epos_status_msg):
                         f"--active true --node {args.endpoint} --passphrase-file /.wallet_passphrase ")
 
 
+def run():
+    bls_keys = import_node_info()
+    start_time = time.time()
+    ThreadPool(processes=1).apply_async(lambda: run_node(bls_key_folder, args.network, clean=args.clean))
+    setup_validator(validator_info, bls_keys)
+    wait_for_node_liveliness()
+    directory_lock.acquire()
+    curr_time = time.time()
+    while curr_time - start_time < args.duration:
+        if args.auto_reset and get_first_block_hash('http://localhost:9500/') != get_first_block_hash(args.endpoint):
+            print(f"\n{Typgpy.HEADER}== HARD RESETTING NODE =={Typgpy.ENDC}\n")
+            directory_lock.release()
+            subprocess.call(["killall", "-9", "harmony"])
+            time.sleep(10)  # Sleep to ensure node is terminated b4 restart
+            ThreadPool(processes=1).apply_async(lambda: run_node(bls_key_folder, args.network, clean=True))
+            setup_validator(validator_info, bls_keys)
+            wait_for_node_liveliness()
+            directory_lock.acquire()
+        try:
+            val_chain_info = get_validator_information(validator_info["validator-addr"], args.endpoint)
+            print(f"{Typgpy.HEADER}EPOS status:  {Typgpy.OKGREEN}{val_chain_info['epos-status']}{Typgpy.ENDC}")
+            print(f"{Typgpy.HEADER}Current epoch performance: {Typgpy.OKGREEN}"
+                  f"{json.dumps(val_chain_info['current-epoch-performance'], indent=4)}{Typgpy.ENDC}")
+            if args.auto_active:
+                check_and_activate(validator_info["validator-addr"], val_chain_info['epos-status'])
+        except (json.JSONDecodeError, requests.exceptions.ConnectionError, RuntimeError) as e:
+            print(f"{Typgpy.FAIL}Error when checking validator. Error: {e}{Typgpy.ENDC}")
+        try:
+            print(f"{Typgpy.HEADER}This node's latest header at {datetime.datetime.utcnow()}: "
+                  f"{Typgpy.OKGREEN}{json.dumps(get_latest_headers('http://localhost:9500/'), indent=4)}"
+                  f"{Typgpy.ENDC}")
+        except (json.JSONDecodeError, requests.exceptions.ConnectionError, RuntimeError) as e:
+            print(f"{Typgpy.HEADER}This node's latest header at {datetime.datetime.utcnow()}: "
+                  f"{Typgpy.OKGREEN}{json.dumps(get_latest_header('http://localhost:9500/'), indent=4)}"
+                  f"{Typgpy.ENDC}")
+        time.sleep(8)
+
+
 if __name__ == "__main__":
     args = parse_args()
     setup()
-    bls_keys = import_node_info()
-    print(f"{Typgpy.HEADER}Starting node!{Typgpy.ENDC}")
     try:
-        start_time = time.time()
-        ThreadPool(processes=1).apply_async(lambda: run_node(bls_key_folder, args.network, clean=args.clean))
-        setup_validator(validator_info, bls_keys)
-        directory_lock.acquire()
-        curr_time = time.time()
-        while curr_time - start_time < args.duration:
-            try:
-                val_chain_info = get_validator_information(validator_info["validator-addr"], args.endpoint)
-                print(f"{Typgpy.HEADER}EPOS status:  {Typgpy.OKGREEN}{val_chain_info['epos-status']}{Typgpy.ENDC}")
-                print(f"{Typgpy.HEADER}Current epoch performance: {Typgpy.OKGREEN}"
-                      f"{json.dumps(val_chain_info['current-epoch-performance'], indent=4)}{Typgpy.ENDC}")
-                if args.auto_active:
-                    check_and_activate(validator_info["validator-addr"], val_chain_info['epos-status'])
-            except (json.JSONDecodeError, requests.exceptions, RuntimeError) as e:
-                print(f"{Typgpy.FAIL}Error when checking validator. Error: {e}{Typgpy.ENDC}")
-            try:
-                print(f"{Typgpy.HEADER}This node's latest header at {datetime.datetime.utcnow()}: "
-                      f"{Typgpy.OKGREEN}{json.dumps(get_latest_headers('http://localhost:9500/'), indent=4)}"
-                      f"{Typgpy.ENDC}")
-            except (json.JSONDecodeError, requests.exceptions, RuntimeError) as e:
-                print(f"{Typgpy.HEADER}This node's latest header at {datetime.datetime.utcnow()}: "
-                      f"{Typgpy.OKGREEN}{json.dumps(get_latest_header('http://localhost:9500/'), indent=4)}"
-                      f"{Typgpy.ENDC}")
-            time.sleep(8)
+        run()
     except Exception as e:
         if isinstance(e, KeyboardInterrupt):
             print(f"{Typgpy.OKGREEN}Killing all harmony processes...{Typgpy.ENDC}")

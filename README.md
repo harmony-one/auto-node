@@ -16,7 +16,7 @@ curl -OL https://harmony.one/auto-node && mv auto-node auto_node.sh && chmod +x 
 
 1. To run a node, use the `run` param of `auto_node.sh`. For example:
 ```bash
-$ ./auto_node.sh run --clean --auto-active --auto-interaction 
+$ ./auto_node.sh run --clean --auto-active --auto-interaction --auto-reset
 ```
 > For help or details of the parameters use the `run` help option with `./auto_node.sh run --help`.
 >
@@ -76,6 +76,7 @@ say yes to creating a validator or adding the BLS key to an existing validator.
 optional arguments:
   -h, --help            Show this help message and exit
   --auto-active         Always try to set active when EPOS status is inactive.
+  --auto-reset          Automatically reset node during hard resets.
   --auto-interaction    Say yes to all interaction (except wallet pw).
   --clean               Clean shared node directory before starting node.
   --wallet-passphrase   Toggle specifying a passphrase interactively for the wallet.
