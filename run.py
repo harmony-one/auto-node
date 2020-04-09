@@ -364,9 +364,11 @@ def setup_validator(val_info, bls_pub_keys):
     if val_info['validator-addr'] in all_val \
             and (args.auto_interaction
                  or input("Add BLS key to existing validator? [Y]/n \n> ") in {'Y', 'y', 'yes', 'Yes'}):
+        print(f"{Typgpy.HEADER}Editing validator...{Typgpy.ENDC}")
         add_key_to_validator(val_info, bls_pub_keys, bls_passphrase)
     elif val_info['validator-addr'] not in all_val \
             and (args.auto_interaction or input("Create validator? [Y]/n \n> ") in {'Y', 'y', 'yes', 'Yes'}):
+        print(f"{Typgpy.HEADER}Creating new validator...{Typgpy.ENDC}")
         create_new_validator(val_info, bls_pub_keys, bls_passphrase)
 
 
