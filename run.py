@@ -271,7 +271,7 @@ def add_key_to_validator(val_info, bls_pub_keys, passphrase):
         if k not in bls_keys:  # Add imported BLS key to existing validator if needed
             print(f"{Typgpy.OKBLUE}adding bls key: {k} "
                   f"to validator: {val_info['validator-addr']}{Typgpy.ENDC}")
-            os.chdir("/root")
+            os.chdir("/root/bin")
             proc = cli.expect_call(f"hmy --node={args.endpoint} staking edit-validator "
                                    f"--validator-addr {val_info['validator-addr']} "
                                    f"--add-bls-key {k} --passphrase-file /.wallet_passphrase ")
@@ -285,7 +285,27 @@ def add_key_to_validator(val_info, bls_pub_keys, passphrase):
                                              f"validator information {val_info['validator-addr']}"))["result"]
     new_bls_keys = new_val_info["validator"]["bls-public-keys"]
     print(f"{Typgpy.OKBLUE}{val_info['validator-addr']} updated bls keys: {new_bls_keys}{Typgpy.ENDC}")
+    verify_node_sync()
     print()
+
+
+def verify_node_sync():
+    print(f"{Typgpy.OKBLUE}Verifying Node Sync...{Typgpy.ENDC}")
+    wait_for_node_liveliness()
+    curr_headers = get_latest_headers("http://localhost:9500/")
+    curr_epoch_shard = curr_headers['shard-chain-header']['epoch']
+    curr_epoch_beacon = curr_headers['beacon-chain-header']['epoch']
+    ref_epoch = get_latest_header(args.endpoint)['epoch']
+    while curr_epoch_shard != ref_epoch or curr_epoch_beacon != ref_epoch:
+        sys.stdout.write(f"\rWaiting for node to sync: shard epoch ({curr_epoch_shard}/{ref_epoch}) "
+                         f"& beacon epoch ({curr_epoch_beacon}/{ref_epoch})")
+        sys.stdout.flush()
+        time.sleep(1)
+        curr_headers = get_latest_headers("http://localhost:9500/")
+        curr_epoch_shard = curr_headers['shard-chain-header']['epoch']
+        curr_epoch_beacon = curr_headers['beacon-chain-header']['epoch']
+        ref_epoch = get_latest_header(args.endpoint)['epoch']
+    print(f"\n{Typgpy.OKGREEN}Node synced to current epoch{Typgpy.ENDC}")
 
 
 def create_new_validator(val_info, bls_pub_keys, passphrase):
@@ -307,22 +327,7 @@ def create_new_validator(val_info, bls_pub_keys, passphrase):
         return
     else:
         print(f"{Typgpy.OKGREEN}Address: {val_info['validator-addr']} has enough funds{Typgpy.ENDC}")
-    print(f"{Typgpy.OKBLUE}Verifying Node Sync...{Typgpy.ENDC}")
-    wait_for_node_liveliness()
-    curr_headers = get_latest_headers("http://localhost:9500/")
-    curr_epoch_shard = curr_headers['shard-chain-header']['epoch']
-    curr_epoch_beacon = curr_headers['beacon-chain-header']['epoch']
-    ref_epoch = get_latest_header(args.endpoint)['epoch']
-    while curr_epoch_shard != ref_epoch or curr_epoch_beacon != ref_epoch:
-        sys.stdout.write(f"\rWaiting for node to sync: shard epoch ({curr_epoch_shard}/{ref_epoch}) "
-                         f"& beacon epoch ({curr_epoch_beacon}/{ref_epoch})")
-        sys.stdout.flush()
-        time.sleep(1)
-        curr_headers = get_latest_headers("http://localhost:9500/")
-        curr_epoch_shard = curr_headers['shard-chain-header']['epoch']
-        curr_epoch_beacon = curr_headers['beacon-chain-header']['epoch']
-        ref_epoch = get_latest_header(args.endpoint)['epoch']
-    print(f"\n{Typgpy.OKGREEN}Node synced to current epoch{Typgpy.ENDC}")
+    verify_node_sync()
     print(f"\n{Typgpy.OKBLUE}Sending create validator transaction...{Typgpy.ENDC}")
     send_create_validator_tx(val_info, bls_pub_keys, passphrase, args.endpoint)
     print()
@@ -381,7 +386,8 @@ def check_and_activate(address, epos_status_msg):
 
 def run():
     bls_keys = import_node_info()
-    shard = json_load(cli.single_call(f"hmy utility shard-for-bls {bls_keys[0]} -n {args.endpoint}"))['shard-id']
+    shard = json_load(cli.single_call(f"hmy utility shard-for-bls {bls_keys[0].replace('0x', '')} "
+                                      f"-n {args.endpoint}"))['shard-id']
     shard_endpoint = get_sharding_structure(args.endpoint)[shard]["http"]
     start_time = time.time()
     pid = start_node(bls_key_folder, args.network, clean=args.clean)
