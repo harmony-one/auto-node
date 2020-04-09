@@ -5,8 +5,8 @@ import time
 import stat
 import sys
 import subprocess
-import random
 import datetime
+import random
 import shutil
 import getpass
 import traceback
@@ -395,42 +395,42 @@ def run():
     wait_for_node_liveliness()
     while get_latest_header('http://localhost:9500/')['blockNumber'] == 0:
         pass
-    directory_lock.acquire()
     curr_time = time.time()
     while curr_time - start_time < args.duration:
-        fb_hash = get_block_by_number(1, shard_endpoint)['hash']
-        fb_ref_hash = get_block_by_number(1, 'http://localhost:9500/')['hash']
-        if args.auto_reset and fb_hash != fb_ref_hash:
-            print(f"\n{Typgpy.HEADER}== HARD RESETTING NODE =={Typgpy.ENDC}\n")
-            print(f"{Typgpy.HEADER}This block 1 hash: {fb_hash} !=  Chain block 1 hash: {fb_ref_hash}{Typgpy.ENDC}")
-            directory_lock.release()
-            subprocess.call(["kill", "-9", f"{pid}"])
-            subprocess.call(["killall", "-9", "harmony"])
-            time.sleep(10)  # Sleep to ensure node is terminated b4 restart
-            pid = start_node(bls_key_folder, args.network, clean=args.clean)
-            setup_validator(validator_info, bls_keys)
-            wait_for_node_liveliness()
-            while get_latest_header('http://localhost:9500/')['blockNumber'] == 0:
-                pass
-            directory_lock.acquire()
         try:
+            directory_lock.acquire()
+            fb_ref_hash = get_block_by_number(1, shard_endpoint).get('hash', None)
+            fb_hash = get_block_by_number(1, 'http://localhost:9500/').get('hash', None)
+            if args.auto_reset and fb_hash is not None and fb_ref_hash is not None and fb_hash != fb_ref_hash:
+                directory_lock.release()
+                print(f"\n{Typgpy.HEADER}== HARD RESETTING NODE =={Typgpy.ENDC}\n")
+                print(f"{Typgpy.HEADER}This block 1 hash: {fb_hash} !=  Chain block 1 hash: {fb_ref_hash}{Typgpy.ENDC}")
+                subprocess.call(["kill", "-9", f"{pid}"])
+                subprocess.call(["killall", "-9", "harmony"])
+                time.sleep(10)  # Sleep to ensure node is terminated b4 restart
+                pid = start_node(bls_key_folder, args.network, clean=args.clean)
+                setup_validator(validator_info, bls_keys)
+                wait_for_node_liveliness()
+                while get_latest_header('http://localhost:9500/')['blockNumber'] == 0:
+                    pass
+                directory_lock.acquire()
             val_chain_info = get_validator_information(validator_info["validator-addr"], args.endpoint)
             print(f"{Typgpy.HEADER}EPOS status:  {Typgpy.OKGREEN}{val_chain_info['epos-status']}{Typgpy.ENDC}")
             print(f"{Typgpy.HEADER}Current epoch performance: {Typgpy.OKGREEN}"
                   f"{json.dumps(val_chain_info['current-epoch-performance'], indent=4)}{Typgpy.ENDC}")
-            if args.auto_active:
-                check_and_activate(validator_info["validator-addr"], val_chain_info['epos-status'])
-        except (json.JSONDecodeError, requests.exceptions.ConnectionError, RuntimeError) as e:
-            print(f"{Typgpy.FAIL}Error when checking validator. Error: {e}{Typgpy.ENDC}")
-        try:
             print(f"{Typgpy.HEADER}This node's latest header at {datetime.datetime.utcnow()}: "
                   f"{Typgpy.OKGREEN}{json.dumps(get_latest_headers('http://localhost:9500/'), indent=4)}"
                   f"{Typgpy.ENDC}")
-        except (json.JSONDecodeError, requests.exceptions.ConnectionError, RuntimeError) as e:
-            print(f"{Typgpy.HEADER}This node's latest header at {datetime.datetime.utcnow()}: "
-                  f"{Typgpy.OKGREEN}{json.dumps(get_latest_header('http://localhost:9500/'), indent=4)}"
-                  f"{Typgpy.ENDC}")
-        time.sleep(8)
+            if args.auto_active:
+                check_and_activate(validator_info["validator-addr"], val_chain_info['epos-status'])
+            time.sleep(8)
+            curr_time = time.time()
+            directory_lock.release()
+        except (json.JSONDecodeError, requests.exceptions.ConnectionError,
+                RuntimeError, ConnectionError, KeyError) as e:
+            print(f"{Typgpy.FAIL}Error when checking validator. Error: {e}{Typgpy.ENDC}")
+            curr_time = time.time()
+            directory_lock.release()
 
 
 if __name__ == "__main__":

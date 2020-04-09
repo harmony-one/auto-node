@@ -4,7 +4,7 @@ SHELL ["/bin/bash", "-c"]
 
 WORKDIR /root
 
-RUN apt update && apt upgrade -y && apt install psmisc dnsutils curl python3 python3-pip -y
+RUN apt update && apt upgrade -y && apt install psmisc dnsutils curl python3 python3-pip tmux -y
 
 RUN mkdir -p /root/node
 
@@ -14,9 +14,11 @@ RUN python3 -m pip install requests
 
 COPY run.py /root
 
+COPY run.sh /root
+
 COPY utils.py /root
 
-RUN chmod +x /root/run.py
+RUN chmod +x /root/run.sh
 
 COPY scripts/info.sh /root
 
@@ -50,10 +52,14 @@ COPY scripts/version.sh /root
 
 RUN chmod +x /root/version.sh
 
+COPY scripts/attach.sh /root
+
+RUN chmod +x /root/attach.sh
+
 COPY scripts/create_validator.sh /root
 
 COPY scripts/create_validator.py /root
 
 RUN chmod +x /root/create_validator.sh
 
-ENTRYPOINT ["/root/run.py"]
+ENTRYPOINT ["/root/run.sh"]
