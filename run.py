@@ -403,8 +403,14 @@ def run():
     while curr_time - start_time < args.duration:
         try:
             directory_lock.acquire()
-            fb_ref_hash = get_block_by_number(1, shard_endpoint).get('hash', None)
-            fb_hash = get_block_by_number(1, 'http://localhost:9500/').get('hash', None)
+            ref_block1 = get_block_by_number(1, shard_endpoint)
+            if ref_block1:
+                fb_ref_hash = ref_block1.get('hash', None)
+            else:
+                time.sleep(8)
+                continue
+            block1 = get_block_by_number(1, 'http://localhost:9500/')
+            fb_hash = block1.get('hash', None) if block1 else None
             if args.auto_reset and fb_hash is not None and fb_ref_hash is not None and fb_hash != fb_ref_hash:
                 directory_lock.release()
                 print(f"\n{Typgpy.HEADER}== HARD RESETTING NODE =={Typgpy.ENDC}\n")
@@ -431,7 +437,7 @@ def run():
             curr_time = time.time()
             directory_lock.release()
         except (json.JSONDecodeError, requests.exceptions.ConnectionError,
-                RuntimeError, ConnectionError, KeyError) as e:
+                RuntimeError, ConnectionError, KeyError, AttributeError) as e:
             print(f"{Typgpy.FAIL}Error when checking validator. Error: {e}{Typgpy.ENDC}")
             curr_time = time.time()
             directory_lock.release()
