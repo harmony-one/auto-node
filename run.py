@@ -249,16 +249,18 @@ def start_node(bls_keys_path, network, clean=False):
     return pid
 
 
-def wait_for_node_liveliness(endpoint):
+def wait_for_node_liveliness(endpoint, verbose=True):
     alive = False
     while not alive:
         try:
             get_latest_headers(endpoint)
             alive = True
-        except requests.exceptions.ConnectionError:
+        except (json.JSONDecodeError, json.decoder.JSONDecodeError, requests.exceptions.ConnectionError,
+                RuntimeError, KeyError, AttributeError):
             time.sleep(.5)
             pass
-    print(f"{Typgpy.HEADER}[!] {endpoint} is alive!{Typgpy.ENDC}")
+    if verbose:
+        print(f"{Typgpy.HEADER}[!] {endpoint} is alive!{Typgpy.ENDC}")
 
 
 def add_key_to_validator(val_info, bls_pub_keys, passphrase):
@@ -401,6 +403,8 @@ def run():
         pass
     curr_time = time.time()
     while curr_time - start_time < args.duration:
+        wait_for_node_liveliness(args.endpoint, verbose=False)
+        wait_for_node_liveliness(shard_endpoint, verbose=False)
         try:
             ref_block1 = get_block_by_number(1, shard_endpoint)
             if ref_block1:
@@ -432,7 +436,7 @@ def run():
                 check_and_activate(validator_info["validator-addr"], val_chain_info['epos-status'])
             time.sleep(8)
             curr_time = time.time()
-        except (json.JSONDecodeError, requests.exceptions.ConnectionError,
+        except (json.JSONDecodeError, json.decoder.JSONDecodeError, requests.exceptions.ConnectionError,
                 RuntimeError, ConnectionError, KeyError, AttributeError) as e:
             traceback.print_exc(file=sys.stdout)
             print(f"{Typgpy.FAIL}Error on main node run: {e}{Typgpy.ENDC}")
