@@ -249,16 +249,16 @@ def start_node(bls_keys_path, network, clean=False):
     return pid
 
 
-def wait_for_node_liveliness():
+def wait_for_node_liveliness(endpoint):
     alive = False
     while not alive:
         try:
-            get_latest_headers("http://localhost:9500/")
+            get_latest_headers(endpoint)
             alive = True
         except requests.exceptions.ConnectionError:
             time.sleep(.5)
             pass
-    print(f"{Typgpy.HEADER}\n[!] Node is alive!\n{Typgpy.ENDC}")
+    print(f"{Typgpy.HEADER}[!] {endpoint} is alive!{Typgpy.ENDC}")
 
 
 def add_key_to_validator(val_info, bls_pub_keys, passphrase):
@@ -291,7 +291,7 @@ def add_key_to_validator(val_info, bls_pub_keys, passphrase):
 
 def verify_node_sync():
     print(f"{Typgpy.OKBLUE}Verifying Node Sync...{Typgpy.ENDC}")
-    wait_for_node_liveliness()
+    wait_for_node_liveliness("http://localhost:9500/")
     curr_headers = get_latest_headers("http://localhost:9500/")
     curr_epoch_shard = curr_headers['shard-chain-header']['epoch']
     curr_epoch_beacon = curr_headers['beacon-chain-header']['epoch']
@@ -396,13 +396,12 @@ def run():
     start_time = time.time()
     pid = start_node(bls_key_folder, args.network, clean=args.clean)
     setup_validator(validator_info, bls_keys)
-    wait_for_node_liveliness()
+    wait_for_node_liveliness("http://localhost:9500/")
     while get_latest_header('http://localhost:9500/')['blockNumber'] == 0:
         pass
     curr_time = time.time()
     while curr_time - start_time < args.duration:
         try:
-            directory_lock.acquire()
             ref_block1 = get_block_by_number(1, shard_endpoint)
             if ref_block1:
                 fb_ref_hash = ref_block1.get('hash', None)
@@ -412,7 +411,6 @@ def run():
             block1 = get_block_by_number(1, 'http://localhost:9500/')
             fb_hash = block1.get('hash', None) if block1 else None
             if args.auto_reset and fb_hash is not None and fb_ref_hash is not None and fb_hash != fb_ref_hash:
-                directory_lock.release()
                 print(f"\n{Typgpy.HEADER}== HARD RESETTING NODE =={Typgpy.ENDC}\n")
                 print(f"{Typgpy.HEADER}This block 1 hash: {fb_hash} !=  Chain block 1 hash: {fb_ref_hash}{Typgpy.ENDC}")
                 subprocess.call(["kill", "-9", f"{pid}"])
@@ -420,10 +418,9 @@ def run():
                 time.sleep(10)  # Sleep to ensure node is terminated b4 restart
                 pid = start_node(bls_key_folder, args.network, clean=args.clean)
                 setup_validator(validator_info, bls_keys)
-                wait_for_node_liveliness()
+                wait_for_node_liveliness("http://localhost:9500/")
                 while get_latest_header('http://localhost:9500/')['blockNumber'] == 0:
                     pass
-                directory_lock.acquire()
             val_chain_info = get_validator_information(validator_info["validator-addr"], args.endpoint)
             print(f"{Typgpy.HEADER}EPOS status:  {Typgpy.OKGREEN}{val_chain_info['epos-status']}{Typgpy.ENDC}")
             print(f"{Typgpy.HEADER}Current epoch performance: {Typgpy.OKGREEN}"
@@ -435,12 +432,12 @@ def run():
                 check_and_activate(validator_info["validator-addr"], val_chain_info['epos-status'])
             time.sleep(8)
             curr_time = time.time()
-            directory_lock.release()
         except (json.JSONDecodeError, requests.exceptions.ConnectionError,
                 RuntimeError, ConnectionError, KeyError, AttributeError) as e:
-            print(f"{Typgpy.FAIL}Error when checking validator. Error: {e}{Typgpy.ENDC}")
-            curr_time = time.time()
-            directory_lock.release()
+            traceback.print_exc(file=sys.stdout)
+            print(f"{Typgpy.FAIL}Error on main node run: {e}{Typgpy.ENDC}")
+            wait_for_node_liveliness(args.endpoint)
+            wait_for_node_liveliness(shard_endpoint)
 
 
 if __name__ == "__main__":
