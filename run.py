@@ -258,7 +258,7 @@ def wait_for_node_liveliness():
         except requests.exceptions.ConnectionError:
             time.sleep(.5)
             pass
-    print(f"{Typgpy.HEADER}\n[!] Node Launched!\n{Typgpy.ENDC}")
+    print(f"{Typgpy.HEADER}\n[!] Node is alive!\n{Typgpy.ENDC}")
 
 
 def add_key_to_validator(val_info, bls_pub_keys, passphrase):
@@ -300,11 +300,15 @@ def verify_node_sync():
         sys.stdout.write(f"\rWaiting for node to sync: shard epoch ({curr_epoch_shard}/{ref_epoch}) "
                          f"& beacon epoch ({curr_epoch_beacon}/{ref_epoch})")
         sys.stdout.flush()
-        time.sleep(1)
-        curr_headers = get_latest_headers("http://localhost:9500/")
-        curr_epoch_shard = curr_headers['shard-chain-header']['epoch']
-        curr_epoch_beacon = curr_headers['beacon-chain-header']['epoch']
-        ref_epoch = get_latest_header(args.endpoint)['epoch']
+        time.sleep(2)
+        try:
+            curr_headers = get_latest_headers("http://localhost:9500/")
+            curr_epoch_shard = curr_headers['shard-chain-header']['epoch']
+            curr_epoch_beacon = curr_headers['beacon-chain-header']['epoch']
+            ref_epoch = get_latest_header(args.endpoint)['epoch']
+        except (ConnectionError, requests.exceptions.ConnectionError, KeyError) as e:
+            print(f"{Typgpy.FAIL}Warning failed to verify node sync {e}{Typgpy.ENDC}")
+            pass  # Ignore any errors and try again
     print(f"\n{Typgpy.OKGREEN}Node synced to current epoch{Typgpy.ENDC}")
 
 
