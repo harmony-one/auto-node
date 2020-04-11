@@ -267,15 +267,17 @@ def run_auto_node(bls_keys, shard_endpoint):
             if not can_check_blockchain(shard_endpoint):
                 time.sleep(8)
                 continue
-        val_chain_info = get_validator_information(validator_info["validator-addr"], args.endpoint)
-        print(f"{Typgpy.HEADER}EPOS status: {Typgpy.OKGREEN}{val_chain_info['epos-status']}{Typgpy.ENDC}")
-        print(f"{Typgpy.HEADER}Current epoch performance: {Typgpy.OKGREEN}"
-              f"{json.dumps(val_chain_info['current-epoch-performance'], indent=4)}{Typgpy.ENDC}")
+        all_val = json_load(cli.single_call(f"hmy --node={args.endpoint} blockchain validator all"))["result"]
+        if validator_info["validator-addr"] in all_val:
+            val_chain_info = get_validator_information(validator_info["validator-addr"], args.endpoint)
+            print(f"{Typgpy.HEADER}EPOS status: {Typgpy.OKGREEN}{val_chain_info['epos-status']}{Typgpy.ENDC}")
+            print(f"{Typgpy.HEADER}Current epoch performance: {Typgpy.OKGREEN}"
+                  f"{json.dumps(val_chain_info['current-epoch-performance'], indent=4)}{Typgpy.ENDC}")
+            if args.auto_active:
+                check_and_activate(validator_info["validator-addr"], val_chain_info['epos-status'])
         print(f"{Typgpy.HEADER}This node's latest header at {datetime.datetime.utcnow()}: "
               f"{Typgpy.OKGREEN}{json.dumps(get_latest_headers('http://localhost:9500/'), indent=4)}"
               f"{Typgpy.ENDC}")
-        if args.auto_active:
-            check_and_activate(validator_info["validator-addr"], val_chain_info['epos-status'])
         time.sleep(8)
         curr_time = time.time()
 
