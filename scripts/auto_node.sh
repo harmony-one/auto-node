@@ -7,6 +7,7 @@ fi
 
 validator_config_path="./validator_config.json"
 bls_keys_path="./harmony_bls_keys"
+docker_img="harmonyone/sentry"
 container_name="harmony_node"
 case $1 in
   --container=*)
@@ -27,7 +28,7 @@ function setup() {
   "rate": 0.1,
   "max-rate": 0.75,
   "max-change-rate": 0.05,
-  "max-total-delegation": 1000000.0,
+  "max-total-delegation": 10000000.0,
   "details": "None"
 }' > $validator_config_path
   fi
@@ -78,9 +79,13 @@ case "${1}" in
     # Warning: Assumption about CLI files, might have to change in the future...
     eval docker run --name "${container_name}" -v "$(pwd)/.${container_name}:/root/node" \
      -v "${HOME}/.hmy_cli/:/root/.hmy_cli" -v "$(pwd)/${bls_keys_path}:/root/harmony_bls_keys" \
-     --user root -p 9000-9999:9000-9999 harmonyone/sentry "${@:2}" &
+     --user root -p 9000-9999:9000-9999 $docker_img "${@:2}" &
 
-    if [[ "${*:2}" != *" --auto-interact"* ]]; then
+    if [[ "${*:2}" != *" --auto-interact"*
+       || "${*:2}" != *" --wallet-passphrase "*
+       || "${*:2}" != *" --wallet-passphrase"
+       || "${*:2}" != *" --bls-passphrase "*
+       || "${*:2}" != *" --bls-passphrase" ]]; then
       until docker ps | grep "${container_name}"
       do
           sleep 1
@@ -103,8 +108,11 @@ case "${1}" in
   "balances")
     docker exec -it "${container_name}" /root/balances.sh
     ;;
-  "version")
+  "node-version")
     docker exec -it "${container_name}" /root/version.sh
+    ;;
+  "version")
+    docker images --no-trunc --quiet $docker_img | head -n1
     ;;
   "header")
     docker exec -it "${container_name}" /root/header.sh
@@ -166,10 +174,11 @@ case "${1}" in
                                                 for other params, this needs to be ran. Use '-h' for run help msg
       [--container=<name>] create-validator    Send a create validator transaction with the given config
       [--container=<name>] activate            Make validator associated with node elegable for election in next epoch
-      [--container=<name>] deactivate            Make validator associated with node NOT elegable for election in next epoch
+      [--container=<name>] deactivate          Make validator associated with node NOT elegable for election in next epoch
       [--container=<name>] info                Fetch information for validator associated with node
       [--container=<name>] balances            Fetch balances for validator associated with node
-      [--container=<name>] version             Fetch the version for the harmony node binary and node.sh
+      [--container=<name>] node-version        Fetch the version for the harmony node binary and node.sh
+      [--container=<name>] version             Fetch the of the Docker image.
       [--container=<name>] header              Fetch the latest header (shard chain) for the node
       [--container=<name>] headers             Fetch the latest headers (beacon and shard chain) for the node
       [--container=<name>] attach              Attach to the running node

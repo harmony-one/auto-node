@@ -1,40 +1,28 @@
 #!/usr/bin/env python3
 import argparse
-import os
-import time
-import stat
-import sys
-import subprocess
+import shutil
 import datetime
 import random
-import shutil
 import getpass
 import traceback
 from argparse import RawTextHelpFormatter
-from threading import Lock
-
-from pyhmy import (
-    Typgpy,
-    json_load,
-)
-from pyhmy import cli
 
 from utils import *
 
 with open("./node/validator_config.json") as f:  # WARNING: assumption of copied file on docker run.
     validator_info = json.load(f)
-wallet_passphrase = ""  # WARNING: default passphrase is set here.
+imported_bls_key_folder = "/root/harmony_bls_keys"  # WARNING: assumption made on auto_node.sh
 bls_key_folder = "/root/node/bls_keys"
 shutil.rmtree(bls_key_folder, ignore_errors=True)
 os.makedirs(bls_key_folder, exist_ok=True)
-imported_bls_key_folder = "/root/harmony_bls_keys"  # WARNING: assumption made on auto_node.sh
-node_sh_out_path = "/root/node/node_sh_logs/out.log"  # WARNING: assumption made on auto_node.sh
-node_sh_err_path = "/root/node/node_sh_logs/err.log"  # WARNING: assumption made on auto_node.sh
-os.makedirs("/root/node/node_sh_logs", exist_ok=True)  # WARNING: assumption made on auto_node.sh
 
-env = os.environ
-node_script_source = "https://raw.githubusercontent.com/harmony-one/harmony/master/scripts/node.sh"
-directory_lock = Lock()
+node_pid = -1
+interaction_memory = set()
+
+
+class INTERACT:
+    ADD_BLS = 0
+    CREATE_VALIDATOR = 1
 
 
 def parse_args():
@@ -75,18 +63,6 @@ def parse_args():
     return parser.parse_args()
 
 
-def setup():
-    cli.environment.update(cli.download("./bin/hmy", replace=False))
-    cli.set_binary("./bin/hmy")
-
-
-def check_min_bal_on_s0(address, amount, endpoint=default_endpoint):
-    balances = json_load(cli.single_call(f"hmy --node={endpoint} balances {address}"))
-    for bal in balances:
-        if bal['shard'] == 0:
-            return bal['amount'] >= amount
-
-
 def import_validator_address():
     if validator_info["validator-addr"] is None:
         print(f"{Typgpy.OKBLUE}Selecting random address in shared CLI keystore to be validator.{Typgpy.ENDC}")
@@ -108,7 +84,7 @@ def import_bls_passphrase():
     elif args.bls_passphrase_string:
         return args.bls_passphrase_string
     else:
-        return ""  # WARNING: default passphrase assumption for CLI
+        return default_cli_passphrase
 
 
 def import_wallet_passphrase():
@@ -117,7 +93,7 @@ def import_wallet_passphrase():
     elif args.wallet_passphrase_string:
         return args.wallet_passphrase_string
     else:
-        return ""  # WARNING: default passphrase assumption for CLI
+        return default_cli_passphrase
 
 
 def import_bls(passphrase):
@@ -178,7 +154,6 @@ def import_bls(passphrase):
 
 
 def import_node_info():
-    global wallet_passphrase
     print(f"{Typgpy.HEADER}Importing node info...{Typgpy.ENDC}")
 
     address = import_validator_address()
@@ -224,147 +199,6 @@ def import_node_info():
     return public_bls_keys
 
 
-def start_node(bls_keys_path, network, clean=False):
-    directory_lock.acquire()
-    os.chdir("/root/node")
-    if os.path.isfile("/root/node/node.sh"):
-        os.remove("/root/node/node.sh")
-    r = requests.get(node_script_source)
-    with open("node.sh", 'w') as f:
-        node_sh = r.content.decode()
-        # WARNING: Hack untill node.sh is changed for auto-node.
-        node_sh = node_sh.replace("save_pass_file=false", 'save_pass_file=true')
-        node_sh = node_sh.replace("sudo", '')
-        f.write(node_sh)
-    st = os.stat("node.sh")
-    os.chmod("node.sh", st.st_mode | stat.S_IEXEC)
-    node_args = ["./node.sh", "-N", network, "-z", "-f", bls_keys_path, "-M"]
-    if clean:
-        node_args.append("-c")
-    print(f"{Typgpy.HEADER}Starting node!{Typgpy.ENDC}")
-    directory_lock.release()
-    with open(node_sh_out_path, 'w+') as fo:
-        with open(node_sh_err_path, 'w+') as fe:
-            pid = subprocess.Popen(node_args, env=env, stdout=fo, stderr=fe).pid
-    return pid
-
-
-def wait_for_node_liveliness(endpoint, verbose=True):
-    alive = False
-    while not alive:
-        try:
-            get_latest_headers(endpoint)
-            alive = True
-        except (json.JSONDecodeError, json.decoder.JSONDecodeError, requests.exceptions.ConnectionError,
-                RuntimeError, KeyError, AttributeError):
-            time.sleep(.5)
-            pass
-    if verbose:
-        print(f"{Typgpy.HEADER}[!] {endpoint} is alive!{Typgpy.ENDC}")
-
-
-def add_key_to_validator(val_info, bls_pub_keys, passphrase):
-    print(f"{Typgpy.HEADER}{val_info['validator-addr']} already in list of validators!{Typgpy.ENDC}")
-    chain_val_info = json_load(cli.single_call(f"hmy --node={args.endpoint} blockchain "
-                                               f"validator information {val_info['validator-addr']}"))["result"]
-    bls_keys = chain_val_info["validator"]["bls-public-keys"]
-    directory_lock.acquire()
-    for k in bls_pub_keys:
-        if k not in bls_keys:  # Add imported BLS key to existing validator if needed
-            print(f"{Typgpy.OKBLUE}adding bls key: {k} "
-                  f"to validator: {val_info['validator-addr']}{Typgpy.ENDC}")
-            os.chdir("/root/bin")
-            proc = cli.expect_call(f"hmy --node={args.endpoint} staking edit-validator "
-                                   f"--validator-addr {val_info['validator-addr']} "
-                                   f"--add-bls-key {k} --passphrase-file /.wallet_passphrase ")
-            proc.expect("Enter the bls passphrase:\r\n")
-            proc.sendline(passphrase)
-            proc.expect(pexpect.EOF)
-            print(f"\n{Typgpy.OKBLUE}Edit-validator transaction response: "
-                  f"{Typgpy.OKGREEN}{proc.before.decode()}{Typgpy.ENDC}")
-    directory_lock.release()
-    new_val_info = json_load(cli.single_call(f"hmy --node={args.endpoint} blockchain "
-                                             f"validator information {val_info['validator-addr']}"))["result"]
-    new_bls_keys = new_val_info["validator"]["bls-public-keys"]
-    print(f"{Typgpy.OKBLUE}{val_info['validator-addr']} updated bls keys: {new_bls_keys}{Typgpy.ENDC}")
-    verify_node_sync()
-    print()
-
-
-def verify_node_sync():
-    print(f"{Typgpy.OKBLUE}Verifying Node Sync...{Typgpy.ENDC}")
-    wait_for_node_liveliness("http://localhost:9500/")
-    curr_headers = get_latest_headers("http://localhost:9500/")
-    curr_epoch_shard = curr_headers['shard-chain-header']['epoch']
-    curr_epoch_beacon = curr_headers['beacon-chain-header']['epoch']
-    ref_epoch = get_latest_header(args.endpoint)['epoch']
-    while curr_epoch_shard != ref_epoch or curr_epoch_beacon != ref_epoch:
-        sys.stdout.write(f"\rWaiting for node to sync: shard epoch ({curr_epoch_shard}/{ref_epoch}) "
-                         f"& beacon epoch ({curr_epoch_beacon}/{ref_epoch})")
-        sys.stdout.flush()
-        time.sleep(2)
-        try:
-            curr_headers = get_latest_headers("http://localhost:9500/")
-            curr_epoch_shard = curr_headers['shard-chain-header']['epoch']
-            curr_epoch_beacon = curr_headers['beacon-chain-header']['epoch']
-            ref_epoch = get_latest_header(args.endpoint)['epoch']
-        except (ConnectionError, requests.exceptions.ConnectionError, KeyError) as e:
-            print(f"{Typgpy.FAIL}Warning failed to verify node sync {e}{Typgpy.ENDC}")
-            pass  # Ignore any errors and try again
-    print(f"\n{Typgpy.OKGREEN}Node synced to current epoch{Typgpy.ENDC}")
-
-
-def create_new_validator(val_info, bls_pub_keys, passphrase):
-    print(f"{Typgpy.HEADER}Checking validator...{Typgpy.ENDC}")
-    staking_epoch = get_staking_epoch(args.endpoint)
-    curr_epoch = get_current_epoch(args.endpoint)
-    print(f"{Typgpy.OKBLUE}Verifying Epoch...{Typgpy.ENDC}")
-    while curr_epoch < staking_epoch:  # WARNING: using staking epoch for extra security of configs.
-        sys.stdout.write(f"\rWaiting for staking epoch ({staking_epoch}) -- current epoch: {curr_epoch}")
-        sys.stdout.flush()
-        time.sleep(8)  # Assumption of 8 second block time...
-        curr_epoch = get_current_epoch(args.endpoint)
-    print(f"{Typgpy.OKGREEN}Network is at or past staking epoch{Typgpy.ENDC}")
-    print(f"{Typgpy.OKBLUE}Verifying Balance...{Typgpy.ENDC}")
-    # Check validator amount +1 for gas fees.
-    if not check_min_bal_on_s0(val_info['validator-addr'], val_info['amount'] + 1, args.endpoint):
-        print(f"{Typgpy.FAIL}Cannot create validator, {val_info['validator-addr']} "
-              f"does not have sufficient funds.{Typgpy.ENDC}")
-        return
-    else:
-        print(f"{Typgpy.OKGREEN}Address: {val_info['validator-addr']} has enough funds{Typgpy.ENDC}")
-    verify_node_sync()
-    print(f"\n{Typgpy.OKBLUE}Sending create validator transaction...{Typgpy.ENDC}")
-    send_create_validator_tx(val_info, bls_pub_keys, passphrase, args.endpoint)
-    print()
-
-
-def send_create_validator_tx(val_info, bls_pub_keys, passphrase, endpoint):
-    directory_lock.acquire()
-    os.chdir("/root/bin")  # Needed for implicit BLS key...
-    proc = cli.expect_call(f'hmy --node={endpoint} staking create-validator '
-                           f'--validator-addr {val_info["validator-addr"]} --name "{val_info["name"]}" '
-                           f'--identity "{val_info["identity"]}" --website "{val_info["website"]}" '
-                           f'--security-contact "{val_info["security-contact"]}" --details "{val_info["details"]}" '
-                           f'--rate {val_info["rate"]} --max-rate {val_info["max-rate"]} '
-                           f'--max-change-rate {val_info["max-change-rate"]} '
-                           f'--min-self-delegation {val_info["min-self-delegation"]} '
-                           f'--max-total-delegation {val_info["max-total-delegation"]} '
-                           f'--amount {val_info["amount"]} --bls-pubkeys {",".join(bls_pub_keys)} '
-                           f'--passphrase-file /.wallet_passphrase ')
-    for _ in range(len(bls_pub_keys)):
-        proc.expect("Enter the bls passphrase:\r\n")  # WARNING: assumption about interaction
-        proc.sendline(passphrase)
-    proc.expect(pexpect.EOF)
-    try:
-        response = json_load(proc.before.decode())
-        print(f"{Typgpy.OKBLUE}Created Validator!\n{Typgpy.OKGREEN}{json.dumps(response, indent=4)}{Typgpy.ENDC}")
-    except (json.JSONDecodeError, RuntimeError, pexpect.exceptions):
-        print(f"{Typgpy.FAIL}Failed to create validator!\n\tError: {e}"
-              f"\n\tMsg:\n{proc.before.decode()}{Typgpy.ENDC}")
-    directory_lock.release()
-
-
 def setup_validator(val_info, bls_pub_keys):
     print(f"{Typgpy.OKBLUE}Create validator config\n{Typgpy.OKGREEN}{json.dumps(val_info, indent=4)}{Typgpy.ENDC}")
     with open("/.bls_passphrase", 'r') as fr:
@@ -372,15 +206,19 @@ def setup_validator(val_info, bls_pub_keys):
 
     # Check BLS key with validator if it exists
     all_val = json_load(cli.single_call(f"hmy --node={args.endpoint} blockchain validator all"))["result"]
-    if val_info['validator-addr'] in all_val \
-            and (args.auto_interaction
-                 or input("Add BLS key to existing validator? [Y]/n \n> ") in {'Y', 'y', 'yes', 'Yes'}):
-        print(f"{Typgpy.HEADER}Editing validator...{Typgpy.ENDC}")
-        add_key_to_validator(val_info, bls_pub_keys, bls_passphrase)
-    elif val_info['validator-addr'] not in all_val \
-            and (args.auto_interaction or input("Create validator? [Y]/n \n> ") in {'Y', 'y', 'yes', 'Yes'}):
-        print(f"{Typgpy.HEADER}Creating new validator...{Typgpy.ENDC}")
-        create_new_validator(val_info, bls_pub_keys, bls_passphrase)
+    if val_info['validator-addr'] in all_val:
+        if args.auto_interaction \
+                or INTERACT.CREATE_VALIDATOR in interaction_memory or INTERACT.ADD_BLS in interaction_memory \
+                or input("Add BLS key to existing validator? [Y]/n \n> ") in {'Y', 'y', 'yes', 'Yes'}:
+            print(f"{Typgpy.HEADER}Editing validator...{Typgpy.ENDC}")
+            interaction_memory.add(INTERACT.ADD_BLS)
+            add_bls_key_to_validator(val_info, bls_pub_keys, bls_passphrase, args.endpoint)
+    elif val_info['validator-addr'] not in all_val:
+        if args.auto_interaction or INTERACT.CREATE_VALIDATOR in interaction_memory \
+                or input("Create validator? [Y]/n \n> ") in {'Y', 'y', 'yes', 'Yes'}:
+            print(f"{Typgpy.HEADER}Creating new validator...{Typgpy.ENDC}")
+            interaction_memory.add(INTERACT.CREATE_VALIDATOR)
+            create_new_validator(val_info, bls_pub_keys, bls_passphrase, args.endpoint)
 
 
 def check_and_activate(address, epos_status_msg):
@@ -390,65 +228,91 @@ def check_and_activate(address, epos_status_msg):
                         f"--active true --node {args.endpoint} --passphrase-file /.wallet_passphrase ")
 
 
-def run():
-    bls_keys = import_node_info()
-    shard = json_load(cli.single_call(f"hmy utility shard-for-bls {bls_keys[0].replace('0x', '')} "
-                                      f"-n {args.endpoint}"))['shard-id']
-    shard_endpoint = get_sharding_structure(args.endpoint)[shard]["http"]
+def can_check_blockchain(shard_endpoint):
+    """
+    Checks the node's blockchain against the given shard_endpoint.
+    Returns True if success, False if unable to check.
+    Raises a RuntimeError if blockchain does not match.
+    """
+    ref_block1 = get_block_by_number(1, shard_endpoint)
+    if ref_block1:
+        fb_ref_hash = ref_block1.get('hash', None)
+    else:
+        return False
+    block1 = get_block_by_number(1, 'http://localhost:9500/')
+    fb_hash = block1.get('hash', None) if block1 else None
+    if args.auto_reset and fb_hash is not None and fb_ref_hash is not None and fb_hash != fb_ref_hash:
+        raise RuntimeError(f"Blockchains don't match! "
+                           f"Block 1 hash of chain: {fb_ref_hash} != Block 1 hash of node {fb_hash}")
+    return True
+
+
+def run_auto_node(bls_keys, shard_endpoint):
+    """
+    Assumption is that network is alive at this point.
+    """
+    global node_pid
     start_time = time.time()
-    pid = start_node(bls_key_folder, args.network, clean=args.clean)
+    subprocess.call(["kill", "-2", f"{node_pid}"])
+    subprocess.call(["killall", "harmony"])
+    time.sleep(5)  # Sleep to ensure node is terminated b4 restart
+    node_pid = start_node(bls_key_folder, args.network, clean=args.clean)
     setup_validator(validator_info, bls_keys)
     wait_for_node_liveliness("http://localhost:9500/")
     while get_latest_header('http://localhost:9500/')['blockNumber'] == 0:
         pass
     curr_time = time.time()
     while curr_time - start_time < args.duration:
-        wait_for_node_liveliness(args.endpoint, verbose=False)
-        wait_for_node_liveliness(shard_endpoint, verbose=False)
-        try:
-            ref_block1 = get_block_by_number(1, shard_endpoint)
-            if ref_block1:
-                fb_ref_hash = ref_block1.get('hash', None)
-            else:
+        if args.auto_reset:
+            if not can_check_blockchain(shard_endpoint):
                 time.sleep(8)
                 continue
-            block1 = get_block_by_number(1, 'http://localhost:9500/')
-            fb_hash = block1.get('hash', None) if block1 else None
-            if args.auto_reset and fb_hash is not None and fb_ref_hash is not None and fb_hash != fb_ref_hash:
-                print(f"\n{Typgpy.HEADER}== HARD RESETTING NODE =={Typgpy.ENDC}\n")
-                print(f"{Typgpy.HEADER}This block 1 hash: {fb_hash} !=  Chain block 1 hash: {fb_ref_hash}{Typgpy.ENDC}")
-                subprocess.call(["kill", "-9", f"{pid}"])
-                subprocess.call(["killall", "-9", "harmony"])
-                time.sleep(10)  # Sleep to ensure node is terminated b4 restart
-                pid = start_node(bls_key_folder, args.network, clean=args.clean)
-                setup_validator(validator_info, bls_keys)
-                wait_for_node_liveliness("http://localhost:9500/")
-                while get_latest_header('http://localhost:9500/')['blockNumber'] == 0:
-                    pass
-            val_chain_info = get_validator_information(validator_info["validator-addr"], args.endpoint)
-            print(f"{Typgpy.HEADER}EPOS status:  {Typgpy.OKGREEN}{val_chain_info['epos-status']}{Typgpy.ENDC}")
-            print(f"{Typgpy.HEADER}Current epoch performance: {Typgpy.OKGREEN}"
-                  f"{json.dumps(val_chain_info['current-epoch-performance'], indent=4)}{Typgpy.ENDC}")
-            print(f"{Typgpy.HEADER}This node's latest header at {datetime.datetime.utcnow()}: "
-                  f"{Typgpy.OKGREEN}{json.dumps(get_latest_headers('http://localhost:9500/'), indent=4)}"
-                  f"{Typgpy.ENDC}")
-            if args.auto_active:
-                check_and_activate(validator_info["validator-addr"], val_chain_info['epos-status'])
-            time.sleep(8)
-            curr_time = time.time()
-        except (json.JSONDecodeError, json.decoder.JSONDecodeError, requests.exceptions.ConnectionError,
-                RuntimeError, ConnectionError, KeyError, AttributeError) as e:
+        val_chain_info = get_validator_information(validator_info["validator-addr"], args.endpoint)
+        print(f"{Typgpy.HEADER}EPOS status: {Typgpy.OKGREEN}{val_chain_info['epos-status']}{Typgpy.ENDC}")
+        print(f"{Typgpy.HEADER}Current epoch performance: {Typgpy.OKGREEN}"
+              f"{json.dumps(val_chain_info['current-epoch-performance'], indent=4)}{Typgpy.ENDC}")
+        print(f"{Typgpy.HEADER}This node's latest header at {datetime.datetime.utcnow()}: "
+              f"{Typgpy.OKGREEN}{json.dumps(get_latest_headers('http://localhost:9500/'), indent=4)}"
+              f"{Typgpy.ENDC}")
+        if args.auto_active:
+            check_and_activate(validator_info["validator-addr"], val_chain_info['epos-status'])
+        time.sleep(8)
+        curr_time = time.time()
+
+
+def run_auto_node_with_restart(bls_keys, shard_endpoint):
+    """
+    Assumption is that network is alive at this point.
+    """
+    while True:
+        try:
+            run_auto_node(bls_keys, shard_endpoint)
+        except Exception as e:  # Catch all errors to not kill node.
+            if isinstance(e, KeyboardInterrupt):
+                print(f"{Typgpy.OKGREEN}Killing all harmony processes...{Typgpy.ENDC}")
+                subprocess.call(["killall", "harmony"])
+                exit()
             traceback.print_exc(file=sys.stdout)
-            print(f"{Typgpy.FAIL}Error on main node run: {e}{Typgpy.ENDC}")
-            wait_for_node_liveliness(args.endpoint)
-            wait_for_node_liveliness(shard_endpoint)
+            print(f"{Typgpy.FAIL}Auto node failed with error: {e}{Typgpy.ENDC}")
+            print(f"{Typgpy.HEADER}Waiting for network liveliness before restarting...{Typgpy.ENDC}")
+            wait_for_node_liveliness(args.endpoint, verbose=False)
+            wait_for_node_liveliness(shard_endpoint, verbose=False)
+            print(f"{Typgpy.HEADER}Restarting auto_node with saved interaction.{Typgpy.ENDC}")
 
 
 if __name__ == "__main__":
     args = parse_args()
     setup()
     try:
-        run()
+        bls_keys = import_node_info()
+        wait_for_node_liveliness(args.endpoint, verbose=True)
+        shard = json_load(cli.single_call(f"hmy utility shard-for-bls {bls_keys[0].replace('0x', '')} "
+                                          f"-n {args.endpoint}"))['shard-id']
+        shard_endpoint = get_sharding_structure(args.endpoint)[shard]["http"]
+        if args.auto_reset:
+            run_auto_node_with_restart(bls_keys, shard_endpoint)
+        else:
+            run_auto_node(bls_keys, shard_endpoint)
     except Exception as e:
         if isinstance(e, KeyboardInterrupt):
             print(f"{Typgpy.OKGREEN}Killing all harmony processes...{Typgpy.ENDC}")
