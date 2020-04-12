@@ -299,7 +299,11 @@ def run_auto_node_with_restart(bls_keys, shard_endpoint):
             print(f"{Typgpy.HEADER}Waiting for network liveliness before restarting...{Typgpy.ENDC}")
             wait_for_node_liveliness(args.endpoint, verbose=False)
             wait_for_node_liveliness(shard_endpoint, verbose=False)
-            print(f"{Typgpy.HEADER}Restarting auto_node with saved interaction.{Typgpy.ENDC}")
+            if args.network != "mainnet":
+                args.clean = True
+                print(f"{Typgpy.HEADER}Restarting auto_node with saved interaction & clean DB.{Typgpy.ENDC}")
+            else:
+                print(f"{Typgpy.HEADER}Restarting auto_node with saved interaction.{Typgpy.ENDC}")
 
 
 if __name__ == "__main__":
