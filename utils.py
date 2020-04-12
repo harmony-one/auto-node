@@ -260,6 +260,23 @@ def wait_for_node_response(endpoint, verbose=True):
         print(f"{Typgpy.HEADER}[!] {endpoint} is alive!{Typgpy.ENDC}")
 
 
+def assert_no_bad_blocks():
+    files = os.listdir('/root/node/latest')
+    if files:
+        log_path = f"/root/node/latest/{files[0]}"
+        assert not has_bad_block(log_path), f"`BAD BLOCK` present in {log_path}"
+
+
+def has_bad_block(log_file_path):
+    assert os.path.isfile(log_file_path)
+    with open(log_file_path, 'r') as f:
+        for line in f:
+            line = line.rstrip()
+            if "## BAD BLOCK ##" in line:
+                return True
+    return False
+
+
 """
 MISC FUNCTIONS ARE BELOW
 """

@@ -151,6 +151,7 @@ case "${1}" in
     cp -r "$(pwd)/.${container_name}/node_sh_logs" "${export_dir}"
     cp -r "$(pwd)/.${container_name}/backups" "${export_dir}"
     cp -r "$(pwd)/.${container_name}/latest" "${export_dir}"
+    cp "$(pwd)/.${container_name}/auto_node_errors.log" "${export_dir}"
     echo "Exported node.sh logs to ${export_dir}"
     ;;
   "hmy")

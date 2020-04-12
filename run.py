@@ -13,6 +13,9 @@ with open("./node/validator_config.json") as f:  # WARNING: assumption of copied
     validator_info = json.load(f)
 imported_bls_key_folder = "/root/harmony_bls_keys"  # WARNING: assumption made on auto_node.sh
 bls_key_folder = "/root/node/bls_keys"
+auto_node_errors = "/root/node/auto_node_errors.log"
+with open(auto_node_errors, 'a') as f:
+    f.write("== AutoNode Run Errors ==")
 shutil.rmtree(bls_key_folder, ignore_errors=True)
 os.makedirs(bls_key_folder, exist_ok=True)
 
@@ -279,6 +282,7 @@ def run_auto_node(bls_keys, shard_endpoint):
               f"{Typgpy.OKGREEN}{json.dumps(get_latest_headers('http://localhost:9500/'), indent=4)}"
               f"{Typgpy.ENDC}")
         time.sleep(8)
+        assert_no_bad_blocks()
         curr_time = time.time()
 
 
@@ -296,6 +300,8 @@ def run_auto_node_with_restart(bls_keys, shard_endpoint):
                 exit()
             traceback.print_exc(file=sys.stdout)
             print(f"{Typgpy.FAIL}Auto node failed with error: {e}{Typgpy.ENDC}")
+            with open(auto_node_errors, 'a') as f:
+                f.write(f"{e}\n")
             print(f"{Typgpy.HEADER}Waiting for network liveliness before restarting...{Typgpy.ENDC}")
             wait_for_node_response(args.endpoint, verbose=False)
             wait_for_node_response(shard_endpoint, verbose=False)
@@ -326,5 +332,7 @@ if __name__ == "__main__":
             exit()
         traceback.print_exc(file=sys.stdout)
         print(f"{Typgpy.FAIL}Auto node failed with error: {e}{Typgpy.ENDC}")
+        with open(auto_node_errors, 'a') as f:
+            f.write(f"{e}\n")
         print(f"Docker image still running; `auto_node.sh` commands will still work.")
         subprocess.call(['tail', '-f', '/dev/null'], env=env, timeout=None)
