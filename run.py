@@ -258,7 +258,7 @@ def run_auto_node(bls_keys, shard_endpoint):
     time.sleep(5)  # Sleep to ensure node is terminated b4 restart
     node_pid = start_node(bls_key_folder, args.network, clean=args.clean)
     setup_validator(validator_info, bls_keys)
-    wait_for_node_liveliness("http://localhost:9500/")
+    wait_for_node_response("http://localhost:9500/")
     while get_latest_header('http://localhost:9500/')['blockNumber'] == 0:
         pass
     curr_time = time.time()
@@ -297,8 +297,8 @@ def run_auto_node_with_restart(bls_keys, shard_endpoint):
             traceback.print_exc(file=sys.stdout)
             print(f"{Typgpy.FAIL}Auto node failed with error: {e}{Typgpy.ENDC}")
             print(f"{Typgpy.HEADER}Waiting for network liveliness before restarting...{Typgpy.ENDC}")
-            wait_for_node_liveliness(args.endpoint, verbose=False)
-            wait_for_node_liveliness(shard_endpoint, verbose=False)
+            wait_for_node_response(args.endpoint, verbose=False)
+            wait_for_node_response(shard_endpoint, verbose=False)
             if args.network != "mainnet":
                 args.clean = True
                 print(f"{Typgpy.HEADER}Restarting auto_node with saved interaction & clean DB.{Typgpy.ENDC}")
@@ -311,7 +311,7 @@ if __name__ == "__main__":
     setup()
     try:
         bls_keys = import_node_info()
-        wait_for_node_liveliness(args.endpoint, verbose=True)
+        wait_for_node_response(args.endpoint, verbose=True)
         shard = json_load(cli.single_call(f"hmy utility shard-for-bls {bls_keys[0].replace('0x', '')} "
                                           f"-n {args.endpoint}"))['shard-id']
         shard_endpoint = get_sharding_structure(args.endpoint)[shard]["http"]

@@ -145,7 +145,7 @@ def add_bls_key_to_validator(val_info, bls_pub_keys, passphrase, endpoint):
 
 def verify_node_sync(endpoint):
     print(f"{Typgpy.OKBLUE}Verifying Node Sync...{Typgpy.ENDC}")
-    wait_for_node_liveliness("http://localhost:9500/")
+    wait_for_node_response("http://localhost:9500/")
     curr_headers = get_latest_headers("http://localhost:9500/")
     curr_epoch_shard = curr_headers['shard-chain-header']['epoch']
     curr_epoch_beacon = curr_headers['beacon-chain-header']['epoch']
@@ -246,11 +246,12 @@ def start_node(bls_keys_path, network, clean=False):
             return subprocess.Popen(node_args, env=env, stdout=fo, stderr=fe).pid
 
 
-def wait_for_node_liveliness(endpoint, verbose=True):
+# TODO: Add timeout option
+def wait_for_node_response(endpoint, verbose=True):
     alive = False
     while not alive:
         try:
-            get_latest_headers(endpoint)
+            get_latest_header(endpoint)
             alive = True
         except (json.JSONDecodeError, json.decoder.JSONDecodeError, requests.exceptions.ConnectionError,
                 RuntimeError, KeyError, AttributeError):
