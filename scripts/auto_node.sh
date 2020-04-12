@@ -28,7 +28,7 @@ function setup() {
   "rate": 0.1,
   "max-rate": 0.75,
   "max-change-rate": 0.05,
-  "max-total-delegation": 10000000.0,
+  "max-total-delegation": 100000000.0,
   "details": "None"
 }' > $validator_config_path
   fi
