@@ -110,6 +110,17 @@ def get_validator_information(address, endpoint=default_endpoint):
     return body['result']
 
 
+def get_metadata(endpoint=default_endpoint):
+    payload = json.dumps({"id": "1", "jsonrpc": "2.0",
+                          "method": "hmy_getNodeMetadata",
+                          "params": []})
+    headers = {
+        'Content-Type': 'application/json'
+    }
+    response = requests.request('POST', endpoint, headers=headers, data=payload, allow_redirects=False, timeout=3)
+    return json.loads(response.content)["result"]
+
+
 """
 VALIDATOR FUNCTIONS ARE BELOW
 """

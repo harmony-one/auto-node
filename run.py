@@ -21,6 +21,7 @@ os.makedirs(bls_key_folder, exist_ok=True)
 
 node_pid = -1
 
+
 def parse_args():
     parser = argparse.ArgumentParser(description='== Run a Harmony node & validator automagically ==',
                                      usage="auto_node.sh [--container=CONTAINER_NAME] run [OPTIONS]",
