@@ -25,6 +25,8 @@ node_sh_err_path = f"{node_sh_log_dir}/err.log"
 directory_lock = Lock()
 env = os.environ
 
+# TODO: Reformat/refactor python package for ease of use & re-usability
+
 
 def setup():
     cli.environment.update(cli.download("./bin/hmy", replace=False))
@@ -110,6 +112,17 @@ def get_validator_information(address, endpoint=default_endpoint):
     return body['result']
 
 
+def get_metadata(endpoint=default_endpoint):
+    payload = json.dumps({"id": "1", "jsonrpc": "2.0",
+                          "method": "hmy_getNodeMetadata",
+                          "params": []})
+    headers = {
+        'Content-Type': 'application/json'
+    }
+    response = requests.request('POST', endpoint, headers=headers, data=payload, allow_redirects=False, timeout=3)
+    return json.loads(response.content)["result"]
+
+
 """
 VALIDATOR FUNCTIONS ARE BELOW
 """
@@ -155,6 +168,7 @@ def verify_node_sync(endpoint):
                          f"& beacon epoch ({curr_epoch_beacon}/{ref_epoch})")
         sys.stdout.flush()
         time.sleep(2)
+        assert_no_bad_blocks()
         try:
             curr_headers = get_latest_headers("http://localhost:9500/")
             curr_epoch_shard = curr_headers['shard-chain-header']['epoch']
@@ -175,6 +189,7 @@ def create_new_validator(val_info, bls_pub_keys, passphrase, endpoint):
         sys.stdout.write(f"\rWaiting for staking epoch ({staking_epoch}) -- current epoch: {curr_epoch}")
         sys.stdout.flush()
         time.sleep(8)  # Assumption of 8 second block time...
+        assert_no_bad_blocks()
         curr_epoch = get_current_epoch(endpoint)
     print(f"{Typgpy.OKGREEN}Network is at or past staking epoch{Typgpy.ENDC}")
     print(f"{Typgpy.OKBLUE}Verifying Balance...{Typgpy.ENDC}")

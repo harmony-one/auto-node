@@ -16,7 +16,7 @@ COPY run.py /root
 
 COPY run.sh /root
 
-COPY utils.py /root
+COPY scripts/utils.py /root
 
 RUN chmod +x /root/run.sh
 
@@ -61,5 +61,9 @@ COPY scripts/create_validator.sh /root
 COPY scripts/create_validator.py /root
 
 RUN chmod +x /root/create_validator.sh
+
+COPY scripts/cleanse-bls.py /root
+
+RUN chmod +x /root/cleanse-bls.py
 
 ENTRYPOINT ["/root/run.sh"]

@@ -21,6 +21,7 @@ os.makedirs(bls_key_folder, exist_ok=True)
 
 node_pid = -1
 
+
 def parse_args():
     parser = argparse.ArgumentParser(description='== Run a Harmony node & validator automagically ==',
                                      usage="auto_node.sh [--container=CONTAINER_NAME] run [OPTIONS]",
@@ -256,6 +257,7 @@ def run_auto_node(bls_keys, shard_endpoint):
         pass
     curr_time = time.time()
     while curr_time - start_time < args.duration:
+        assert_no_bad_blocks()
         if args.auto_reset:
             if not can_check_blockchain(shard_endpoint):
                 time.sleep(8)
@@ -272,7 +274,6 @@ def run_auto_node(bls_keys, shard_endpoint):
               f"{Typgpy.OKGREEN}{json.dumps(get_latest_headers('http://localhost:9500/'), indent=4)}"
               f"{Typgpy.ENDC}")
         time.sleep(8)
-        assert_no_bad_blocks()
         curr_time = time.time()
 
 

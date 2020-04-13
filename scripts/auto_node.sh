@@ -105,6 +105,9 @@ case "${1}" in
   "info")
     docker exec -it "${container_name}" /root/info.sh
     ;;
+  "cleanse-bls")
+    docker exec -it "${container_name}" /root/cleanse-bls.py "${@:2}"
+    ;;
   "balances")
     docker exec -it "${container_name}" /root/balances.sh
     ;;
@@ -112,7 +115,7 @@ case "${1}" in
     docker exec -it "${container_name}" /root/version.sh
     ;;
   "version")
-    docker images --no-trunc --quiet $docker_img | head -n1
+   docker images --format "table {{.ID}}\t{{.CreatedAt}}" --no-trunc $docker_img | head -n2
     ;;
   "header")
     docker exec -it "${container_name}" /root/header.sh
@@ -176,6 +179,7 @@ case "${1}" in
       [--container=<name>] create-validator    Send a create validator transaction with the given config
       [--container=<name>] activate            Make validator associated with node elegable for election in next epoch
       [--container=<name>] deactivate          Make validator associated with node NOT elegable for election in next epoch
+      [--container=<name>] cleanse-bls <opts>  Remove BLS keys from validaor that are not earning. Use '-h' for help msg
       [--container=<name>] info                Fetch information for validator associated with node
       [--container=<name>] balances            Fetch balances for validator associated with node
       [--container=<name>] node-version        Fetch the version for the harmony node binary and node.sh
