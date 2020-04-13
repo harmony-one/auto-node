@@ -28,6 +28,8 @@ def parse_args():
 
 
 def hard_cleanse():
+    """ Only keep BLS keys for current running node.
+    """
     # WARNING: Assumption that chain BLS keys are not 0x strings
     keys_on_chain = get_validator_information(validator_addr, endpoint)['validator']['bls-public-keys']
     for key in keys_on_chain:
@@ -40,6 +42,8 @@ def hard_cleanse():
 
 
 def shard_cleanse():
+    """ Only keep BLS keys on same shard as current running node.
+    """
     # WARNING: Assumption that chain BLS keys are not 0x strings
     keys_on_chain = get_validator_information(validator_addr, endpoint)['validator']['bls-public-keys']
     shard = json_load(cli.single_call(f"hmy utility shard-for-bls {list(bls_keys)[0].replace('0x', '')} "
@@ -56,6 +60,8 @@ def shard_cleanse():
 
 
 def reward_cleanse():
+    """ Only keep BLS keys that have earned something in the current epoch
+    """
     # WARNING: Assumption that chain BLS keys are not 0x strings
     val_metrics = get_validator_information(validator_addr, endpoint)['metrics']
     if val_metrics is None:
