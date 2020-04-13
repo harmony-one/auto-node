@@ -68,7 +68,8 @@ def reward_cleanse():
         else:
             exit()
     block_per_epoch = get_metadata(endpoint)['blocks-per-epoch']
-    while 0 <= get_latest_header("http://localhost:9500/")['blockNumber'] % block_per_epoch <= 3:
+    # WARNING: Assumption that epochs are greater than 6 blocks
+    while 0 <= get_latest_header("http://localhost:9500/")['blockNumber'] % block_per_epoch <= 5:
         pass
     bls_metrics = get_validator_information(validator_addr, endpoint)['metrics']['by-bls-key']
     keys_on_chain = get_validator_information(validator_addr, endpoint)['validator']['bls-public-keys']
