@@ -269,11 +269,14 @@ def assert_no_bad_blocks():
 
 def has_bad_block(log_file_path):
     assert os.path.isfile(log_file_path)
-    with open(log_file_path, 'r') as f:
-        for line in f:
-            line = line.rstrip()
-            if "## BAD BLOCK ##" in line:
-                return True
+    try:
+        with open(log_file_path, 'r', encoding='utf8') as f:
+            for line in f:
+                line = line.rstrip()
+                if "## BAD BLOCK ##" in line:
+                    return True
+    except UnicodeDecodeError:
+        print(f"{Typgpy.WARNING}WARNING: failed to read `{log_file_path}` to check for bad block{Typgpy.ENDC}")
     return False
 
 
