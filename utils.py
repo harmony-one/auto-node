@@ -261,7 +261,7 @@ def wait_for_node_response(endpoint, verbose=True):
 
 
 def assert_no_bad_blocks():
-    files = os.listdir('/root/node/latest')
+    files = [x for x in os.listdir('/root/node/latest') if x.endswith(".log")]
     if files:
         log_path = f"/root/node/latest/{files[0]}"
         assert not has_bad_block(log_path), f"`BAD BLOCK` present in {log_path}"

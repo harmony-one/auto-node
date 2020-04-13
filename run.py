@@ -15,7 +15,7 @@ imported_bls_key_folder = "/root/harmony_bls_keys"  # WARNING: assumption made o
 bls_key_folder = "/root/node/bls_keys"
 auto_node_errors = "/root/node/auto_node_errors.log"
 with open(auto_node_errors, 'a') as f:
-    f.write("== AutoNode Run Errors ==")
+    f.write("== AutoNode Run Errors ==\n")
 shutil.rmtree(bls_key_folder, ignore_errors=True)
 os.makedirs(bls_key_folder, exist_ok=True)
 
