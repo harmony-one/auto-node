@@ -79,7 +79,7 @@ case "${1}" in
     # Warning: Assumption about CLI files, might have to change in the future...
     eval docker run --name "${container_name}" -v "$(pwd)/.${container_name}:/root/node" \
      -v "${HOME}/.hmy_cli/:/root/.hmy_cli" -v "$(pwd)/${bls_keys_path}:/root/harmony_bls_keys" \
-     --user root -p 9000-9999:9000-9999 $docker_img "${@:2}" &
+     --user root -p 9000:9000 -p 9500:9500 $docker_img "${@:2}" &
 
     if [[ "${*:2}" != *" --auto-interact"*
        || "${*:2}" != *" --wallet-passphrase "*

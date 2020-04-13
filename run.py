@@ -20,13 +20,6 @@ shutil.rmtree(bls_key_folder, ignore_errors=True)
 os.makedirs(bls_key_folder, exist_ok=True)
 
 node_pid = -1
-interaction_memory = set()
-
-
-class INTERACT:
-    ADD_BLS = 0
-    CREATE_VALIDATOR = 1
-
 
 def parse_args():
     parser = argparse.ArgumentParser(description='== Run a Harmony node & validator automagically ==',
@@ -211,16 +204,13 @@ def setup_validator(val_info, bls_pub_keys):
     all_val = json_load(cli.single_call(f"hmy --node={args.endpoint} blockchain validator all"))["result"]
     if val_info['validator-addr'] in all_val:
         if args.auto_interaction \
-                or INTERACT.CREATE_VALIDATOR in interaction_memory or INTERACT.ADD_BLS in interaction_memory \
                 or input_with_print("Add BLS key to existing validator? [Y]/n \n> ") in {'Y', 'y', 'yes', 'Yes'}:
-            print(f"{Typgpy.HEADER}Editing validator...{Typgpy.ENDC}")
-            interaction_memory.add(INTERACT.ADD_BLS)
+            print(f"{Typgpy.HEADER}{Typgpy.BOLD}Editing validator...{Typgpy.ENDC}")
             add_bls_key_to_validator(val_info, bls_pub_keys, bls_passphrase, args.endpoint)
     elif val_info['validator-addr'] not in all_val:
-        if args.auto_interaction or INTERACT.CREATE_VALIDATOR in interaction_memory \
+        if args.auto_interaction \
                 or input_with_print("Create validator? [Y]/n \n> ") in {'Y', 'y', 'yes', 'Yes'}:
-            print(f"{Typgpy.HEADER}Creating new validator...{Typgpy.ENDC}")
-            interaction_memory.add(INTERACT.CREATE_VALIDATOR)
+            print(f"{Typgpy.HEADER}{Typgpy.BOLD}Creating new validator...{Typgpy.ENDC}")
             create_new_validator(val_info, bls_pub_keys, bls_passphrase, args.endpoint)
 
 
@@ -307,9 +297,10 @@ def run_auto_node_with_restart(bls_keys, shard_endpoint):
             wait_for_node_response(shard_endpoint, verbose=False)
             if args.network != "mainnet":
                 args.clean = True
-                print(f"{Typgpy.HEADER}Restarting auto_node with saved interaction & clean DB.{Typgpy.ENDC}")
+                args.auto_interaction = True
+                print(f"{Typgpy.HEADER}Restarting auto_node with auto interaction & clean DB.{Typgpy.ENDC}")
             else:
-                print(f"{Typgpy.HEADER}Restarting auto_node with saved interaction.{Typgpy.ENDC}")
+                print(f"{Typgpy.HEADER}Restarting auto_node.{Typgpy.ENDC}")
 
 
 if __name__ == "__main__":
