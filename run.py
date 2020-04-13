@@ -212,13 +212,13 @@ def setup_validator(val_info, bls_pub_keys):
     if val_info['validator-addr'] in all_val:
         if args.auto_interaction \
                 or INTERACT.CREATE_VALIDATOR in interaction_memory or INTERACT.ADD_BLS in interaction_memory \
-                or input("Add BLS key to existing validator? [Y]/n \n> ") in {'Y', 'y', 'yes', 'Yes'}:
+                or input_with_print("Add BLS key to existing validator? [Y]/n \n> ") in {'Y', 'y', 'yes', 'Yes'}:
             print(f"{Typgpy.HEADER}Editing validator...{Typgpy.ENDC}")
             interaction_memory.add(INTERACT.ADD_BLS)
             add_bls_key_to_validator(val_info, bls_pub_keys, bls_passphrase, args.endpoint)
     elif val_info['validator-addr'] not in all_val:
         if args.auto_interaction or INTERACT.CREATE_VALIDATOR in interaction_memory \
-                or input("Create validator? [Y]/n \n> ") in {'Y', 'y', 'yes', 'Yes'}:
+                or input_with_print("Create validator? [Y]/n \n> ") in {'Y', 'y', 'yes', 'Yes'}:
             print(f"{Typgpy.HEADER}Creating new validator...{Typgpy.ENDC}")
             interaction_memory.add(INTERACT.CREATE_VALIDATOR)
             create_new_validator(val_info, bls_pub_keys, bls_passphrase, args.endpoint)

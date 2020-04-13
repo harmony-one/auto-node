@@ -294,6 +294,12 @@ def process_passphrase(proc, passphrase, double_take=False):
         proc.expect("\n")
 
 
+def input_with_print(prompt_str):
+    user_input = input(prompt_str).strip()
+    print(f"{Typgpy.OKBLUE}You entered: `{Typgpy.OKGREEN}{user_input}{Typgpy.OKBLUE}`{Typgpy.ENDC}")
+    return user_input
+
+
 def check_min_bal_on_s0(address, amount, endpoint=default_endpoint):
     balances = json_load(cli.single_call(f"hmy --node={endpoint} balances {address}"))
     for bal in balances:
