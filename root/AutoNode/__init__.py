@@ -1,4 +1,5 @@
 import os
+import shutil
 
 from pyhmy import cli
 
@@ -8,6 +9,8 @@ from .common import (
     default_cli_passphrase,
     node_sh_log_dir,
     directory_lock,
+    bls_key_folder,
+    bls_key_len,
     env
 )
 
@@ -41,3 +44,5 @@ from .util import (
 os.makedirs(node_sh_log_dir, exist_ok=True)
 cli.environment.update(cli.download("/root/bin/hmy", replace=False))
 cli.set_binary("/root/bin/hmy")
+shutil.rmtree(bls_key_folder, ignore_errors=True)
+os.makedirs(bls_key_folder, exist_ok=True)

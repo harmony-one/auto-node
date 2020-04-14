@@ -20,18 +20,21 @@ from pyhmy import (
 
 import AutoNode
 
-with open("./node/validator_config.json") as f:  # WARNING: assumption of copied file on docker run.
+# TODO: fix reading file format
+# TODO: implement new .pass assumptions, BLS flow with export, and document in README.
+
+with open("./node/validator_config.json", 'r',
+          encoding='utf8') as f:  # WARNING: assumption of copied file on docker run.
     validator_info = json.load(f)
-imported_bls_key_folder = "/root/harmony_bls_keys"  # WARNING: assumption made on auto_node.sh
-bls_key_folder = "/root/node/bls_keys"
+imported_bls_key_folder = "/root/imported_bls_keys"  # WARNING: assumption made on auto_node.sh
+imported_bls_pass_folder = "/root/imported_bls_pass"  # WARNING: assumption made on auto_node.sh
+imported_wallet_pass_folder = "/root/imported_wallet_pass"  # WARNING: assumption made on auto_node.sh
 auto_node_errors = "/root/node/auto_node_errors.log"
-with open(auto_node_errors, 'a') as f:
+with open(auto_node_errors, 'a', encoding='utf8') as f:  # TODO: convert this into proper log file...
     f.write("== AutoNode Run Errors ==\n")
-shutil.rmtree(bls_key_folder, ignore_errors=True)
-os.makedirs(bls_key_folder, exist_ok=True)
 
 node_pid = -1
-recover_interaction = False
+recover_interaction = False  # Only enabled if recovering a node...
 
 
 def parse_args():
@@ -45,18 +48,6 @@ def parse_args():
     parser.add_argument("--auto-reset", action="store_true",
                         help="Automatically reset node during hard resets.")
     parser.add_argument("--clean", action="store_true", help="Clean shared node directory before starting node.")
-    parser.add_argument("--wallet-passphrase", action="store_true",
-                        help="Toggle specifying a passphrase interactively for the wallet.\n  "
-                             "If not toggled, default CLI passphrase will be used.", )
-    parser.add_argument("--wallet-passphrase-string", help="Specify passphrase string for validator's wallet.\n  "
-                                                           "The passphrase may be exposed on the host machine.\n  ",
-                        type=str, default=None)
-    parser.add_argument("--bls-passphrase", action="store_true",
-                        help="Toggle specifying a passphrase interactively for the BLS key.\n  "
-                             "If not toggled, default CLI passphrase will be used.", )
-    parser.add_argument("--bls-passphrase-string", help="Specify passphrase string for validator's BLS key.\n  "
-                                                        "The passphrase may be exposed on the host machine.\n  ",
-                        type=str, default=None)
     parser.add_argument("--shard", default=None,
                         help="Specify shard of generated bls key.\n  "
                              "Only used if no BLS keys are not provided.", type=int)
@@ -86,46 +77,99 @@ def import_validator_address():
 
 
 def import_bls_passphrase():
-    if args.bls_passphrase:
-        return getpass.getpass(f"Enter passphrase for all given BLS keys\n> ")
-    elif args.bls_passphrase_string:
-        return args.bls_passphrase_string
-    else:
-        return AutoNode.default_cli_passphrase
+    """
+    Import BLS passphrase (from user or file).
+    Returns None if using imported passphrase files.
+    """
+    bls_keys = [x for x in os.listdir(imported_bls_key_folder) if not x.startswith('.')]
+    bls_pass = [x for x in os.listdir(imported_bls_pass_folder) if not x.startswith('.')]
+    imported_bls_keys, imported_bls_pass = set(), set()
+    for k in bls_keys:
+        tok = k.split(".")
+        if len(tok) != 2 or len(tok[0]) != AutoNode.bls_key_len or tok[1] != 'key':
+            print(f"{Typgpy.FAIL}Imported BLS key file {k} has an invalid file format. "
+                  f"Must be `<BLS-pub-key>.key`{Typgpy.ENDC}")
+            raise RuntimeError("Bad BLS import")
+        imported_bls_keys.add(k[0])
+    for p in bls_pass:
+        tok = p.split(".")
+        if len(tok) != 2 or len(tok[0]) != AutoNode.bls_key_len or tok[1] != 'pass':
+            print(f"{Typgpy.FAIL}Imported BLS passphrase file {p} has an invalid file format. "
+                  f"Must be `<BLS-pub-key>.pass`{Typgpy.ENDC}")
+            raise RuntimeError("Bad BLS import")
+        imported_bls_pass.add(p[0])
+    if bls_pass and not bls_keys:
+        print(f"{Typgpy.WARNING}BLS passphrase file(s) were imported but no BLS key files were imported. "
+              f"Passphrase files are ignored.{Typgpy.ENDC}")
+        return getpass.getpass(f"Enter passphrase for all BLS keys\n> ")
+    if bls_keys and bls_pass:
+        for k in imported_bls_keys:
+            if k not in imported_bls_pass:
+                print(
+                    f"{Typgpy.FAIL}Imported BLS key file for {k} does not have an imported passphrase file{Typgpy.ENDC}")
+                raise RuntimeError("Bad BLS import")
+        return None
+    return getpass.getpass(f"Enter passphrase for all BLS keys\n> ")
 
 
-def import_wallet_passphrase():
-    if args.wallet_passphrase:
-        return getpass.getpass(f"Enter wallet passphrase for {validator_info['validator-addr']}\n> ")
-    elif args.wallet_passphrase_string:
-        return args.wallet_passphrase_string
-    else:
-        return AutoNode.default_cli_passphrase
+def import_wallet_passphrase(address):
+    wallet_pass = [x for x in os.listdir(imported_wallet_pass_folder) if not x.startswith('.')]
+    for p in wallet_pass:
+        tok = p.split('.')
+        if len(tok) != 2 or not tok[0].startswith('one1') or tok[1] != 'pass':
+            print(f"{Typgpy.FAIL}Imported wallet passphrase file {p} has an invalid file format. "
+                  f"Must be `<ONE-address>.pass`{Typgpy.ENDC}")
+            raise RuntimeError("Bad wallet passphrase import")
+        if address == tok[0]:
+            with open(f"{imported_wallet_pass_folder}/{p}", 'r', encoding='utf8') as f:
+                return f.read()
+    return getpass.getpass(f"Enter wallet passphrase for {validator_info['validator-addr']}\n> ")
 
 
 def import_bls(passphrase):
-    with open("/tmp/bls_pass", 'w') as fw:
-        fw.write(passphrase)
-    imported_keys = [k for k in os.listdir(imported_bls_key_folder) if k.endswith(".key")]
-    if len(imported_keys) > 0:
-        if args.shard is not None:
-            print(f"{Typgpy.FAIL}[!] Shard option ignored since BLS keys provided in `./harmony_bls_keys`{Typgpy.ENDC}")
-        keys_list = []
-        for k in imported_keys:
+    """
+    Import BLS keys using imported passphrase files if passphrase is None.
+    Otherwise, use passphrase for imported BLS key files or generated BLS keys.
+
+    Assumes that imported BLS key files and passphrase have been validated.
+    """
+    bls_keys = [x for x in os.listdir(imported_bls_key_folder) if not x.startswith('.')]
+    bls_pass = [x for x in os.listdir(imported_bls_pass_folder) if not x.startswith('.')]
+    if passphrase is None:
+        for k in bls_keys:
+            shutil.copy(f"{imported_bls_key_folder}/{k}", AutoNode.bls_key_folder)
+            shutil.copy(f"{imported_bls_key_folder}/{k}", "/root/bin")  # For CLI
+        for k in bls_pass:
+            shutil.copy(f"{imported_bls_pass_folder}/{k}", AutoNode.bls_key_folder)
+        # Verify Passphrase
+        for k in bls_keys:
             try:
-                key = json_load(cli.single_call(f"hmy keys recover-bls-key {imported_bls_key_folder}/{k} "
-                                                f"--passphrase-file /tmp/bls_pass"))
-                keys_list.append(key)
-                shutil.copy(f"{imported_bls_key_folder}/{k}", bls_key_folder)
-                shutil.copy(f"{imported_bls_key_folder}/{k}", "./bin")  # For CLI
-                with open(f"{bls_key_folder}/{key['public-key'].replace('0x', '')}.pass", 'w') as fw:
-                    fw.write(passphrase)
-            except (RuntimeError, json.JSONDecodeError, shutil.ExecError) as e:
-                print(f"{Typgpy.FAIL}Failed to load BLS key {k}, error: {e}{Typgpy.ENDC}")
-        if len(keys_list) == 0:
-            print(f"{Typgpy.FAIL}Could not import any BLS key, exiting...{Typgpy.ENDC}")
-            exit(-1)
-        return [k['public-key'] for k in keys_list]
+                cli.single_call(f"hmy keys recover-bls-key {imported_bls_key_folder}/{k} "
+                                f"--passphrase-file {imported_bls_pass_folder}/{k.replace('.key', '.pass')}")
+            except RuntimeError as e:
+                print(f"{Typgpy.FAIL}Passphrase file for {k} is not correct. Error: {e}{Typgpy.ENDC}")
+                raise RuntimeError("Bad BLS import") from e
+        return [k.replace('.key', '').replace('0x', '') for k in bls_keys]
+
+    with open("/tmp/bls_pass", 'w', encoding='utf8') as fw:
+        fw.write(passphrase)
+    if len(bls_keys) > 0:
+        if args.shard is not None:
+            print(f"{Typgpy.WARNING}[!] Shard option ignored since BLS keys were imported.{Typgpy.ENDC}")
+            time.sleep(3)  # Sleep so user can read message
+        for k in bls_keys:
+            try:
+                cli.single_call(f"hmy keys recover-bls-key {imported_bls_key_folder}/{k} "
+                                f"--passphrase-file /tmp/bls_pass")
+            except RuntimeError as e:
+                print(f"{Typgpy.FAIL}Passphrase for {k} is not correct. Error: {e}{Typgpy.ENDC}")
+                raise RuntimeError("Bad BLS import") from e
+            shutil.copy(f"{imported_bls_key_folder}/{k}", AutoNode.bls_key_folder)
+            shutil.copy(f"{imported_bls_key_folder}/{k}", "/root/bin")  # For CLI
+            pass_file = f"{AutoNode.bls_key_folder}/{k.replace('.key', '.pass')}"
+            with open(pass_file, 'w', encoding='utf8') as fw:
+                fw.write(passphrase)
+        return [k.replace('.key', '').replace('0x', '') for k in bls_keys]
     elif args.shard is not None:
         while True:
             key = json_load(cli.single_call("hmy keys generate-bls-key --passphrase-file /tmp/bls_pass"))
@@ -140,9 +184,10 @@ def import_bls(passphrase):
                 print(f"{Typgpy.OKGREEN}Generated BLS key for shard {shard_id}: "
                       f"{Typgpy.OKBLUE}{public_bls_key}{Typgpy.ENDC}")
                 break
-        shutil.copy(bls_file_path, bls_key_folder)
-        shutil.copy(bls_file_path, "./bin")  # For CLI
-        with open(f"{bls_key_folder}/{key['public-key'].replace('0x', '')}.pass", 'w') as fw:
+        shutil.copy(bls_file_path, AutoNode.bls_key_folder)
+        shutil.copy(bls_file_path, imported_bls_key_folder)  # For recovery
+        pass_file = f"{AutoNode.bls_key_folder}/{key['public-key'].replace('0x', '')}.pass"
+        with open(pass_file, 'w', encoding='utf8') as fw:
             fw.write(passphrase)
         return [public_bls_key]
     else:
@@ -153,9 +198,10 @@ def import_bls(passphrase):
         shard_id = json_load(cli.single_call(f"hmy --node={args.endpoint} utility "
                                              f"shard-for-bls {public_bls_key}"))["shard-id"]
         print(f"{Typgpy.OKGREEN}Generated BLS key for shard {shard_id}: {Typgpy.OKBLUE}{public_bls_key}{Typgpy.ENDC}")
-        shutil.copy(bls_file_path, bls_key_folder)
-        shutil.copy(bls_file_path, "./bin")  # For CLI
-        with open(f"{bls_key_folder}/{key['public-key'].replace('0x', '')}.pass", 'w') as fw:
+        shutil.copy(bls_file_path, AutoNode.bls_key_folder)
+        shutil.copy(bls_file_path, imported_bls_key_folder)  # For recovery
+        pass_file = f"{AutoNode.bls_key_folder}/{key['public-key'].replace('0x', '')}.pass"
+        with open(pass_file, 'w', encoding='utf8') as fw:
             fw.write(passphrase)
         return [public_bls_key]
 
@@ -164,7 +210,7 @@ def import_node_info():
     print(f"{Typgpy.HEADER}Importing node info...{Typgpy.ENDC}")
 
     address = import_validator_address()
-    wallet_passphrase = import_wallet_passphrase()
+    wallet_passphrase = import_wallet_passphrase(address)
     bls_passphrase = import_bls_passphrase()
     public_bls_keys = import_bls(bls_passphrase)
 
@@ -172,44 +218,36 @@ def import_node_info():
     # Save information for other scripts
     print("~" * 110)
     with open(os.path.abspath("/.val_address"),
-              'w') as f:  # WARNING: assumption made of where to store address in other scripts.
+              'w', encoding='utf8') as f:  # WARNING: assumption made of where to store address in other scripts.
         print(f"{Typgpy.OKGREEN}Validator address:{Typgpy.ENDC} {address}")
         f.write(address)
     with open(os.path.abspath("/.wallet_passphrase"),
-              'w') as f:  # WARNING: assumption made of where to store address in other scripts.
+              'w', encoding='utf8') as f:  # WARNING: assumption made of where to store address in other scripts.
         print(f"{Typgpy.OKGREEN}Validator wallet passphrase:{Typgpy.ENDC} {wallet_passphrase}")
         f.write(wallet_passphrase)
     with open(os.path.abspath("/.bls_keys"),
-              'w') as f:  # WARNING: assumption made of where to store address in other scripts.
+              'w', encoding='utf8') as f:  # WARNING: assumption made of where to store address in other scripts.
         print(f"{Typgpy.OKGREEN}BLS keys:{Typgpy.ENDC} {public_bls_keys}")
         f.write(str(public_bls_keys))
-    with open(os.path.abspath("/.bls_passphrase"),
-              'w') as f:  # WARNING: assumption made of where to store address in other scripts.
-        print(f"{Typgpy.OKGREEN}BLS passphrase (for all keys):{Typgpy.ENDC} {bls_passphrase}")
-        f.write(wallet_passphrase)
     with open(os.path.abspath("/.network"),
-              'w') as f:  # WARNING: assumption made of where to store address in other scripts.
+              'w', encoding='utf8') as f:  # WARNING: assumption made of where to store address in other scripts.
         print(f"{Typgpy.OKGREEN}Network:{Typgpy.ENDC} {args.network}")
         f.write(args.network)
     with open(os.path.abspath("/.beacon_endpoint"),
-              'w') as f:  # WARNING: assumption made of where to store address in other scripts.
+              'w', encoding='utf8') as f:  # WARNING: assumption made of where to store address in other scripts.
         print(f"{Typgpy.OKGREEN}Beacon chain endpoint:{Typgpy.ENDC} {args.endpoint}")
         f.write(args.endpoint)
     with open(os.path.abspath("/.duration"),
-              'w') as f:  # WARNING: assumption made of where to store address in other scripts.
+              'w', encoding='utf8') as f:  # WARNING: assumption made of where to store address in other scripts.
         print(f"{Typgpy.OKGREEN}Node duration:{Typgpy.ENDC} {args.duration}")
         f.write(str(args.duration))
     print("~" * 110)
     print("")
-    print(f"{Typgpy.HEADER}[!] Copied BLS key file to shared node directory "
-          f"with the given passphrase (or default CLI passphrase if none){Typgpy.ENDC}")
     return public_bls_keys
 
 
 def setup_validator(val_info, bls_pub_keys):
     print(f"{Typgpy.OKBLUE}Create validator config\n{Typgpy.OKGREEN}{json.dumps(val_info, indent=4)}{Typgpy.ENDC}")
-    with open("/.bls_passphrase", 'r') as fr:
-        bls_passphrase = fr.read()
 
     # Check BLS key with validator if it exists
     all_val = json_load(cli.single_call(f"hmy --node={args.endpoint} blockchain validator all"))["result"]
@@ -217,12 +255,12 @@ def setup_validator(val_info, bls_pub_keys):
         if recover_interaction \
                 or AutoNode.input_with_print("Add BLS key to existing validator? [Y]/n \n> ") in {'Y', 'y', 'yes', 'Yes'}:
             print(f"{Typgpy.HEADER}{Typgpy.BOLD}Editing validator...{Typgpy.ENDC}")
-            AutoNode.add_bls_key_to_validator(val_info, bls_pub_keys, bls_passphrase, args.endpoint)
+            AutoNode.add_bls_key_to_validator(val_info, bls_pub_keys, args.endpoint)
     elif val_info['validator-addr'] not in all_val:
         if recover_interaction \
                 or AutoNode.input_with_print("Create validator? [Y]/n \n> ") in {'Y', 'y', 'yes', 'Yes'}:
             print(f"{Typgpy.HEADER}{Typgpy.BOLD}Creating new validator...{Typgpy.ENDC}")
-            AutoNode.create_new_validator(val_info, bls_pub_keys, bls_passphrase, args.endpoint)
+            AutoNode.create_new_validator(val_info, bls_pub_keys, args.endpoint)
 
 
 def check_and_activate(address, epos_status_msg):
@@ -260,7 +298,7 @@ def run_auto_node(bls_keys, shard_endpoint):
     subprocess.call(["kill", "-2", f"{node_pid}"])
     subprocess.call(["killall", "harmony"])
     time.sleep(5)  # Sleep to ensure node is terminated b4 restart
-    node_pid = AutoNode.start_node(bls_key_folder, args.network, clean=args.clean)
+    node_pid = AutoNode.start_node(AutoNode.bls_key_folder, args.network, clean=args.clean)
     setup_validator(validator_info, bls_keys)
     AutoNode.wait_for_node_response("http://localhost:9500/")
     while AutoNode.get_latest_header('http://localhost:9500/')['blockNumber'] == 0:
@@ -331,10 +369,6 @@ if __name__ == "__main__":
         else:
             run_auto_node(bls_keys, shard_endpoint)
     except Exception as e:
-        if isinstance(e, KeyboardInterrupt):
-            print(f"{Typgpy.OKGREEN}Killing all harmony processes...{Typgpy.ENDC}")
-            subprocess.call(["killall", "harmony"])
-            exit()
         traceback.print_exc(file=sys.stdout)
         print(f"{Typgpy.FAIL}Auto node failed with error: {e}{Typgpy.ENDC}")
         with open(auto_node_errors, 'a') as f:

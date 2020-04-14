@@ -12,7 +12,8 @@ from pyhmy import (
 )
 
 from .common import (
-    directory_lock
+    directory_lock,
+    bls_key_folder
 )
 from .blockchain import (
     get_latest_header,
@@ -29,7 +30,7 @@ from .util import (
 )
 
 
-def add_bls_key_to_validator(val_info, bls_pub_keys, passphrase, endpoint):
+def add_bls_key_to_validator(val_info, bls_pub_keys, endpoint):
     print(f"{Typgpy.HEADER}{val_info['validator-addr']} already in list of validators!{Typgpy.ENDC}")
     chain_val_info = json_load(cli.single_call(f"hmy --node={endpoint} blockchain "
                                                f"validator information {val_info['validator-addr']}"))["result"]
@@ -40,14 +41,16 @@ def add_bls_key_to_validator(val_info, bls_pub_keys, passphrase, endpoint):
             print(f"{Typgpy.OKBLUE}adding bls key: {k} "
                   f"to validator: {val_info['validator-addr']}{Typgpy.ENDC}")
             os.chdir("/root/bin")
-            proc = cli.expect_call(f"hmy --node={endpoint} staking edit-validator "
-                                   f"--validator-addr {val_info['validator-addr']} "
-                                   f"--add-bls-key {k} --passphrase-file /.wallet_passphrase ")
-            proc.expect("Enter the bls passphrase:\r\n")
-            proc.sendline(passphrase)
-            proc.expect(pexpect.EOF)
-            print(f"\n{Typgpy.OKBLUE}Edit-validator transaction response: "
-                  f"{Typgpy.OKGREEN}{proc.before.decode()}{Typgpy.ENDC}")
+            try:
+                # TODO: test this to make sure that this works.
+                response = cli.single_call(f"hmy --node={endpoint} staking edit-validator "
+                                           f"--validator-addr {val_info['validator-addr']} "
+                                           f"--add-bls-key {k} --passphrase-file /.wallet_passphrase "
+                                           f"--bls-pubkeys-dir {bls_key_folder}")
+                print(f"\n{Typgpy.OKBLUE}Edit-validator transaction response: "
+                      f"{Typgpy.OKGREEN}{response}{Typgpy.ENDC}")
+            except (json.decoder.JSONDecodeError, RuntimeError) as e:
+                print(f"{Typgpy.FAIL}Failed to edit validator!\n\tError: {e}{Typgpy.ENDC}")
     directory_lock.release()
     new_val_info = json_load(cli.single_call(f"hmy --node={endpoint} blockchain "
                                              f"validator information {val_info['validator-addr']}"))["result"]
@@ -81,7 +84,7 @@ def verify_node_sync(endpoint):
     print(f"\n{Typgpy.OKGREEN}Node synced to current epoch{Typgpy.ENDC}")
 
 
-def create_new_validator(val_info, bls_pub_keys, passphrase, endpoint):
+def create_new_validator(val_info, bls_pub_keys, endpoint):
     print(f"{Typgpy.HEADER}Checking validator...{Typgpy.ENDC}")
     staking_epoch = get_staking_epoch(endpoint)
     curr_epoch = get_current_epoch(endpoint)
@@ -103,31 +106,27 @@ def create_new_validator(val_info, bls_pub_keys, passphrase, endpoint):
         print(f"{Typgpy.OKGREEN}Address: {val_info['validator-addr']} has enough funds{Typgpy.ENDC}")
     verify_node_sync(endpoint)
     print(f"\n{Typgpy.OKBLUE}Sending create validator transaction...{Typgpy.ENDC}")
-    send_create_validator_tx(val_info, bls_pub_keys, passphrase, endpoint)
+    send_create_validator_tx(val_info, bls_pub_keys, endpoint)
     print()
 
 
-def send_create_validator_tx(val_info, bls_pub_keys, passphrase, endpoint):
+def send_create_validator_tx(val_info, bls_pub_keys, endpoint):
     directory_lock.acquire()
     os.chdir("/root/bin")  # Needed for implicit BLS key...
-    proc = cli.expect_call(f'hmy --node={endpoint} staking create-validator '
-                           f'--validator-addr {val_info["validator-addr"]} --name "{val_info["name"]}" '
-                           f'--identity "{val_info["identity"]}" --website "{val_info["website"]}" '
-                           f'--security-contact "{val_info["security-contact"]}" --details "{val_info["details"]}" '
-                           f'--rate {val_info["rate"]} --max-rate {val_info["max-rate"]} '
-                           f'--max-change-rate {val_info["max-change-rate"]} '
-                           f'--min-self-delegation {val_info["min-self-delegation"]} '
-                           f'--max-total-delegation {val_info["max-total-delegation"]} '
-                           f'--amount {val_info["amount"]} --bls-pubkeys {",".join(bls_pub_keys)} '
-                           f'--passphrase-file /.wallet_passphrase ')
-    for _ in range(len(bls_pub_keys)):
-        proc.expect("Enter the bls passphrase:\r\n")  # WARNING: assumption about interaction
-        proc.sendline(passphrase)
-    proc.expect(pexpect.EOF)
     try:
-        response = json_load(proc.before.decode())
-        print(f"{Typgpy.OKBLUE}Created Validator!\n{Typgpy.OKGREEN}{json.dumps(response, indent=4)}{Typgpy.ENDC}")
-    except (json.JSONDecodeError, RuntimeError, pexpect.exceptions) as e:
-        print(f"{Typgpy.FAIL}Failed to create validator!\n\tError: {e}"
-              f"\n\tMsg:\n{proc.before.decode()}{Typgpy.ENDC}")
+        # TODO: test this to make sure that this works.
+        response = cli.single_call(f'hmy --node={endpoint} staking create-validator '
+                                   f'--validator-addr {val_info["validator-addr"]} --name "{val_info["name"]}" '
+                                   f'--identity "{val_info["identity"]}" --website "{val_info["website"]}" '
+                                   f'--security-contact "{val_info["security-contact"]}" --details "{val_info["details"]}" '
+                                   f'--rate {val_info["rate"]} --max-rate {val_info["max-rate"]} '
+                                   f'--max-change-rate {val_info["max-change-rate"]} '
+                                   f'--min-self-delegation {val_info["min-self-delegation"]} '
+                                   f'--max-total-delegation {val_info["max-total-delegation"]} '
+                                   f'--amount {val_info["amount"]} --bls-pubkeys {",".join(bls_pub_keys)} '
+                                   f'--passphrase-file /.wallet_passphrase '
+                                   f'--bls-pubkeys-dir {bls_key_folder}')
+        print(f"{Typgpy.OKBLUE}Created Validator!\n{Typgpy.OKGREEN}{response}{Typgpy.ENDC}")
+    except (json.decoder.JSONDecodeError, RuntimeError) as e:
+        print(f"{Typgpy.FAIL}Failed to edit validator!\n\tError: {e}{Typgpy.ENDC}")
     directory_lock.release()

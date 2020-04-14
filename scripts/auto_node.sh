@@ -6,16 +6,20 @@ if [ "$EUID" = 0 ]
 fi
 
 validator_config_path="./validator_config.json"
+bls_passphrase_dir="./harmony_bls_pass"
+wallet_passphrase_dir="./harmony_wallet_pass"
 hmy_dir="${HOME}/.hmy"
 bls_keys_path="${hmy_dir}/blskeys"
 node_path="${hmy_dir}/node"
-docker_img="harmonyone/sentry"
-container_name="harmony_node"
+docker_img="harmonyone/sentry:test" # TODO: change back
+container_name="AutoNode"
+
 case $1 in
   --container=*)
     container_name="${1#*=}"
     shift;;
 esac
+
 node_shared_dir="$node_path/$container_name"
 
 function setup() {
@@ -39,39 +43,46 @@ function setup() {
   mkdir -p "$hmy_dir"
   mkdir -p "$bls_keys_path"
   mkdir -p "$node_path"
+  mkdir -p "$bls_passphrase_dir"
+  mkdir -p "$wallet_passphrase_dir"
   echo "
       Setup for Harmony auto node is complete.
 
       1. Docker image for node has been installed.
       2. Default validator config has been created at $validator_config_path (if it does not exist)
       3. BLS key directory for node has been created at $bls_keys_path
-
-      Once you have imported your validator wallet to the harmony CLI,
-      start your node with the following command: ./auto_node.sh run
+      4. BLS passphrase file direcotry has been created at $bls_passphrase_dir
+      5. Wallet passphrase file directory has been created at $wallet_passphrase_dir
+      6. Shared directory for all AutoNode node files has been created at $node_path
   "
 }
 
 case "${1}" in
   "run")
     if [ ! -f "$validator_config_path" ]; then
-      setup
+      echo "Validator config not found at ${validator_config_path}. Run setup with \`./auto_node.sh setup\` to create directory."
+      exit
     fi
     if [ ! -d "$node_path" ]; then
-      echo "Node directory not found at ${node_path}. Run setup with \`./auto_node.sh setup\` to create direcotry."
+      echo "Node directory not found at ${node_path}. Run setup with \`./auto_node.sh setup\` to create directory."
       exit
     fi
     if [ ! -d "$bls_keys_path" ]; then
-      echo "BLS key file directory not found at ${bls_keys_path}. Run setup with \`./auto_node.sh setup\` to create direcotry."
+      echo "BLS key file directory not found at ${bls_keys_path}. Run setup with \`./auto_node.sh setup\` to create directory."
+      exit
+    fi
+    if [ ! -d "$bls_passphrase_dir" ]; then
+      echo "BLS passphrase file directory not found at ${bls_passphrase_dir}. Run setup with \`./auto_node.sh setup\` to create directory."
+      exit
+    fi
+    if [ ! -d "$wallet_passphrase_dir" ]; then
+      echo "Wallet passphrase file directory not found at ${wallet_passphrase_dir}. Run setup with \`./auto_node.sh setup\` to create directory."
       exit
     fi
     if [ ! -d "${HOME}/.hmy_cli" ]; then
       echo "CLI keystore not found at ~/.hmy_cli. Create or import a wallet using the CLI before running auto_node.sh"
       exit
     fi
-    if [ ! -d "$node_shared_dir" ]; then
-      mkdir -p node_shared_dir
-    fi
-    cp $validator_config_path "${node_shared_dir}/validator_config.json"
 
     if [ "$(docker inspect -f '{{.State.Running}}' "$container_name")" = "true" ]; then
       echo "[AutoNode] Killing existing docker container with name: $container_name"
@@ -82,6 +93,9 @@ case "${1}" in
       docker rm "${container_name}"
     fi
 
+    mkdir -p "$node_shared_dir"
+    cp $validator_config_path "${node_shared_dir}/validator_config.json"
+
     echo "[AutoNode] Using validator config at: $validator_config_path"
     echo "[AutoNode] Sharing node files on host machine at: ${node_shared_dir}"
     echo "[AutoNode] Sharing CLI files on host machine at: ${HOME}/.hmy_cli"
@@ -90,8 +104,9 @@ case "${1}" in
     # Warning: Assumption about BLS key files, might have to cahnge in the future...
     # Warning: Assumption about CLI files, might have to change in the future...
     eval docker run --name "${container_name}" -v "${node_shared_dir}:/root/node" \
-     -v "${HOME}/.hmy_cli/:/root/.hmy_cli" -v "${bls_keys_path}:/root/harmony_bls_keys" \
-     --user root -p 9000:9000 -p 9500:9500 $docker_img "${@:2}" &
+     -v "${HOME}/.hmy_cli/:/root/.hmy_cli" -v "${bls_keys_path}:/root/imported_bls_keys" \
+     -v "${bls_passphrase_dir}:/root/imported_bls_pass" -v "${wallet_passphrase_dir}:/root/imported_wallet_pass" \
+     --user root -p 9000:9000 -p 6000:6000 $docker_img "${@:2}" &
 
     until docker ps | grep "${container_name}"
       do
