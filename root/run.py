@@ -31,6 +31,7 @@ shutil.rmtree(bls_key_folder, ignore_errors=True)
 os.makedirs(bls_key_folder, exist_ok=True)
 
 node_pid = -1
+recover_interaction = False
 
 
 def parse_args():
@@ -43,8 +44,6 @@ def parse_args():
                         help="Always try to set active when EPOS status is inactive.")
     parser.add_argument("--auto-reset", action="store_true",
                         help="Automatically reset node during hard resets.")
-    parser.add_argument("--auto-interaction", action="store_true",
-                        help="Say yes to all interaction (except wallet pw).")
     parser.add_argument("--clean", action="store_true", help="Clean shared node directory before starting node.")
     parser.add_argument("--wallet-passphrase", action="store_true",
                         help="Toggle specifying a passphrase interactively for the wallet.\n  "
@@ -215,12 +214,12 @@ def setup_validator(val_info, bls_pub_keys):
     # Check BLS key with validator if it exists
     all_val = json_load(cli.single_call(f"hmy --node={args.endpoint} blockchain validator all"))["result"]
     if val_info['validator-addr'] in all_val:
-        if args.auto_interaction \
+        if recover_interaction \
                 or AutoNode.input_with_print("Add BLS key to existing validator? [Y]/n \n> ") in {'Y', 'y', 'yes', 'Yes'}:
             print(f"{Typgpy.HEADER}{Typgpy.BOLD}Editing validator...{Typgpy.ENDC}")
             AutoNode.add_bls_key_to_validator(val_info, bls_pub_keys, bls_passphrase, args.endpoint)
     elif val_info['validator-addr'] not in all_val:
-        if args.auto_interaction \
+        if recover_interaction \
                 or AutoNode.input_with_print("Create validator? [Y]/n \n> ") in {'Y', 'y', 'yes', 'Yes'}:
             print(f"{Typgpy.HEADER}{Typgpy.BOLD}Creating new validator...{Typgpy.ENDC}")
             AutoNode.create_new_validator(val_info, bls_pub_keys, bls_passphrase, args.endpoint)
@@ -295,6 +294,7 @@ def run_auto_node_with_restart(bls_keys, shard_endpoint):
     """
     Assumption is that network is alive at this point.
     """
+    global recover_interaction
     while True:
         try:
             run_auto_node(bls_keys, shard_endpoint)
@@ -312,7 +312,7 @@ def run_auto_node_with_restart(bls_keys, shard_endpoint):
             AutoNode.wait_for_node_response(shard_endpoint, verbose=False)
             if args.network != "mainnet":
                 args.clean = True
-                args.auto_interaction = True
+                recover_interaction = True
                 print(f"{Typgpy.HEADER}Restarting auto_node with auto interaction & clean DB.{Typgpy.ENDC}")
             else:
                 print(f"{Typgpy.HEADER}Restarting auto_node.{Typgpy.ENDC}")

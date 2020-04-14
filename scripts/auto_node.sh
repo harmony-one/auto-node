@@ -6,7 +6,9 @@ if [ "$EUID" = 0 ]
 fi
 
 validator_config_path="./validator_config.json"
-bls_keys_path="./harmony_bls_keys"
+hmy_dir="${HOME}/.hmy"
+bls_keys_path="${hmy_dir}/blskeys"
+node_path="${hmy_dir}/node"
 docker_img="harmonyone/sentry"
 container_name="harmony_node"
 case $1 in
@@ -14,6 +16,7 @@ case $1 in
     container_name="${1#*=}"
     shift;;
 esac
+node_shared_dir="$node_path/$container_name"
 
 function setup() {
   if [ ! -f "$validator_config_path" ]; then
@@ -33,7 +36,9 @@ function setup() {
 }' > $validator_config_path
   fi
   docker pull harmonyone/sentry
-  mkdir -p $bls_keys_path
+  mkdir -p "$hmy_dir"
+  mkdir -p "$bls_keys_path"
+  mkdir -p "$node_path"
   echo "
       Setup for Harmony auto node is complete.
 
@@ -51,47 +56,48 @@ case "${1}" in
     if [ ! -f "$validator_config_path" ]; then
       setup
     fi
+    if [ ! -d "$node_path" ]; then
+      echo "Node directory not found at ${node_path}. Run setup with \`./auto_node.sh setup\` to create direcotry."
+      exit
+    fi
     if [ ! -d "$bls_keys_path" ]; then
-      mkdir -p $bls_keys_path
+      echo "BLS key file directory not found at ${bls_keys_path}. Run setup with \`./auto_node.sh setup\` to create direcotry."
+      exit
     fi
     if [ ! -d "${HOME}/.hmy_cli" ]; then
       echo "CLI keystore not found at ~/.hmy_cli. Create or import a wallet using the CLI before running auto_node.sh"
       exit
     fi
+    if [ ! -d "$node_shared_dir" ]; then
+      mkdir -p node_shared_dir
+    fi
+    cp $validator_config_path "${node_shared_dir}/validator_config.json"
+
     if [ "$(docker inspect -f '{{.State.Running}}' "$container_name")" = "true" ]; then
       echo "[AutoNode] Killing existing docker container with name: $container_name"
       docker kill "${container_name}"
     fi
-    if [ "$(docker ps -a | grep $container_name)" ]; then
+    if docker ps -a | grep "$container_name" ; then
       echo "[AutoNode] Removing existing docker container with name: $container_name"
       docker rm "${container_name}"
     fi
-    if [ ! -d "$(pwd)/.$container_name}" ]; then
-      mkdir "$(pwd)/.$container_name"
-    fi
-    cp $validator_config_path "$(pwd)/.${container_name}/validator_config.json"
 
     echo "[AutoNode] Using validator config at: $validator_config_path"
-    echo "[AutoNode] Sharing node files on host machine at: $(pwd)/.${container_name}"
+    echo "[AutoNode] Sharing node files on host machine at: ${node_shared_dir}"
     echo "[AutoNode] Sharing CLI files on host machine at: ${HOME}/.hmy_cli"
     echo "[AutoNode] Initializing..."
 
+    # Warning: Assumption about BLS key files, might have to cahnge in the future...
     # Warning: Assumption about CLI files, might have to change in the future...
-    eval docker run --name "${container_name}" -v "$(pwd)/.${container_name}:/root/node" \
-     -v "${HOME}/.hmy_cli/:/root/.hmy_cli" -v "$(pwd)/${bls_keys_path}:/root/harmony_bls_keys" \
+    eval docker run --name "${container_name}" -v "${node_shared_dir}:/root/node" \
+     -v "${HOME}/.hmy_cli/:/root/.hmy_cli" -v "${bls_keys_path}:/root/harmony_bls_keys" \
      --user root -p 9000:9000 -p 9500:9500 $docker_img "${@:2}" &
 
-    if [[ "${*:2}" != *" --auto-interact"*
-       || "${*:2}" != *" --wallet-passphrase "*
-       || "${*:2}" != *" --wallet-passphrase"
-       || "${*:2}" != *" --bls-passphrase "*
-       || "${*:2}" != *" --bls-passphrase" ]]; then
-      until docker ps | grep "${container_name}"
+    until docker ps | grep "${container_name}"
       do
           sleep 1
       done
       docker exec -it "${container_name}" /root/attach.sh
-    fi
     ;;
   "create-validator")
     docker exec -it "${container_name}" /root/create_validator.sh
@@ -141,7 +147,7 @@ case "${1}" in
       echo "${2}" is not a directory.
       exit
     fi
-    cp -r "$(pwd)/.${container_name}/bls_keys" "${2}"
+    cp -r "${node_shared_dir}/bls_keys" "${2}"
     echo "Exported BLS keys to ${2}/bls_keys"
     ;;
   "export-logs")
@@ -151,10 +157,10 @@ case "${1}" in
     fi
     export_dir="${2}/logs"
     mkdir -p "${export_dir}"
-    cp -r "$(pwd)/.${container_name}/node_sh_logs" "${export_dir}"
-    cp -r "$(pwd)/.${container_name}/backups" "${export_dir}"
-    cp -r "$(pwd)/.${container_name}/latest" "${export_dir}"
-    cp "$(pwd)/.${container_name}/auto_node_errors.log" "${export_dir}"
+    cp -r "${node_shared_dir}/node_sh_logs" "${export_dir}"
+    cp -r "${node_shared_dir}/backups" "${export_dir}"
+    cp -r "${node_shared_dir}/latest" "${export_dir}"
+    cp "${node_shared_dir}/auto_node_errors.log" "${export_dir}"
     echo "Exported node.sh logs to ${export_dir}"
     ;;
   "hmy")
