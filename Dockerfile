@@ -8,62 +8,8 @@ RUN apt update && apt upgrade -y && apt install psmisc dnsutils curl python3 pyt
 
 RUN mkdir -p /root/node
 
-RUN python3 -m pip install pyhmy
+COPY root /root
 
-RUN python3 -m pip install requests
-
-COPY run.py /root
-
-COPY run.sh /root
-
-COPY scripts/utils.py /root
-
-RUN chmod +x /root/run.sh
-
-COPY scripts/info.sh /root
-
-RUN chmod +x /root/info.sh
-
-COPY scripts/activate.sh /root
-
-RUN chmod +x /root/activate.sh
-
-COPY scripts/deactivate.sh /root
-
-RUN chmod +x /root/deactivate.sh
-
-COPY scripts/balances.sh /root
-
-RUN chmod +x /root/balances.sh
-
-COPY scripts/export.sh /root
-
-RUN chmod +x /root/export.sh
-
-COPY scripts/header.sh /root
-
-RUN chmod +x /root/header.sh
-
-COPY scripts/headers.sh /root
-
-RUN chmod +x /root/headers.sh
-
-COPY scripts/version.sh /root
-
-RUN chmod +x /root/version.sh
-
-COPY scripts/attach.sh /root
-
-RUN chmod +x /root/attach.sh
-
-COPY scripts/create_validator.sh /root
-
-COPY scripts/create_validator.py /root
-
-RUN chmod +x /root/create_validator.sh
-
-COPY scripts/cleanse-bls.py /root
-
-RUN chmod +x /root/cleanse-bls.py
+RUN chmod +x /root/docker-setup.sh && ./docker-setup.sh && rm ./docker-setup.sh && rm ./setup.py
 
 ENTRYPOINT ["/root/run.sh"]

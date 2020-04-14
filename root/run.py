@@ -5,9 +5,20 @@ import datetime
 import random
 import getpass
 import traceback
+import json
+import os
+import time
+import subprocess
+import sys
 from argparse import RawTextHelpFormatter
 
-from utils import *
+from pyhmy import cli
+from pyhmy import (
+    json_load,
+    Typgpy
+)
+
+import AutoNode
 
 with open("./node/validator_config.json") as f:  # WARNING: assumption of copied file on docker run.
     validator_info = json.load(f)
@@ -54,9 +65,9 @@ def parse_args():
                                           "Default: 'staking'.", type=str, default='staking')
     parser.add_argument("--duration", type=int, help="Duration of how long the node is to run in seconds.\n  "
                                                      "Default is forever.", default=float('inf'))
-    parser.add_argument("--beacon-endpoint", dest="endpoint", type=str, default=default_endpoint,
+    parser.add_argument("--beacon-endpoint", dest="endpoint", type=str, default=AutoNode.default_endpoint,
                         help=f"Beacon chain (shard 0) endpoint for staking transactions.\n  "
-                             f"Default is {default_endpoint}")
+                             f"Default is {AutoNode.default_endpoint}")
     return parser.parse_args()
 
 
@@ -81,7 +92,7 @@ def import_bls_passphrase():
     elif args.bls_passphrase_string:
         return args.bls_passphrase_string
     else:
-        return default_cli_passphrase
+        return AutoNode.default_cli_passphrase
 
 
 def import_wallet_passphrase():
@@ -90,7 +101,7 @@ def import_wallet_passphrase():
     elif args.wallet_passphrase_string:
         return args.wallet_passphrase_string
     else:
-        return default_cli_passphrase
+        return AutoNode.default_cli_passphrase
 
 
 def import_bls(passphrase):
@@ -205,14 +216,14 @@ def setup_validator(val_info, bls_pub_keys):
     all_val = json_load(cli.single_call(f"hmy --node={args.endpoint} blockchain validator all"))["result"]
     if val_info['validator-addr'] in all_val:
         if args.auto_interaction \
-                or input_with_print("Add BLS key to existing validator? [Y]/n \n> ") in {'Y', 'y', 'yes', 'Yes'}:
+                or AutoNode.input_with_print("Add BLS key to existing validator? [Y]/n \n> ") in {'Y', 'y', 'yes', 'Yes'}:
             print(f"{Typgpy.HEADER}{Typgpy.BOLD}Editing validator...{Typgpy.ENDC}")
-            add_bls_key_to_validator(val_info, bls_pub_keys, bls_passphrase, args.endpoint)
+            AutoNode.add_bls_key_to_validator(val_info, bls_pub_keys, bls_passphrase, args.endpoint)
     elif val_info['validator-addr'] not in all_val:
         if args.auto_interaction \
-                or input_with_print("Create validator? [Y]/n \n> ") in {'Y', 'y', 'yes', 'Yes'}:
+                or AutoNode.input_with_print("Create validator? [Y]/n \n> ") in {'Y', 'y', 'yes', 'Yes'}:
             print(f"{Typgpy.HEADER}{Typgpy.BOLD}Creating new validator...{Typgpy.ENDC}")
-            create_new_validator(val_info, bls_pub_keys, bls_passphrase, args.endpoint)
+            AutoNode.create_new_validator(val_info, bls_pub_keys, bls_passphrase, args.endpoint)
 
 
 def check_and_activate(address, epos_status_msg):
@@ -228,12 +239,12 @@ def can_check_blockchain(shard_endpoint):
     Returns True if success, False if unable to check.
     Raises a RuntimeError if blockchain does not match.
     """
-    ref_block1 = get_block_by_number(1, shard_endpoint)
+    ref_block1 = AutoNode.get_block_by_number(1, shard_endpoint)
     if ref_block1:
         fb_ref_hash = ref_block1.get('hash', None)
     else:
         return False
-    block1 = get_block_by_number(1, 'http://localhost:9500/')
+    block1 = AutoNode.get_block_by_number(1, 'http://localhost:9500/')
     fb_hash = block1.get('hash', None) if block1 else None
     if args.auto_reset and fb_hash is not None and fb_ref_hash is not None and fb_hash != fb_ref_hash:
         raise RuntimeError(f"Blockchains don't match! "
@@ -250,28 +261,31 @@ def run_auto_node(bls_keys, shard_endpoint):
     subprocess.call(["kill", "-2", f"{node_pid}"])
     subprocess.call(["killall", "harmony"])
     time.sleep(5)  # Sleep to ensure node is terminated b4 restart
-    node_pid = start_node(bls_key_folder, args.network, clean=args.clean)
+    node_pid = AutoNode.start_node(bls_key_folder, args.network, clean=args.clean)
     setup_validator(validator_info, bls_keys)
-    wait_for_node_response("http://localhost:9500/")
-    while get_latest_header('http://localhost:9500/')['blockNumber'] == 0:
+    AutoNode.wait_for_node_response("http://localhost:9500/")
+    while AutoNode.get_latest_header('http://localhost:9500/')['blockNumber'] == 0:
         pass
     curr_time = time.time()
     while curr_time - start_time < args.duration:
-        assert_no_bad_blocks()
+        AutoNode.assert_no_bad_blocks()
         if args.auto_reset:
             if not can_check_blockchain(shard_endpoint):
                 time.sleep(8)
                 continue
         all_val = json_load(cli.single_call(f"hmy --node={args.endpoint} blockchain validator all"))["result"]
         if validator_info["validator-addr"] in all_val:
-            val_chain_info = get_validator_information(validator_info["validator-addr"], args.endpoint)
+            val_chain_info = AutoNode.get_validator_information(validator_info["validator-addr"], args.endpoint)
             print(f"{Typgpy.HEADER}EPOS status: {Typgpy.OKGREEN}{val_chain_info['epos-status']}{Typgpy.ENDC}")
             print(f"{Typgpy.HEADER}Current epoch performance: {Typgpy.OKGREEN}"
                   f"{json.dumps(val_chain_info['current-epoch-performance'], indent=4)}{Typgpy.ENDC}")
             if args.auto_active:
                 check_and_activate(validator_info["validator-addr"], val_chain_info['epos-status'])
+        else:
+            print(f"{Typgpy.WARNING}{validator_info['validator-addr']} is not a validator, "
+                  f"create validator with `./auto_node.sh create-validator`{Typgpy.ENDC}")
         print(f"{Typgpy.HEADER}This node's latest header at {datetime.datetime.utcnow()}: "
-              f"{Typgpy.OKGREEN}{json.dumps(get_latest_headers('http://localhost:9500/'), indent=4)}"
+              f"{Typgpy.OKGREEN}{json.dumps(AutoNode.get_latest_headers('http://localhost:9500/'), indent=4)}"
               f"{Typgpy.ENDC}")
         time.sleep(8)
         curr_time = time.time()
@@ -294,8 +308,8 @@ def run_auto_node_with_restart(bls_keys, shard_endpoint):
             with open(auto_node_errors, 'a') as f:
                 f.write(f"{e}\n")
             print(f"{Typgpy.HEADER}Waiting for network liveliness before restarting...{Typgpy.ENDC}")
-            wait_for_node_response(args.endpoint, verbose=False)
-            wait_for_node_response(shard_endpoint, verbose=False)
+            AutoNode.wait_for_node_response(args.endpoint, verbose=False)
+            AutoNode.wait_for_node_response(shard_endpoint, verbose=False)
             if args.network != "mainnet":
                 args.clean = True
                 args.auto_interaction = True
@@ -306,13 +320,12 @@ def run_auto_node_with_restart(bls_keys, shard_endpoint):
 
 if __name__ == "__main__":
     args = parse_args()
-    setup()
     try:
         bls_keys = import_node_info()
-        wait_for_node_response(args.endpoint, verbose=True)
+        AutoNode.wait_for_node_response(args.endpoint, verbose=True)
         shard = json_load(cli.single_call(f"hmy utility shard-for-bls {bls_keys[0].replace('0x', '')} "
                                           f"-n {args.endpoint}"))['shard-id']
-        shard_endpoint = get_sharding_structure(args.endpoint)[shard]["http"]
+        shard_endpoint = AutoNode.get_sharding_structure(args.endpoint)[shard]["http"]
         if args.auto_reset:
             run_auto_node_with_restart(bls_keys, shard_endpoint)
         else:
@@ -327,4 +340,4 @@ if __name__ == "__main__":
         with open(auto_node_errors, 'a') as f:
             f.write(f"{e}\n")
         print(f"Docker image still running; `auto_node.sh` commands will still work.")
-        subprocess.call(['tail', '-f', '/dev/null'], env=env, timeout=None)
+        subprocess.call(['tail', '-f', '/dev/null'], env=AutoNode.env, timeout=None)
