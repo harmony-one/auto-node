@@ -30,6 +30,8 @@ from .util import (
     input_with_print
 )
 
+tmux_session_name = f"AutoNode-{hash(str(validator_config))}"
+
 
 def _add_bls_key_to_validator():
     wait_for_node_response(node_config['endpoint'], verbose=True)
@@ -63,10 +65,12 @@ def _verify_node_sync():
     curr_epoch_shard = curr_headers['shard-chain-header']['epoch']
     curr_epoch_beacon = curr_headers['beacon-chain-header']['epoch']
     ref_epoch = get_latest_header(node_config['endpoint'])['epoch']
+    has_looped = False
     while curr_epoch_shard != ref_epoch or curr_epoch_beacon != ref_epoch:
         sys.stdout.write(f"\rWaiting for node to sync: shard epoch ({curr_epoch_shard}/{ref_epoch}) "
                          f"& beacon epoch ({curr_epoch_beacon}/{ref_epoch})")
         sys.stdout.flush()
+        has_looped = True
         time.sleep(2)
         assert_no_bad_blocks()
         curr_headers = get_latest_headers("http://localhost:9500/")
@@ -74,6 +78,8 @@ def _verify_node_sync():
         curr_epoch_beacon = curr_headers['beacon-chain-header']['epoch']
         wait_for_node_response(node_config['endpoint'], verbose=False)
         ref_epoch = get_latest_header(node_config['endpoint'])['epoch']
+    if has_looped:
+        print("")
     print(f"{Typgpy.OKGREEN}Node synced to current epoch{Typgpy.ENDC}")
 
 

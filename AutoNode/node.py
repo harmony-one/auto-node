@@ -29,7 +29,7 @@ node_sh_out_path = f"{node_sh_log_dir}/out.log"
 node_sh_err_path = f"{node_sh_log_dir}/err.log"
 
 
-def start_node(clean=False):
+def start(clean=False):
     os.chdir(node_dir)
     if os.path.isfile(f"{node_dir}/node.sh"):
         os.remove(f"{node_dir}/node.sh")
@@ -67,7 +67,7 @@ def wait_for_node_response(endpoint, verbose=True, tries=float("inf"), sleep=0.5
                 sys.stdout.flush()
             time.sleep(sleep)
     if verbose:
-        print(f"{Typgpy.HEADER}[!] {endpoint} is alive!{Typgpy.ENDC}")
+        print(f"\n{Typgpy.HEADER}[!] {endpoint} is alive!{Typgpy.ENDC}")
 
 
 def assert_no_bad_blocks():
@@ -86,7 +86,7 @@ def has_bad_block(log_file_path):
                 line = line.rstrip()
                 if "## BAD BLOCK ##" in line:
                     return True
-    except UnicodeDecodeError:
+    except (UnicodeDecodeError, IOError):
         print(f"{Typgpy.WARNING}WARNING: failed to read `{log_file_path}` to check for bad block{Typgpy.ENDC}")
     return False
 

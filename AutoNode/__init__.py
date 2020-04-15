@@ -3,7 +3,10 @@ import sys
 import json
 import warnings
 
-from pyhmy import cli
+from pyhmy import (
+    cli,
+    Typgpy
+)
 
 from .common import (
     harmony_dir,
@@ -50,13 +53,16 @@ def init():
     cli.environment.update(cli.download(cli_bin_path, replace=False))
     cli.set_binary(cli_bin_path)
 
-    try:
-        # Assumes that config exists off the bat from setup.
-        with open(saved_validator_path, 'r', encoding='utf8') as f:
-            imported_val_config = json.load(f)
-    except (json.decoder.JSONDecodeError, IOError) as e:
-        raise RuntimeError(f"Could not import validator config from {saved_validator_path}") from e
-    validator_config.update(imported_val_config)
+    if os.path.isfile(saved_validator_path):
+        try:
+            with open(saved_validator_path, 'r', encoding='utf8') as f:
+                imported_val_config = json.load(f)
+        except (json.decoder.JSONDecodeError, IOError) as e:
+            raise RuntimeError(f"Could not import validator config from {saved_validator_path}") from e
+        validator_config.update(imported_val_config)
+    else:
+        print(f"{Typgpy.WARNING}No validator config was found at {saved_validator_path}. "
+              f"Using default config.{Typgpy.ENDC}")
 
     if os.path.isfile(saved_node_path):
         try:
