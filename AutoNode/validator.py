@@ -72,7 +72,7 @@ def _verify_node_sync():
         curr_headers = get_latest_headers("http://localhost:9500/")
         curr_epoch_shard = curr_headers['shard-chain-header']['epoch']
         curr_epoch_beacon = curr_headers['beacon-chain-header']['epoch']
-        wait_for_node_response(node_config['endpoint'], verbose=True)
+        wait_for_node_response(node_config['endpoint'], verbose=False)
         ref_epoch = get_latest_header(node_config['endpoint'])['epoch']
     print(f"{Typgpy.OKGREEN}Node synced to current epoch{Typgpy.ENDC}")
 

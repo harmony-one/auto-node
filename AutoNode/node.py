@@ -15,10 +15,11 @@ from pyhmy import (
 from .common import (
     validator_config,
     node_script_source,
-    node_dir,
     node_sh_log_dir,
     node_config,
-    saved_wallet_pass_path
+    saved_wallet_pass_path,
+    node_dir,
+    bls_key_dir
 )
 from .blockchain import (
     get_latest_header,
@@ -28,24 +29,23 @@ node_sh_out_path = f"{node_sh_log_dir}/out.log"
 node_sh_err_path = f"{node_sh_log_dir}/err.log"
 
 
-def start_node(bls_keys_path, network, clean=False):
-    os.chdir("/root/node")
-    if os.path.isfile("/root/node/node.sh"):
-        os.remove("/root/node/node.sh")
+def start_node(clean=False):
+    os.chdir(node_dir)
+    if os.path.isfile(f"{node_dir}/node.sh"):
+        os.remove(f"{node_dir}/node.sh")
     r = requests.get(node_script_source)
     with open("node.sh", 'w') as f:
         node_sh = r.content.decode()
         # WARNING: Hack until node.sh is changed for auto-node.
         node_sh = node_sh.replace("save_pass_file=false", 'save_pass_file=true')
-        node_sh = node_sh.replace("sudo", '')
         f.write(node_sh)
     st = os.stat("node.sh")
     os.chmod("node.sh", st.st_mode | stat.S_IEXEC)
-    node_args = ["./node.sh", "-N", network, "-z", "-f", bls_keys_path, "-M"]
+    node_args = ["./node.sh", "-N", node_config["network"], "-z", "-f", bls_key_dir, "-M", "-S"]
     if clean:
         node_args.append("-c")
-    with open(node_sh_out_path, 'w+') as fo:
-        with open(node_sh_err_path, 'w+') as fe:
+    with open(node_sh_out_path, 'a') as fo:
+        with open(node_sh_err_path, 'a') as fe:
             print(f"{Typgpy.HEADER}Starting node!{Typgpy.ENDC}")
             return subprocess.Popen(node_args, env=os.environ, stdout=fo, stderr=fe).pid
 
@@ -71,10 +71,11 @@ def wait_for_node_response(endpoint, verbose=True, tries=float("inf"), sleep=0.5
 
 
 def assert_no_bad_blocks():
-    files = [x for x in os.listdir(f"{node_dir}/latest") if x.endswith(".log")]
-    if files:
-        log_path = f"{node_dir}/latest/{files[0]}"
-        assert not has_bad_block(log_path), f"`BAD BLOCK` present in {log_path}"
+    if os.path.isdir(f"{node_dir}/latest"):
+        files = [x for x in os.listdir(f"{node_dir}/latest") if x.endswith(".log")]
+        if files:
+            log_path = f"{node_dir}/latest/{files[-1]}"
+            assert not has_bad_block(log_path), f"`BAD BLOCK` present in {log_path}"
 
 
 def has_bad_block(log_file_path):
