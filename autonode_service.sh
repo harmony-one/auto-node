@@ -1,6 +1,8 @@
 #!/bin/bash
 
-if ! pip3 list | grep AutoNode; then
+trap 'kill $(jobs -p)' EXIT
+
+if ! pip3 list --format=legacy | grep AutoNode; then
   echo "[AutoNode] Missing AutoNode python3 library, installing using pip3."
   pip3 install AutoNode
 fi
@@ -10,6 +12,7 @@ bls_key_dir=$(python3 -c "from AutoNode import common; print(common.bls_key_dir)
 harmony_dir=$(python3 -c "from AutoNode import common; print(common.harmony_dir)")
 autonode_node_pid_file="${harmony_dir}/.autonode_node_pid_file"
 autonode_log_dir="${harmony_dir}/autonode_service_log"
+mkdir -p "$autonode_log_dir"
 validator_log_dir="${autonode_log_dir}/validator_create.log"
 monitor_log_dir="${autonode_log_dir}/node_monitor.log"
 recovery_mode=false
@@ -28,9 +31,11 @@ if [ -f "$autonode_node_pid_file" ]; then
   if ps -p "$pid" | grep harmony || ps -p "$pid" | grep node; then
     echo "[AutoNode] Killing existing Harmony Node"
     kill -2 "$pid"
-    sleep 10  # wait for node to shutdown
   fi
 fi
+
+killall harmony
+sleep 5  # wait for node to shutdown
 
 echo "[AutoNode] Backing up and cleaning Harmony Node logs..."
 mkdir -p "$node_dir"/backup
@@ -46,7 +51,11 @@ else
   cmd="python3 -u -c \"from AutoNode import validator; validator.setup(recover_interaction=False)\" 2>&1 | tee -a $validator_log_dir"
   tmux_session=$(python3 -c "from AutoNode import validator; print(validator.tmux_session_name)")
   tmux new-session -d -s "${tmux_session}" "${cmd}"
-  echo "[AutoNode] Validator setup requires interaction. Attach with \`tmux a -t node ${tmux_session}\`"
+  echo "[AutoNode] Validator setup requires interaction. Attach with \`tmux a -t ${tmux_session}\`."
 fi
+
+echo "$pid" > "$autonode_node_pid_file"
+chmod go-rwx "$autonode_node_pid_file"
+
 
 # TODO: monitor library and script...
