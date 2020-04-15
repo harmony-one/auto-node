@@ -169,7 +169,7 @@ def _import_bls(passphrase):
         return [public_bls_key]
 
 
-def import_config():
+def config():
     validator_config['validator-addr'] = _import_validator_address()
     wallet_passphrase = _import_wallet_passphrase()
     bls_passphrase = _import_bls_passphrase()
