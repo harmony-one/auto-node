@@ -23,6 +23,9 @@ case "${1}" in
     tail -f "$monitor_log_path"
     ;;
   "status")
+    tail -f "$(python3 -c "from AutoNode import monitor; print(monitor.log_path)")"
+    ;;
+  "daemon-status")
     sudo systemctl status "$daemon_name".service
     ;;
   "create-validator")
@@ -44,16 +47,27 @@ case "${1}" in
     # TODO
     ;;
   "version")
-    # TODO
+    node_dir=$(python3 -c "from AutoNode import common; print(common.node_dir)")
+    owd=$(pwd)
+    cd "$node_dir" && ./node.sh -V && ./node.sh -v && cd "$owd" || exit
     ;;
   "header")
-    # TODO
+    if [ -f "$HOME"/hmy ]; then
+      "$HOME"/hmy blockchain latest-header
+    else
+      echo "[AutoNode] Harmony CLI has been moved. Reinstall AutoNode."
+    fi
     ;;
   "headers")
-    # TODO
+    if [ -f "$HOME"/hmy ]; then
+      "$HOME"/hmy blockchain latest-headers
+    else
+      echo "[AutoNode] Harmony CLI has been moved. Reinstall AutoNode."
+    fi
     ;;
   "attach")
-    # TODO
+    val_tmux_session=$(python3 -c "from AutoNode import validator; print(validator.tmux_session_name)")
+    tmux a -t "$val_tmux_session"
     ;;
   "kill")
     sudo systemctl stop "$daemon_name".service
@@ -67,16 +81,18 @@ case "${1}" in
 
       run <run params>    Main execution to run a node. If errors are given
                            for other params, this needs to be ran. Use '-h' for run help msg
+      status              View the current status of your Harmony Node
+      daemon-status       View the status of the underlying daemon
       create-validator    Send a create validator transaction with the given config
       activate            Make validator associated with node elegable for election in next epoch
       deactivate          Make validator associated with node NOT elegable for election in next epoch
       info                Fetch information for validator associated with node
       cleanse-bls <opts>  Remove BLS keys from validaor that are not earning. Use '-h' for help msg
       balances            Fetch balances for validator associated with node
-      version             Fetch the of the Docker image.
+      version             Fetch the of the node
       header              Fetch the latest header (shard chain) for the node
       headers             Fetch the latest headers (beacon and shard chain) for the node
-      attach              Attach to the running node
+      attach              Attach to any session created by the underlying daemon
       kill                Safely kill the node
     "
     exit

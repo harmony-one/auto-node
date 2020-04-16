@@ -17,6 +17,9 @@ if ! command -v pip3 > /dev/null; then
   echo "[AutoNode] pip3 is not installed, please install that first."
   exit
 fi
+if pgrep harmony; then
+  echo "[AutoNode] Harmony process is running, please kill it before installing/upgrading AutoNode."
+fi
 
 if [ -f ./auto_node.sh ]; then
     echo "[AutoNode] Would you like to replace existing ./auto_node.sh (y/n)?"
