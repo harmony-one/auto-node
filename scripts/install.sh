@@ -6,7 +6,7 @@ if [ "$(uname)" != "Linux" ]; then
   exit
 fi
 if ! command -v systemctl > /dev/null; then
-  echo "[AutoNode] machine does not have systemd, exiting."
+  echo "[AutoNode] distro does not have systemd, exiting."
   exit
 fi
 if ! command -v python3 > /dev/null; then

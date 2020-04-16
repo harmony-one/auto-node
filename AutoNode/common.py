@@ -38,11 +38,11 @@ validator_config = {
 node_config = {
     "endpoint": "https://api.s0.os.hmny.io/",
     "network": "staking",
-    "clean": True,
+    "clean": False,
     "duration": None,
     "shard": None,
-    "auto-reset": True,
-    "auto-active": True,
+    "auto-reset": False,
+    "auto-active": False,
     "no-validator": False,
     "public-bls-keys": []
 }
