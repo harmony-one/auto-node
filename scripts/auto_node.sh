@@ -36,7 +36,7 @@ case "${1}" in
     # TODO
     ;;
   "version")
-   # TODO
+    # TODO
     ;;
   "header")
     # TODO

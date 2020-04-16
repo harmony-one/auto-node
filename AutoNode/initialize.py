@@ -160,6 +160,7 @@ def _import_bls(passphrase):
         pass_file = f"{bls_key_dir}/{key['public-key'].replace('0x', '')}.pass"
         with open(pass_file, 'w', encoding='utf8') as fw:
             fw.write(passphrase)
+        os.remove(bls_file_path)
         os.remove("/tmp/.bls_pass")
         return [public_bls_key]
     else:
@@ -173,6 +174,7 @@ def _import_bls(passphrase):
         pass_file = f"{bls_key_dir}/{key['public-key'].replace('0x', '')}.pass"
         with open(pass_file, 'w', encoding='utf8') as fw:
             fw.write(passphrase)
+        os.remove(bls_file_path)
         os.remove("/tmp/.bls_pass")
         return [public_bls_key]
 
