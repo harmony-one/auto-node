@@ -58,6 +58,7 @@ def _run_monitor(shard_endpoint):
             if not can_check_blockchain(shard_endpoint):
                 time.sleep(_check_interval)
                 continue
+        print(f"{Typgpy.HEADER}Validator Address: {Typgpy.OKGREEN}{validator_config['validator-addr']}{Typgpy.ENDC}")
         all_val = get_all_validator_addresses(node_config['endpoint'])
         if validator_config["validator-addr"] in all_val:
             val_chain_info = get_validator_information(validator_config["validator-addr"], node_config['endpoint'])
