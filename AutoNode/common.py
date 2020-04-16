@@ -2,6 +2,7 @@ import json
 import subprocess
 import os
 
+daemon_name = "autonoded"
 harmony_dir = f"{os.environ['HOME']}/.hmy"
 node_dir = f"{os.environ['HOME']}/harmony_node"
 node_sh_log_dir = f"{node_dir}/node_sh_logs"

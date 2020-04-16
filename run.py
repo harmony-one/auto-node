@@ -1,11 +1,6 @@
 #!/usr/bin/env python3
 import argparse
-import subprocess
 from argparse import RawTextHelpFormatter
-
-from pyhmy import (
-    Typgpy
-)
 
 import AutoNode
 from AutoNode import initialize
@@ -51,16 +46,6 @@ def run_setup():
     AutoNode.initialize.config()
 
 
-def check_daemon():
-    pass
-
-
-def start_daemon():
-    print(f"{Typgpy.HEADER}Started AutoNode!{Typgpy.ENDC}")
-
-
 if __name__ == "__main__":
     args = parse_args()
     run_setup()
-    check_daemon()
-    start_daemon()

@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-if [ "$(uname)" -ne "Linux" ]; then
+if [ "$(uname)" != "Linux" ]; then
   echo "[AutoNode] not on a Linux machine, exiting."
   exit
 fi
@@ -34,20 +34,22 @@ Description=Run a Harmony Blockchain Node with AutoNode
 [Service]
 Type=simple
 ExecStart=/bin/bash /usr/bin/autonode_service.sh
+Restart=on-failure
 RestartSec=1
 User=$USER
 
 [Install]
 WantedBy=multi-user.target
 "
-# TODO: change back restart systemd config
 
 pip3 install AutoNode --upgrade
-python3 -c "import AutoNode"  # Init AutoNode
+python3 -c "import AutoNode" > /dev/null # Init AutoNode
+curl -LO https://harmony.one/hmycli && mv hmycli "$HOME"/hmy && chmod +x "$HOME"/hmy
+curl -o "$HOME"/auto_node.sh  https://raw.githubusercontent.com/harmony-one/auto-node/migrate_off_docker/scripts/auto_node.sh  # TODO: change back url
+chmod +x "$HOME"/auto_node.sh
+
+daemon_name=$(python3 -c "from AutoNode import common; print(common.daemon_name)")
 sudo curl -o /usr/bin/autonode_service.sh https://raw.githubusercontent.com/harmony-one/auto-node/migrate_off_docker/autonode_service.sh  # TODO: change back url
 sudo chmod +x /usr/bin/autonode_service.sh
-sudo echo "$systemd_service" | sudo tee /etc/systemd/system/autonoded.service
-sudo chmod 644 /etc/systemd/system/autonoded.service
-curl -O https://raw.githubusercontent.com/harmony-one/auto-node/migrate_off_docker/scripts/auto_node.sh  # TODO: change back url
-# chmod +x ./auto_node.sh TODO: change back
-# ./auto_node.sh setup TODO: change back
+sudo echo "$systemd_service" | sudo tee /etc/systemd/system/"$daemon_name".service
+sudo chmod 644 /etc/systemd/system/"$daemon_name".service

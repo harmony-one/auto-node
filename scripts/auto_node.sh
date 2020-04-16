@@ -2,6 +2,7 @@
 
 # Assumes that AutoNode lib is installed
 harmony_dir=$(python3 -c "from AutoNode import common; print(common.harmony_dir)")
+daemon_name=$(python3 -c "from AutoNode import common; print(common.daemon_name)")
 run_script="$harmony_dir"/run.py
 
 case "${1}" in
@@ -9,6 +10,7 @@ case "${1}" in
     monitor_log_path=$(python3 -c "from AutoNode import monitor; print(monitor.log_path)")
     val_tmux_session=$(python3 -c "from AutoNode import validator; print(validator.tmux_session_name)")
     python3 -u "$run_script" "${@:2}"
+    sudo systemctl start "$daemon_name".service
     until tmux list-session | grep "${val_tmux_session}"
     do
       sleep 1
@@ -16,6 +18,9 @@ case "${1}" in
     unset TMUX  # For nested tmux sessions
     tmux a -t "$val_tmux_session"
     tail -f "$monitor_log_path"
+    ;;
+  "status")
+    sudo systemctl status "$daemon_name".service
     ;;
   "create-validator")
     # TODO
@@ -48,7 +53,7 @@ case "${1}" in
     # TODO
     ;;
   "kill")
-    # TODO
+    sudo systemctl stop "$daemon_name".service
     ;;
   *)
     # TODO
