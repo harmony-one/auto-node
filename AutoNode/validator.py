@@ -136,17 +136,9 @@ def _send_create_validator_tx():
         print(f"{Typgpy.FAIL}Failed to edit validator!\n\tError: {e}{Typgpy.ENDC}")
 
 
-def setup(recover_interaction=False):
-    if node_config['no-validator']:
-        print(f"{Typgpy.WARNING}Node config specifies not validator automation, exiting...{Typgpy.ENDC}")
-        return
-
-    print(f"{Typgpy.OKBLUE}Create validator config: {Typgpy.OKGREEN}{json.dumps(validator_config, indent=4)}{Typgpy.ENDC}")
-    print(f"{Typgpy.OKBLUE}Using BLS key(s): {Typgpy.OKGREEN}{node_config['public-bls-keys']}{Typgpy.ENDC}")
-
-    # Check BLS key with validator if it exists
+def _setup(recover_interaction):
     wait_for_node_response(node_config['endpoint'], verbose=True)
-    all_val_address = get_all_validator_addresses(node_config['endpoint'])
+    all_val_address = get_all_validator_addresses(node_config['endpoint'])  # Check BLS key with validator if it exists
     if validator_config['validator-addr'] in all_val_address:
         print(f"{Typgpy.WARNING}{validator_config['validator-addr']} already in list of validators!{Typgpy.ENDC}")
         if recover_interaction \
@@ -160,3 +152,19 @@ def setup(recover_interaction=False):
             _create_new_validator()
     else:
         node_config['no-validator'] = True
+
+
+def setup(recover_interaction=False, error_sleep=15):
+    if node_config['no-validator']:
+        print(f"{Typgpy.WARNING}Node config specifies not validator automation, exiting...{Typgpy.ENDC}")
+        return
+
+    print(f"{Typgpy.OKBLUE}Create validator config: {Typgpy.OKGREEN}"
+          f"{json.dumps(validator_config, indent=4)}{Typgpy.ENDC}")
+    print(f"{Typgpy.OKBLUE}Using BLS key(s): {Typgpy.OKGREEN}{node_config['public-bls-keys']}{Typgpy.ENDC}")
+    try:
+        _setup(recover_interaction)
+    except Exception as e:
+        time.sleep(error_sleep)
+        raise e
+
