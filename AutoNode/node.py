@@ -96,5 +96,6 @@ def check_and_activate(epos_status_msg):
     if "not eligible" in epos_status_msg or "not signing" in epos_status_msg:
         print(f"{Typgpy.FAIL}Node not active, reactivating...{Typgpy.ENDC}")
         response = cli.single_call(f"hmy staking edit-validator --validator-addr {validator_config['validator-addr']} "
-                                   f"--active true --node {node_config} --passphrase-file {saved_wallet_pass_path} ")
+                                   f"--active true --node {node_config['endpoint']} "
+                                   f"--passphrase-file {saved_wallet_pass_path} ")
         print(f"{Typgpy.OKGREEN} Edit-validator response: {response}{Typgpy.ENDC}")
