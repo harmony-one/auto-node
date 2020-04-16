@@ -3,23 +3,17 @@
 # Assumes that AutoNode lib is installed
 harmony_dir=$(python3 -c "from AutoNode import common; print(common.harmony_dir)")
 daemon_name=$(python3 -c "from AutoNode import common; print(common.daemon_name)")
-run_script="$harmony_dir"/init.py
+init_script="$harmony_dir"/init.py
 
 case "${1}" in
   "run")
     monitor_log_path=$(python3 -c "from AutoNode import monitor; print(monitor.log_path)")
-    python3 -u "$run_script" "${@:2}"
+    validator_log_path=$(python3 -c "from AutoNode import validator; print(validator.log_path)")
+    python3 -u "$init_script" "${@:2}"
     sudo systemctl start "$daemon_name".service
     echo "[AutoNode] Initilized service..."
     sleep 5  # Let service init
-    val_tmux_session=$(python3 -c "from AutoNode import validator; print(validator.tmux_session_name)")
-    until tmux list-session | grep "${val_tmux_session}"
-    do
-      val_tmux_session=$(python3 -c "from AutoNode import validator; print(validator.tmux_session_name)")
-      sleep 1
-    done
-    unset TMUX  # For nested tmux sessions
-    tmux a -t "$val_tmux_session"
+    python3 -u -c "from AutoNode import validator; validator.setup(recover_interaction=False)" 2>&1 | tee "$validator_log_path"
     tail -f "$monitor_log_path"
     ;;
   "status")
@@ -65,10 +59,6 @@ case "${1}" in
       echo "[AutoNode] Harmony CLI has been moved. Reinstall AutoNode."
     fi
     ;;
-  "attach")
-    val_tmux_session=$(python3 -c "from AutoNode import validator; print(validator.tmux_session_name)")
-    tmux a -t "$val_tmux_session"
-    ;;
   "kill")
     sudo systemctl stop "$daemon_name".service
     ;;
@@ -92,7 +82,6 @@ case "${1}" in
       version             Fetch the of the node
       header              Fetch the latest header (shard chain) for the node
       headers             Fetch the latest headers (beacon and shard chain) for the node
-      attach              Attach to any session created by the underlying daemon
       kill                Safely kill the node
     "
     exit

@@ -1,7 +1,6 @@
 import sys
 import time
 import json
-import hashlib
 
 from pyhmy import cli
 from pyhmy import (
@@ -32,8 +31,6 @@ from .util import (
     input_with_print
 )
 
-_config_hash = hashlib.sha224(str(validator_config).encode()).hexdigest()
-tmux_session_name = f"AutoNode-{_config_hash[:16]}"
 log_path = f"{harmony_dir}/autonode_validator.log"
 
 

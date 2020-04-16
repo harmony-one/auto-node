@@ -1,3 +1,5 @@
+# TODO: UPDATE README
+
 # Script + Docker Image to run a harmony node automagically
 
 On any machine with docker (install [here](https://docs.docker.com/install/)) one could run a node, create a validator, and maintain it will 1 command.

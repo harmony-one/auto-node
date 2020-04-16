@@ -7,11 +7,6 @@ if ! pip3 list --format=legacy | grep AutoNode; then
   pip3 install AutoNode
 fi
 
-if ! command -v tmux > /dev/null; then
-  echo "[AutoNode] Tmux is not installed. Closing service."
-  exit
-fi
-
 reset_mode=false
 
 node_dir=$(python3 -c "from AutoNode import common; print(common.node_dir)")
@@ -58,11 +53,6 @@ pid=$(python3 -c "from AutoNode import node; print(node.start(verbose=False))")
 
 if [ "$reset_mode" = "true" ]; then
   python3 -u -c "from AutoNode import validator; validator.setup(recover_interaction=True)" > "$validator_log_path"
-else
-  cmd="python3 -u -c \"from AutoNode import validator; validator.setup(recover_interaction=False)\" 2>&1 | tee -a $validator_log_path"
-  tmux_session=$(python3 -c "from AutoNode import validator; print(validator.tmux_session_name)")
-  tmux new-session -d -s "${tmux_session}" "${cmd}"
-  echo "[AutoNode] Validator setup requires interaction. Attach with \`tmux a -t ${tmux_session}\`."
 fi
 
 echo "$pid" > "$autonode_node_pid_path"
