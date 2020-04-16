@@ -34,20 +34,20 @@ Description=Run a Harmony Blockchain Node with AutoNode
 [Service]
 Type=simple
 ExecStart=/bin/bash /usr/bin/autonode_service.sh
-Restart=on-failure
 RestartSec=1
 User=$USER
 
 [Install]
 WantedBy=multi-user.target
 "
+# TODO: change back restart systemd config
 
 pip3 install AutoNode --upgrade
 python3 -c "import AutoNode"  # Init AutoNode
-sudo curl -o /usr/bin/autonode_service.sh https://raw.githubusercontent.com/harmony-one/auto-node/master/autonode_service.sh
+sudo curl -o /usr/bin/autonode_service.sh https://raw.githubusercontent.com/harmony-one/auto-node/migrate_off_docker/autonode_service.sh  # TODO: change back url
 sudo chmod +x /usr/bin/autonode_service.sh
 sudo echo "$systemd_service" | sudo tee /etc/systemd/system/autonoded.service
 sudo chmod 644 /etc/systemd/system/autonoded.service
-curl -O https://raw.githubusercontent.com/harmony-one/auto-node/master/scripts/auto_node.sh
-chmod +x ./auto_node.sh
-./auto_node.sh setup
+curl -O https://raw.githubusercontent.com/harmony-one/auto-node/migrate_off_docker/scripts/auto_node.sh  # TODO: change back url
+# chmod +x ./auto_node.sh TODO: change back
+# ./auto_node.sh setup TODO: change back
