@@ -110,7 +110,7 @@ def _create_new_validator():
     else:
         print(f"{Typgpy.OKGREEN}Address: {validator_config['validator-addr']} has enough funds{Typgpy.ENDC}")
     _verify_node_sync()
-    print(f"\n{Typgpy.OKBLUE}Sending create validator transaction...{Typgpy.ENDC}")
+    print(f"{Typgpy.OKBLUE}Sending create validator transaction...{Typgpy.ENDC}")
     _send_create_validator_tx()
 
 
@@ -156,7 +156,7 @@ def _setup(recover_interaction):
         node_config['no-validator'] = True
 
 
-def setup(recover_interaction=False, error_sleep=15):
+def setup(recover_interaction=False, end_sleep=10):
     if node_config['no-validator']:
         print(f"{Typgpy.WARNING}Node config specifies not validator automation, exiting...{Typgpy.ENDC}")
         return
@@ -166,7 +166,8 @@ def setup(recover_interaction=False, error_sleep=15):
     print(f"{Typgpy.OKBLUE}Using BLS key(s): {Typgpy.OKGREEN}{node_config['public-bls-keys']}{Typgpy.ENDC}")
     try:
         _setup(recover_interaction)
+        time.sleep(end_sleep)
     except Exception as e:
-        time.sleep(error_sleep)
+        time.sleep(end_sleep)
         raise e
 
