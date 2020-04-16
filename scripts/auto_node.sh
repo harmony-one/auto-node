@@ -8,11 +8,12 @@ run_script="$harmony_dir"/init.py
 case "${1}" in
   "run")
     monitor_log_path=$(python3 -c "from AutoNode import monitor; print(monitor.log_path)")
-    val_tmux_session=$(python3 -c "from AutoNode import validator; print(validator.tmux_session_name)")
     python3 -u "$run_script" "${@:2}"
     sudo systemctl start "$daemon_name".service
+    val_tmux_session=$(python3 -c "from AutoNode import validator; print(validator.tmux_session_name)")
     until tmux list-session | grep "${val_tmux_session}"
     do
+      val_tmux_session=$(python3 -c "from AutoNode import validator; print(validator.tmux_session_name)")
       sleep 1
     done
     unset TMUX  # For nested tmux sessions

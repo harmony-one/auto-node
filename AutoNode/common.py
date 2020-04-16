@@ -26,14 +26,14 @@ validator_config = {
     "name": "harmony autonode",
     "website": "harmony.one",
     "security-contact": "Daniel-VDM",
-    "identity": "auto-node",
+    "identity": "auto-node-2",
     "amount": 10100,
     "min-self-delegation": 10000,
     "rate": 0.1,
     "max-rate": 0.75,
     "max-change-rate": 0.05,
     "max-total-delegation": 100000000.0,
-    "details": "None"
+    "details": "This version does not use docker :)"
 }
 node_config = {
     "endpoint": "https://api.s0.os.hmny.io/",

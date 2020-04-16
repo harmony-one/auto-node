@@ -56,3 +56,5 @@ sudo curl -o /usr/bin/autonode_service.sh https://raw.githubusercontent.com/harm
 sudo chmod +x /usr/bin/autonode_service.sh
 sudo echo "$systemd_service" | sudo tee /etc/systemd/system/"$daemon_name".service
 sudo chmod 644 /etc/systemd/system/"$daemon_name".service
+
+# TODO: add install finish msg + add setup clarification msgs...
