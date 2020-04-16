@@ -1,6 +1,6 @@
 #!/bin/bash
 set -e
-trap 'kill $(jobs -p)' EXIT
+trap 'killall harmony' EXIT
 
 if ! pip3 list --format=legacy | grep AutoNode; then
   echo "[AutoNode] Missing AutoNode python3 library, installing using pip3."
