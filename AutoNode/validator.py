@@ -5,7 +5,6 @@ import json
 from pyhmy import cli
 from pyhmy import (
     Typgpy,
-    json_load
 )
 
 from .common import (

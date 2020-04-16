@@ -16,10 +16,9 @@ reset_mode=false
 
 node_dir=$(python3 -c "from AutoNode import common; print(common.node_dir)")
 bls_key_dir=$(python3 -c "from AutoNode import common; print(common.bls_key_dir)")
-harmony_dir=$(python3 -c "from AutoNode import common; print(common.harmony_dir)")
 validator_log_path=$(python3 -c "from AutoNode import validator; print(validator.log_path)")
 monitor_log_path=$(python3 -c "from AutoNode import monitor; print(monitor.log_path)")
-autonode_node_pid_path="${harmony_dir}/.autonode_node_pid"
+autonode_node_pid_path=$(python3 -c "from AutoNode import common; print(common.node_pid_path)")
 
 # AutoNode will setup the .pass files for each BLS key on init setup.
 bls_key_count=$(ls "${bls_key_dir}" | grep -c ".key")

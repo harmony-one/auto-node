@@ -21,6 +21,13 @@ from .common import (
     imported_bls_pass_file_dir,
     bls_key_dir,
     imported_wallet_pass_file_dir,
+    node_pid_path,
+)
+from .validator import (
+    log_path as v_log_path
+)
+from .monitor import (
+    log_path as m_log_path
 )
 
 
@@ -169,11 +176,24 @@ def _import_bls(passphrase):
         return [public_bls_key]
 
 
+def remove_file(path):
+    try:
+        if os.path.isfile(path):
+            os.remove(path)
+    except PermissionError:
+        print(f"{Typgpy.WARNING}Could not remove {path}, wrong user.")
+
+
 def config():
+    remove_file(node_pid_path)
+    remove_file(m_log_path)
+    remove_file(v_log_path)
+
     validator_config['validator-addr'] = _import_validator_address()
     wallet_passphrase = _import_wallet_passphrase()
     bls_passphrase = _import_bls_passphrase()
     node_config['public-bls-keys'] = _import_bls(bls_passphrase)
+
     print("~" * 110)
     print(f"Saved Validator Information: {json.dumps(validator_config, indent=4)}")
     save_validator_config()
