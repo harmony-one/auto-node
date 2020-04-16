@@ -1,3 +1,5 @@
+import json
+import subprocess
 import os
 
 harmony_dir = f"{os.environ['HOME']}/.hmy"
@@ -38,6 +40,18 @@ node_config = {
     "duration": None,
     "auto-reset": True,
     "shard": None,
-    "auto-active": False,
+    "auto-active": True,
     "public-bls-keys": []
 }
+
+
+def save_validator_config():
+    with open(saved_validator_path, 'w', encoding='utf8') as f:
+        json.dump(validator_config, f, indent=4)
+        subprocess.call(f"chmod go-rwx {saved_validator_path}", shell=True, env=os.environ)
+
+
+def save_node_config():
+    with open(saved_node_path, 'w', encoding='utf8') as f:
+        json.dump(node_config, f, indent=4)
+        subprocess.call(f"chmod go-rwx {saved_node_path}", shell=True, env=os.environ)

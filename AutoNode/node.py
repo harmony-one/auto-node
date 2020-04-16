@@ -50,6 +50,7 @@ def start(clean=False):
             return subprocess.Popen(node_args, env=os.environ, stdout=fo, stderr=fe).pid
 
 
+# TODO (low prio): create stream load printer for multiple waits_for_node_response
 def wait_for_node_response(endpoint, verbose=True, tries=float("inf"), sleep=0.5):
     alive = False
     count = 0
@@ -61,7 +62,7 @@ def wait_for_node_response(endpoint, verbose=True, tries=float("inf"), sleep=0.5
         except (json.decoder.JSONDecodeError, requests.exceptions.ConnectionError,
                 RuntimeError, KeyError, AttributeError):
             if count > tries:
-                raise RuntimeError(f"{endpoint} did not respond in {count} attempts")
+                raise RuntimeError(f"{endpoint} did not respond in {count} attempts ({tries*count} seconds)")
             if verbose:
                 sys.stdout.write(f"\rWaiting for {endpoint} to respond, tried {count} times")
                 sys.stdout.flush()

@@ -12,13 +12,15 @@ from .common import (
     bls_key_dir,
     node_config,
     validator_config,
-    saved_wallet_pass_path
+    saved_wallet_pass_path,
+    harmony_dir,
 )
 from .blockchain import (
     get_latest_header,
     get_latest_headers,
     get_staking_epoch,
     get_current_epoch,
+    get_all_validator_addresses,
     get_validator_information
 )
 from .node import (
@@ -31,6 +33,7 @@ from .util import (
 )
 
 tmux_session_name = f"AutoNode-{hash(str(validator_config))}"
+log_path = f"{harmony_dir}/autonode_validator.log"
 
 
 def _add_bls_key_to_validator():
@@ -140,14 +143,14 @@ def setup(recover_interaction=False):
 
     # Check BLS key with validator if it exists
     wait_for_node_response(node_config['endpoint'], verbose=True)
-    all_val = json_load(cli.single_call(f"hmy --node={node_config['endpoint']} blockchain validator all"))["result"]
-    if validator_config['validator-addr'] in all_val:
+    all_val_address = get_all_validator_addresses(node_config['endpoint'])
+    if validator_config['validator-addr'] in all_val_address:
         print(f"{Typgpy.WARNING}{validator_config['validator-addr']} already in list of validators!{Typgpy.ENDC}")
         if recover_interaction \
                 or input_with_print("Add BLS key(s) to existing validator? [Y]/n \n> ") in {'Y', 'y', 'yes', 'Yes'}:
             print(f"{Typgpy.HEADER}{Typgpy.BOLD}Editing validator...{Typgpy.ENDC}")
             _add_bls_key_to_validator()
-    elif validator_config['validator-addr'] not in all_val:
+    elif validator_config['validator-addr'] not in all_val_address:
         if recover_interaction \
                 or input_with_print("Create validator? [Y]/n \n> ") in {'Y', 'y', 'yes', 'Yes'}:
             print(f"{Typgpy.HEADER}{Typgpy.BOLD}Creating new validator...{Typgpy.ENDC}")

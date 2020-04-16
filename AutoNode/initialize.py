@@ -13,9 +13,9 @@ from pyhmy import (
 )
 from .common import (
     validator_config,
-    saved_validator_path,
+    save_validator_config,
     node_config,
-    saved_node_path,
+    save_node_config,
     saved_wallet_pass_path,
     bls_key_len,
     imported_bls_pass_file_dir,
@@ -115,9 +115,9 @@ def _import_bls(passphrase):
                 raise RuntimeError("Bad BLS import") from e
         return [k.replace('.key', '').replace('0x', '') for k in bls_keys]
 
-    with open("/tmp/bls_pass", 'w', encoding='utf8') as fw:
+    with open("/tmp/.bls_pass", 'w', encoding='utf8') as fw:
         fw.write(passphrase)
-        subprocess.call(f"chmod go-rwx /tmp/bls_pass", shell=True, env=os.environ)
+        subprocess.call(f"chmod go-rwx /tmp/.bls_pass", shell=True, env=os.environ)
     if len(bls_keys) > 0:
         if node_config['shard'] is not None:
             print(f"{Typgpy.WARNING}[!] Shard option ignored since BLS keys were imported.{Typgpy.ENDC}")
@@ -125,19 +125,19 @@ def _import_bls(passphrase):
         for k in bls_keys:
             try:
                 cli.single_call(f"hmy keys recover-bls-key {bls_key_dir}/{k} "
-                                f"--passphrase-file /tmp/bls_pass")
+                                f"--passphrase-file /tmp/.bls_pass")
             except RuntimeError as e:
                 print(f"{Typgpy.FAIL}Passphrase for {k} is not correct. Error: {e}{Typgpy.ENDC}")
                 raise RuntimeError("Bad BLS import") from e
             pass_file = f"{bls_key_dir}/{k.replace('.key', '.pass')}"
             with open(pass_file, 'w', encoding='utf8') as fw:
                 fw.write(passphrase)
-        os.remove("/tmp/bls_pass")
+        os.remove("/tmp/.bls_pass")
         return [k.replace('.key', '').replace('0x', '') for k in bls_keys]
     elif node_config['shard'] is not None:
         assert isinstance(int, node_config['shard']), f"shard: {node_config['shard'] } is not an integer."
         while True:
-            key = json_load(cli.single_call("hmy keys generate-bls-key --passphrase-file /tmp/bls_pass"))
+            key = json_load(cli.single_call("hmy keys generate-bls-key --passphrase-file /tmp/.bls_pass"))
             public_bls_key = key['public-key']
             bls_file_path = key['encrypted-private-key-path']
             shard_id = json_load(cli.single_call(f"hmy --node={node_config['endpoint']} utility "
@@ -152,10 +152,10 @@ def _import_bls(passphrase):
         pass_file = f"{bls_key_dir}/{key['public-key'].replace('0x', '')}.pass"
         with open(pass_file, 'w', encoding='utf8') as fw:
             fw.write(passphrase)
-        os.remove("/tmp/bls_pass")
+        os.remove("/tmp/.bls_pass")
         return [public_bls_key]
     else:
-        key = json_load(cli.single_call("hmy keys generate-bls-key --passphrase-file /tmp/bls_pass"))
+        key = json_load(cli.single_call("hmy keys generate-bls-key --passphrase-file /tmp/.bls_pass"))
         public_bls_key = key['public-key']
         bls_file_path = key['encrypted-private-key-path']
         shard_id = json_load(cli.single_call(f"hmy --node={node_config['endpoint']} utility "
@@ -165,7 +165,7 @@ def _import_bls(passphrase):
         pass_file = f"{bls_key_dir}/{key['public-key'].replace('0x', '')}.pass"
         with open(pass_file, 'w', encoding='utf8') as fw:
             fw.write(passphrase)
-        os.remove("/tmp/bls_pass")
+        os.remove("/tmp/.bls_pass")
         return [public_bls_key]
 
 
@@ -176,13 +176,9 @@ def config():
     node_config['public-bls-keys'] = _import_bls(bls_passphrase)
     print("~" * 110)
     print(f"Saved Validator Information: {json.dumps(validator_config, indent=4)}")
-    with open(saved_validator_path, 'w', encoding='utf8') as f:
-        json.dump(validator_config, f, indent=4)
-        subprocess.call(f"chmod go-rwx {saved_validator_path}", shell=True, env=os.environ)
+    save_validator_config()
     print(f"Saved Node Information: {json.dumps(node_config, indent=4)}")
-    with open(saved_node_path, 'w', encoding='utf8') as f:
-        json.dump(node_config, f, indent=4)
-        subprocess.call(f"chmod go-rwx {saved_node_path}", shell=True, env=os.environ)
+    save_node_config()
     with open(saved_wallet_pass_path, 'w', encoding='utf8') as f:
         f.write(wallet_passphrase)
         subprocess.call(f"chmod go-rwx {saved_wallet_pass_path}", shell=True, env=os.environ)
