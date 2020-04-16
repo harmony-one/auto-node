@@ -9,10 +9,23 @@ case "${1}" in
   "run")
     monitor_log_path=$(python3 -c "from AutoNode import monitor; print(monitor.log_path)")
     validator_log_path=$(python3 -c "from AutoNode import validator; print(validator.log_path)")
+    autonode_node_pid_path=$(python3 -c "from AutoNode import common; print(common.node_pid_path)")
+
+    if [ -f "$autonode_node_pid_path" ]; then  # Always start from fresh when using auto_node.sh run
+      pid=$(cat "$autonode_node_pid_path")
+      if ps -p "$pid" | grep harmony || ps -p "$pid" | grep node.sh; then
+        echo "[AutoNode] Killing existing Harmony Node"
+        kill -2 "$pid"
+      fi
+      rm "$autonode_node_pid_path"
+    fi
+
     python3 -u "$init_script" "${@:2}"
     sudo systemctl start "$daemon_name".service
+
     echo "[AutoNode] Initilized service..."
     sleep 5  # Let service init
+
     python3 -u -c "from AutoNode import validator; validator.setup(recover_interaction=False)" 2>&1 | tee "$validator_log_path"
     tail -f "$monitor_log_path"
     ;;
