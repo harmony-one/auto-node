@@ -43,7 +43,7 @@ WantedBy=multi-user.target
 "
 
 pip3 install AutoNode --upgrade
-python3 -c "import AutoNode" > /dev/null # Init AutoNode
+python3 -c "from AutoNode import common; common.save_validator_config()" > /dev/null  # Init AutoNode
 curl -LO https://harmony.one/hmycli && mv hmycli "$HOME"/hmy && chmod +x "$HOME"/hmy
 curl -o "$HOME"/auto_node.sh  https://raw.githubusercontent.com/harmony-one/auto-node/migrate_off_docker/scripts/auto_node.sh  # TODO: change back url
 chmod +x "$HOME"/auto_node.sh
