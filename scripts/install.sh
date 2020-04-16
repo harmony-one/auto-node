@@ -36,7 +36,7 @@ if [ -f "$HOME"/auto_node.sh ]; then
 fi
 
 systemd_service="[Unit]
-Description=Harmony Blockchain Node with AutoNode
+Description=Harmony Blockchain AutoNode
 
 [Service]
 Type=simple
@@ -49,7 +49,7 @@ User=$USER
 WantedBy=multi-user.target
 "
 
-pip3 install AutoNode --upgrade
+pip3 install --user AutoNode --upgrade
 python3 -c "from AutoNode import common; common.save_validator_config()" > /dev/null  # Init AutoNode
 curl -LO https://harmony.one/hmycli && mv hmycli "$HOME"/hmy && chmod +x "$HOME"/hmy
 
