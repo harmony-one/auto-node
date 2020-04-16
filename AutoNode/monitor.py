@@ -46,7 +46,8 @@ def _run_monitor(shard_endpoint):
     while get_latest_header('http://localhost:9500/')['blockNumber'] == 0:
         assert_no_bad_blocks()
         count += 1
-        sys.stdout.write(f"\rWaiting for node to get past genesis block, checked {count} times")
+        sys.stdout.write(f"\rWaiting for node (http://localhost:9500/) to get past genesis block, "
+                         f"checked {count} times")
         sys.stdout.flush()
         time.sleep(1)
     duration = node_config['duration'] if node_config['duration'] else float("inf")

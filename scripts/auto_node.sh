@@ -10,6 +10,7 @@ case "${1}" in
     monitor_log_path=$(python3 -c "from AutoNode import monitor; print(monitor.log_path)")
     python3 -u "$run_script" "${@:2}"
     sudo systemctl start "$daemon_name".service
+    echo "[AutoNode] Initilized service..."
     sleep 5  # Let service init
     val_tmux_session=$(python3 -c "from AutoNode import validator; print(validator.tmux_session_name)")
     until tmux list-session | grep "${val_tmux_session}"
