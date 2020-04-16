@@ -49,7 +49,7 @@ curl -LO https://harmony.one/hmycli && mv hmycli "$HOME"/hmy && chmod +x "$HOME"
 harmony_dir=$(python3 -c "from AutoNode import common; print(common.harmony_dir)")
 curl -o "$HOME"/auto_node.sh  https://raw.githubusercontent.com/harmony-one/auto-node/migrate_off_docker/scripts/auto_node.sh  # TODO: change back url
 chmod +x "$HOME"/auto_node.sh
-curl -o "$harmony_dir"/run.py https://raw.githubusercontent.com/harmony-one/auto-node/migrate_off_docker/run.py  # TODO: change back url
+curl -o "$harmony_dir"/init.py https://raw.githubusercontent.com/harmony-one/auto-node/migrate_off_docker/init.py  # TODO: change back url
 
 daemon_name=$(python3 -c "from AutoNode import common; print(common.daemon_name)")
 sudo curl -o /usr/bin/autonode_service.sh https://raw.githubusercontent.com/harmony-one/auto-node/migrate_off_docker/autonode_service.sh  # TODO: change back url

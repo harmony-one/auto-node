@@ -3,7 +3,7 @@
 # Assumes that AutoNode lib is installed
 harmony_dir=$(python3 -c "from AutoNode import common; print(common.harmony_dir)")
 daemon_name=$(python3 -c "from AutoNode import common; print(common.daemon_name)")
-run_script="$harmony_dir"/run.py
+run_script="$harmony_dir"/init.py
 
 case "${1}" in
   "run")
