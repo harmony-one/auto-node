@@ -25,11 +25,11 @@ if pgrep harmony; then
   echo "[AutoNode] Harmony process is running, please kill it before installing/upgrading AutoNode."
 fi
 
-if [ -f ./auto_node.sh ]; then
-    echo "[AutoNode] Would you like to replace existing ./auto_node.sh (y/n)?"
+if [ -f "$HOME"/auto_node.sh ]; then
+    echo "[AutoNode] Would you like to replace existing $HOME/auto_node.sh (y/n)?"
     read -r answer
     if [ "$answer" != "${answer#[Yy]}" ] ;then
-        rm ./auto_node.sh
+        rm "$HOME"/auto_node.sh
     else
         exit
     fi
