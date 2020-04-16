@@ -17,6 +17,10 @@ if ! command -v pip3 > /dev/null; then
   echo "[AutoNode] pip3 is not installed, please install that first."
   exit
 fi
+if ! command -v jq > /dev/null; then
+  echo "[AutoNode] jq is not installed, please install that first."
+  exit
+fi
 if pgrep harmony; then
   echo "[AutoNode] Harmony process is running, please kill it before installing/upgrading AutoNode."
 fi
