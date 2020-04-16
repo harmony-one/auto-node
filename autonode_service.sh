@@ -39,7 +39,8 @@ if [ -f "$autonode_node_pid_path" ]; then
 fi
 
 if pgrep harmony; then
-  killall harmony
+  echo "[AutoNode] Killing existing Harmony proces"
+  killall harmony > /dev/null
   sleep 5  # wait for node to shutdown
 fi
 
