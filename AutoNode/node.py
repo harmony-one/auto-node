@@ -30,7 +30,7 @@ node_sh_out_path = f"{node_sh_log_dir}/out.log"
 node_sh_err_path = f"{node_sh_log_dir}/err.log"
 
 
-def start():
+def start(verbose=True):
     os.chdir(node_dir)
     if os.path.isfile(f"{node_dir}/node.sh"):
         os.remove(f"{node_dir}/node.sh")
@@ -44,11 +44,13 @@ def start():
     os.chmod("node.sh", st.st_mode | stat.S_IEXEC)
     node_args = ["./node.sh", "-N", node_config["network"], "-z", "-f", bls_key_dir, "-M", "-S"]
     if node_config['clean']:
-        print(f"{Typgpy.WARNING}[!] Starting node with clean mode.{Typgpy.ENDC}")
+        if verbose:
+            print(f"{Typgpy.WARNING}[!] Starting node with clean mode.{Typgpy.ENDC}")
         node_args.append("-c")
     with open(node_sh_out_path, 'a') as fo:
         with open(node_sh_err_path, 'a') as fe:
-            print(f"{Typgpy.HEADER}Starting node!{Typgpy.ENDC}")
+            if verbose:
+                print(f"{Typgpy.HEADER}Starting node!{Typgpy.ENDC}")
             return subprocess.Popen(node_args, env=os.environ, stdout=fo, stderr=fe).pid
 
 

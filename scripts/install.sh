@@ -1,3 +1,4 @@
+#!/bin/bash
 set -e
 
 if [ -f ./auto_node.sh ]; then

@@ -54,7 +54,7 @@ if [ -d "$log_dir" ]; then
 fi
 
 echo "[AutoNode] Starting new Harmony Node"
-pid=$(python3 -c "from AutoNode import node; print(node.start())")
+pid=$(python3 -c "from AutoNode import node; print(node.start(verbose=False))")
 
 if [ "$reset_mode" = "true" ]; then
   python3 -u -c "from AutoNode import validator; validator.setup(recover_interaction=True)" > "$validator_log_path"
