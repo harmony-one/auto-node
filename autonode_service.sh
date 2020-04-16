@@ -32,14 +32,16 @@ if [ -f "$autonode_node_pid_path" ]; then
   reset_mode=true
   echo "[AutoNode] Resetting Harmony Node"
   pid=$(cat "$autonode_node_pid_path")
-  if ps -p "$pid" | grep harmony || ps -p "$pid" | grep node; then
+  if ps -p "$pid" | grep harmony || ps -p "$pid" | grep node.sh; then
     echo "[AutoNode] Killing existing Harmony Node"
     kill -2 "$pid"
   fi
 fi
 
-killall harmony
-sleep 5  # wait for node to shutdown
+if pgrep harmony; then
+  killall harmony
+  sleep 5  # wait for node to shutdown
+fi
 
 log_dir="$node_dir"/latest
 if [ -d "$log_dir" ]; then

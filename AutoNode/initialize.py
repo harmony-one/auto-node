@@ -34,10 +34,10 @@ from .monitor import (
 
 def _import_validator_address():
     if validator_config["validator-addr"] is None:
-        print(f"{Typgpy.OKBLUE}Selecting random address in shared CLI keystore to be validator.{Typgpy.ENDC}")
+        print(f"{Typgpy.OKBLUE}Selecting random address in CLI keystore to be validator.{Typgpy.ENDC}")
         keys_list = list(cli.get_accounts_keystore().values())
         if not keys_list:
-            print(f"{Typgpy.FAIL}Shared CLI keystore has no wallets{Typgpy.ENDC}")
+            print(f"{Typgpy.FAIL}CLI keystore has no wallets.{Typgpy.ENDC}")
             raise RuntimeError("Bad wallet import")
         validator_config["validator-addr"] = random.choice(keys_list)
     elif validator_config['validator-addr'] not in cli.get_accounts_keystore().values():
@@ -185,8 +185,8 @@ def remove_file(path):
         print(f"{Typgpy.WARNING}Could not remove {path}, wrong user.")
 
 
-def config():
-    cli.download(cli_bin_path, replace=True)
+def config(update_cli=False):
+    cli.download(cli_bin_path, replace=update_cli)
     remove_file(node_pid_path)
     remove_file(m_log_path)
     remove_file(v_log_path)
