@@ -41,8 +41,17 @@ if sys.platform.startswith('win32') or sys.platform.startswith('cygwin'):
     )
     warnings.resetwarnings()
 
+if sys.platform.startswith('darwin'):
+    warnings.simplefilter("always", ImportWarning)
+    warnings.warn(
+        ImportWarning(
+            "`AutoNode.node` does not work on MacOS."
+        )
+    )
+    warnings.resetwarnings()
 
-def init():
+
+def _init():
     os.makedirs(harmony_dir, exist_ok=True)
     os.makedirs(node_dir, exist_ok=True)
     os.makedirs(node_sh_log_dir, exist_ok=True)
@@ -73,5 +82,5 @@ def init():
         node_config.update(imported_node_config)
 
 
-init()  # TODO: remove this once done with lib
+_init()
 
