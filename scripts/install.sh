@@ -29,7 +29,7 @@ if [ -f ./auto_node.sh ]; then
 fi
 
 systemd_service="[Unit]
-Description=Run a Harmony Blockchain Node with AutoNode
+Description=Harmony Blockchain Node with AutoNode
 
 [Service]
 Type=simple

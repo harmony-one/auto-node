@@ -114,6 +114,7 @@ def _import_bls(passphrase):
     if passphrase is None:
         for k in bls_pass:
             shutil.copy(f"{imported_bls_pass_file_dir}/{k}", bls_key_dir)
+            subprocess.call(f"chmod go-rwx {imported_bls_pass_file_dir}/{k}", shell=True, env=os.environ)
         for k in bls_keys:  # Verify Passphrase
             try:
                 cli.single_call(f"hmy keys recover-bls-key {bls_key_dir}/{k} "
@@ -140,6 +141,7 @@ def _import_bls(passphrase):
             pass_file = f"{bls_key_dir}/{k.replace('.key', '.pass')}"
             with open(pass_file, 'w', encoding='utf8') as fw:
                 fw.write(passphrase)
+                subprocess.call(f"chmod go-rwx {pass_file}", shell=True, env=os.environ)
         os.remove("/tmp/.bls_pass")
         return [k.replace('.key', '').replace('0x', '') for k in bls_keys]
     elif node_config['shard'] is not None:
@@ -160,6 +162,7 @@ def _import_bls(passphrase):
         pass_file = f"{bls_key_dir}/{key['public-key'].replace('0x', '')}.pass"
         with open(pass_file, 'w', encoding='utf8') as fw:
             fw.write(passphrase)
+            subprocess.call(f"chmod go-rwx {pass_file}", shell=True, env=os.environ)
         os.remove(bls_file_path)
         os.remove("/tmp/.bls_pass")
         return [public_bls_key]
@@ -174,6 +177,7 @@ def _import_bls(passphrase):
         pass_file = f"{bls_key_dir}/{key['public-key'].replace('0x', '')}.pass"
         with open(pass_file, 'w', encoding='utf8') as fw:
             fw.write(passphrase)
+            subprocess.call(f"chmod go-rwx {pass_file}", shell=True, env=os.environ)
         os.remove(bls_file_path)
         os.remove("/tmp/.bls_pass")
         return [public_bls_key]
