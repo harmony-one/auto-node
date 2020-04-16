@@ -7,7 +7,7 @@ if ! pip3 list --format=legacy | grep AutoNode; then
   pip3 install AutoNode
 fi
 
-if ! command -v tmux; then
+if ! command -v tmux > /dev/null; then
   echo "[AutoNode] Tmux is not installed. Closing service."
   exit
 fi
@@ -41,11 +41,14 @@ fi
 killall harmony
 sleep 5  # wait for node to shutdown
 
-log_backup_dir="$node_dir"/autonode_backup_logs/$(date +"%T")
-echo "[AutoNode] Backing up logs to \`${log_backup_dir}\` and cleaning Harmony Node logs..."
-mkdir -p "$log_backup_dir"
-cp -R "$node_dir"/latest/. "$log_backup_dir"/
-rm -rf "$node_dir"/latest
+log_dir="$node_dir"/latest
+if [ -d "$log_dir" ]; then
+  log_backup_dir="$node_dir"/autonode_backup_logs/$(date +"%T")
+  echo "[AutoNode] Backing up logs to \`${log_backup_dir}\` and cleaning Harmony Node logs..."
+  mkdir -p "$log_backup_dir"
+  cp -R "$log_dir"/. "$log_backup_dir"/
+  rm -rf "$log_dir"
+fi
 
 echo "[AutoNode] Starting new Harmony Node"
 pid=$(python3 -c "from AutoNode import node; print(node.start())")

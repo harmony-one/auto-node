@@ -22,6 +22,7 @@ from .common import (
     bls_key_dir,
     imported_wallet_pass_file_dir,
     node_pid_path,
+    cli_bin_path
 )
 from .validator import (
     log_path as v_log_path
@@ -84,7 +85,7 @@ def _import_bls_passphrase():
     if bls_keys:
         return getpass.getpass(f"Enter passphrase for all {Typgpy.UNDERLINE}{len(bls_keys)} "
                                f"imported{Typgpy.ENDC} BLS keys\n> ")
-    return getpass.getpass(f"Enter passphrase for all {Typgpy.UNDERLINE}generated{Typgpy.ENDC} BLS keys\n> ")
+    return getpass.getpass(f"Enter passphrase for {Typgpy.UNDERLINE}generated{Typgpy.ENDC} BLS key\n> ")
 
 
 def _import_wallet_passphrase():
@@ -185,6 +186,7 @@ def remove_file(path):
 
 
 def config():
+    cli.download(cli_bin_path, replace=True)
     remove_file(node_pid_path)
     remove_file(m_log_path)
     remove_file(v_log_path)
