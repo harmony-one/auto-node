@@ -1,0 +1,12 @@
+[Unit]
+Description=Run a Harmony Blockchain Node with AutoNode
+Requires=
+After=
+
+[Service]
+Type=simple
+ExecStart=/bin/bash /usr/bin/autonode_service.sh
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
