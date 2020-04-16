@@ -2,6 +2,7 @@
 import argparse
 from argparse import RawTextHelpFormatter
 
+from pyhmy import Typgpy
 import AutoNode
 from AutoNode import initialize
 
@@ -34,7 +35,7 @@ def parse_args():
 
 def run_setup():
     AutoNode.node_config.update({
-        "endpoint": args.beacon_endpoint,
+        "endpoint": args.endpoint,
         "network": args.network,
         "clean": args.clean,
         "duration": args.duration,
@@ -49,3 +50,4 @@ def run_setup():
 if __name__ == "__main__":
     args = parse_args()
     run_setup()
+    print(f"{Typgpy.HEADER}AutoNode has been initialized!{Typgpy.ENDC}")
