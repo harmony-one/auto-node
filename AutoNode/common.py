@@ -39,9 +39,10 @@ node_config = {
     "network": "staking",
     "clean": True,
     "duration": None,
-    "auto-reset": True,
     "shard": None,
+    "auto-reset": True,
     "auto-active": True,
+    "no-validator": False,
     "public-bls-keys": []
 }
 
