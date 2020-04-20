@@ -224,6 +224,8 @@ case "${1}" in
       run <run params>    Main execution to run a node. If errors are given
                            for other params, this needs to be ran. Use '-h' param for run param msg
       init                Initlize AutoNode config. First fallback if any errors
+      config              View the validator_config.json file used by AutoNode
+      edit-config         Edit the validator_config.json file used by AutoNode
       monitor <cmd>       View/Command Harmony Node Monitor. Use '-h' cmd for node monitor cmd help msg
       node <cmd>          View/Command Harmony Node. Use '-h' cmd for node cmd help msg
       create-validator    Send a create validator transaction with the given config
