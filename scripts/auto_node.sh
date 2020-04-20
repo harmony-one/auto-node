@@ -1,206 +1,242 @@
 #!/bin/bash
 
-if [ "$EUID" = 0 ]
-  then echo "Do not run as root, exiting..."
-  exit
-fi
+set -e
 
-validator_config_path="./validator_config.json"
-hmy_dir="${HOME}/.hmy"
-bls_keys_path="${hmy_dir}/blskeys"
-node_path="${hmy_dir}/node"
-docker_img="harmonyone/sentry"
-container_name="harmony_node"
-case $1 in
-  --container=*)
-    container_name="${1#*=}"
-    shift;;
-esac
-node_shared_dir="$node_path/$container_name"
+# TODO: convert auto_node.sh into python3 click CLI since lib is in python3.
 
-function setup() {
-  if [ ! -f "$validator_config_path" ]; then
-    echo '{
-  "validator-addr": null,
-  "name": "harmony autonode",
-  "website": "harmony.one",
-  "security-contact": "Daniel-VDM",
-  "identity": "auto-node",
-  "amount": 10100,
-  "min-self-delegation": 10000,
-  "rate": 0.1,
-  "max-rate": 0.75,
-  "max-change-rate": 0.05,
-  "max-total-delegation": 100000000.0,
-  "details": "None"
-}' > $validator_config_path
+sudo -n true
+if [ "$?" -ne 0 ]; then
+  echo "[AutoNode] user $USER needs sudo privaliges without a passphrase to run AutoNode correctly, continue (y/n)?"
+  read -r answer
+  if [ "$answer" != "${answer#[Yy]}" ] ;then
+    echo "[AutoNode] AutoNode monitor will not function correctly."
+  else
+    exit
   fi
-  docker pull harmonyone/sentry
-  mkdir -p "$hmy_dir"
-  mkdir -p "$bls_keys_path"
-  mkdir -p "$node_path"
-  echo "
-      Setup for Harmony auto node is complete.
-
-      1. Docker image for node has been installed.
-      2. Default validator config has been created at $validator_config_path (if it does not exist)
-      3. BLS key directory for node has been created at $bls_keys_path
-
-      Once you have imported your validator wallet to the harmony CLI,
-      start your node with the following command: ./auto_node.sh run
-  "
-}
+fi
 
 case "${1}" in
   "run")
-    if [ ! -f "$validator_config_path" ]; then
-      setup
+    harmony_dir=$(python3 -c "from AutoNode import common; print(common.harmony_dir)")
+    python3 -u "$harmony_dir"/init.py "${@:2}"
+    echo "[AutoNode] Initilized service..."
+    daemon_name=$(python3 -c "from AutoNode.daemon import Daemon; print(Daemon.name)")
+    sudo systemctl start "$daemon_name"@node.service
+    sudo systemctl start "$daemon_name"@monitor.service
+    python3 -u -c "from AutoNode import validator; validator.setup(recover_interaction=False)" || true
+    monitor_log_path=$(python3 -c "from AutoNode import monitor; print(monitor.log_path)")
+    if [ -f "$monitor_log_path" ]; then
+      tail -f "$monitor_log_path"
+    else
+      echo "[AutoNode] Monitor failed to start..."
+      systemctl status "$daemon_name"@monitor.service || true
     fi
-    if [ ! -d "$node_path" ]; then
-      echo "Node directory not found at ${node_path}. Run setup with \`./auto_node.sh setup\` to create direcotry."
-      exit
+    ;;
+  "init")
+    harmony_dir=$(python3 -c "from AutoNode import common; print(common.harmony_dir)")
+    python3 -u "$harmony_dir"/init.py "${@:2}"
+    ;;
+  "node")
+    daemon_name=$(python3 -c "from AutoNode.daemon import Daemon; print(Daemon.name)")
+    if systemctl --type=service --state=active | grep -e ^"$daemon_name"@node.service; then
+      node_daemon="$daemon_name"@node.service
+    else
+      node_daemon="$daemon_name"@node_recovered.service
     fi
-    if [ ! -d "$bls_keys_path" ]; then
-      echo "BLS key file directory not found at ${bls_keys_path}. Run setup with \`./auto_node.sh setup\` to create direcotry."
-      exit
-    fi
-    if [ ! -d "${HOME}/.hmy_cli" ]; then
-      echo "CLI keystore not found at ~/.hmy_cli. Create or import a wallet using the CLI before running auto_node.sh"
-      exit
-    fi
-    if [ ! -d "$node_shared_dir" ]; then
-      mkdir -p node_shared_dir
-    fi
-    cp $validator_config_path "${node_shared_dir}/validator_config.json"
+    case "${2}" in
+      "status")
+      systemctl status "$node_daemon"
+      ;;
+      "log")
+      tail -f "$(python3 -c "from AutoNode import node; print(node.log_path)")"
+      ;;
+      "journal")
+      journalctl -u "$node_daemon" "${@:3}"
+      ;;
+      "restart")
+      sudo systemctl restart "$node_daemon"
+      ;;
+      "name")
+      echo "$node_daemon"
+      ;;
+      "info")
+      curl --location --request POST 'http://localhost:9500/' \
+      --header 'Content-Type: application/json' \
+      --data-raw '{
+          "jsonrpc": "2.0",
+          "method": "hmy_getNodeMetadata",
+          "params": [],
+          "id": 1
+      }' | jq
+      ;;
+      *)
+        echo "
+      == AutoNode node command help ==
 
-    if [ "$(docker inspect -f '{{.State.Running}}' "$container_name")" = "true" ]; then
-      echo "[AutoNode] Killing existing docker container with name: $container_name"
-      docker kill "${container_name}"
-    fi
-    if docker ps -a | grep "$container_name" ; then
-      echo "[AutoNode] Removing existing docker container with name: $container_name"
-      docker rm "${container_name}"
-    fi
+      Usage: auto_node.sh node <cmd>
 
-    echo "[AutoNode] Using validator config at: $validator_config_path"
-    echo "[AutoNode] Sharing node files on host machine at: ${node_shared_dir}"
-    echo "[AutoNode] Sharing CLI files on host machine at: ${HOME}/.hmy_cli"
-    echo "[AutoNode] Initializing..."
+      Cmd:           Help:
 
-    # Warning: Assumption about BLS key files, might have to cahnge in the future...
-    # Warning: Assumption about CLI files, might have to change in the future...
-    eval docker run --name "${container_name}" -v "${node_shared_dir}:/root/node" \
-     -v "${HOME}/.hmy_cli/:/root/.hmy_cli" -v "${bls_keys_path}:/root/harmony_bls_keys" \
-     --user root -p 9000:9000 -p 9500:9500 $docker_img "${@:2}" &
+      log            View the current log of your Harmony Node
+      status         View the status of your current Harmony Node daemon
+      journal <opts> View the journal of your current Harmony Node daemon
+      restart        Manually restart your current Harmony Node daemon
+      name           Get the name of your current Harmony Node deamon
+      info           Get the node's current metadata
+        "
+        exit
+    esac
+    ;;
+  "monitor")
+    daemon_name=$(python3 -c "from AutoNode.daemon import Daemon; print(Daemon.name)")
+    monitor_daemon="$daemon_name"@monitor.service
+    case "${2}" in
+      "status")
+      systemctl status "$monitor_daemon"
+      ;;
+      "log")
+      tail -f "$(python3 -c "from AutoNode import monitor; print(monitor.log_path)")"
+      ;;
+      "journal")
+      journalctl -u "$monitor_daemon" "${@:3}"
+      ;;
+      "restart")
+      sudo systemctl restart "$monitor_daemon"
+      ;;
+      "name")
+      echo "$monitor_daemon"
+      ;;
+      *)
+        echo "
+      == AutoNode node monitor command help ==
 
-    until docker ps | grep "${container_name}"
-      do
-          sleep 1
-      done
-      docker exec -it "${container_name}" /root/attach.sh
+      Usage: auto_node.sh monitor <cmd>
+
+      Cmd:            Help:
+
+      log             View the log of your Harmony Monitor
+      status          View the status of your Harmony Monitor daemon
+      journal <opts>  View the journal of your Harmony Monitor daemon
+      restart         Manually restart your Harmony Monitor daemon
+      name            Get the name of your Harmony Monitor deamon
+        "
+        exit
+    esac
     ;;
   "create-validator")
-    docker exec -it "${container_name}" /root/create_validator.sh
+    # TODO in python for simplicity
     ;;
   "activate")
-    docker exec -it "${container_name}" /root/activate.sh
+    val_config=$(python3 -c "from AutoNode import common; import json; print(json.dumps(common.validator_config))")
+    node_config=$(python3 -c "from AutoNode import common; import json; print(json.dumps(common.node_config))")
+    addr=$(echo "$val_config" | jq -r '.["validator-addr"]')
+    endpoint=$(echo "$node_config" | jq -r ".endpoint")
+    pw_file=$(python3 -c "from AutoNode import common; print(common.saved_wallet_pass_path)")
+    if [ -f "$HOME"/hmy ]; then
+      "$HOME"/hmy staking edit-validator validator-addr "$addr" --active true --passphrase-file "$pw_file" -n "$endpoint" | jq
+    else
+      echo "[AutoNode] Harmony CLI has been moved. Reinitlize AutoNode."
+    fi
     ;;
   "deactivate")
-    docker exec -it "${container_name}" /root/deactivate.sh
+    val_config=$(python3 -c "from AutoNode import common; import json; print(json.dumps(common.validator_config))")
+    node_config=$(python3 -c "from AutoNode import common; import json; print(json.dumps(common.node_config))")
+    addr=$(echo "$val_config" | jq -r '.["validator-addr"]')
+    endpoint=$(echo "$node_config" | jq -r ".endpoint")
+    pw_file=$(python3 -c "from AutoNode import common; print(common.saved_wallet_pass_path)")
+    if [ -f "$HOME"/hmy ]; then
+      "$HOME"/hmy staking edit-validator validator-addr "$addr" --active false --passphrase-file "$pw_file" -n "$endpoint" | jq
+    else
+      echo "[AutoNode] Harmony CLI has been moved. Reinitlize AutoNode."
+    fi
     ;;
   "info")
-    docker exec -it "${container_name}" /root/info.sh
+    val_config=$(python3 -c "from AutoNode import common; import json; print(json.dumps(common.validator_config))")
+    node_config=$(python3 -c "from AutoNode import common; import json; print(json.dumps(common.node_config))")
+    addr=$(echo "$val_config" | jq -r '.["validator-addr"]')
+    endpoint=$(echo "$node_config" | jq -r ".endpoint")
+    if [ -f "$HOME"/hmy ]; then
+      "$HOME"/hmy blockchain validator information "$addr" -n "$endpoint" | jq
+    else
+      echo "[AutoNode] Harmony CLI has been moved. Reinitlize AutoNode."
+    fi
+    ;;
+  "config")
+    python3 -c "from AutoNode import common; import json; print(json.dumps(common.validator_config))" | jq
+    ;;
+  "edit-config")
+    nano "$(python3 -c "from AutoNode import common; print(common.saved_validator_path)")"
     ;;
   "cleanse-bls")
-    docker exec -it "${container_name}" /root/cleanse-bls.py "${@:2}"
+    # TODO in python for simplitcy
     ;;
   "balances")
-    docker exec -it "${container_name}" /root/balances.sh
+    val_config=$(python3 -c "from AutoNode import common; import json; print(json.dumps(common.validator_config))")
+    node_config=$(python3 -c "from AutoNode import common; import json; print(json.dumps(common.node_config))")
+    addr=$(echo "$val_config" | jq -r '.["validator-addr"]')
+    endpoint=$(echo "$node_config" | jq -r ".endpoint")
+    if [ -f "$HOME"/hmy ]; then
+      "$HOME"/hmy balances "$addr" -n "$endpoint" | jq
+    else
+      echo "[AutoNode] Harmony CLI has been moved. Reinitlize AutoNode."
+    fi
     ;;
-  "node-version")
-    docker exec -it "${container_name}" /root/version.sh
+  "collect-rewards")
+    val_config=$(python3 -c "from AutoNode import common; import json; print(json.dumps(common.validator_config))")
+    addr=$(echo "$val_config" | jq -r '.["validator-addr"]')
+    if [ -f "$HOME"/hmy ]; then
+      "$HOME"/hmy staking collect-rewards --delegator-addr "$addr" -n "$endpoint" | jq
+    else
+      echo "[AutoNode] Harmony CLI has been moved. Reinitlize AutoNode."
+    fi
     ;;
   "version")
-   docker images --format "table {{.ID}}\t{{.CreatedAt}}" --no-trunc $docker_img | head -n2
+    node_dir=$(python3 -c "from AutoNode import common; print(common.node_dir)")
+    owd=$(pwd)
+    cd "$node_dir" && ./node.sh -V && ./node.sh -v && cd "$owd" || echo "[AutoNode] Node files not found..."
     ;;
   "header")
-    docker exec -it "${container_name}" /root/header.sh
+    if [ -f "$HOME"/hmy ]; then
+      "$HOME"/hmy blockchain latest-header | jq
+    else
+      echo "[AutoNode] Harmony CLI has been moved. Reinitlize AutoNode."
+    fi
     ;;
   "headers")
-    docker exec -it "${container_name}" /root/headers.sh
-    ;;
-  "export")
-    docker exec -it "${container_name}" /root/export.sh
-    ;;
-  "attach")
-    docker exec --user root -it "${container_name}" /root/attach.sh
-    ;;
-  "attach-machine")
-    docker exec --user root -it "${container_name}" /bin/bash
+    if [ -f "$HOME"/hmy ]; then
+      "$HOME"/hmy blockchain latest-headers | jq
+    else
+      echo "[AutoNode] Harmony CLI has been moved. Reinitlize AutoNode."
+    fi
     ;;
   "kill")
-    docker exec --user root -it "${container_name}" /bin/bash -c "killall harmony"
-    docker kill "${container_name}"
-    ;;
-  "export-bls")
-    if [ ! -d "${2}" ]; then
-      echo "${2}" is not a directory.
-      exit
-    fi
-    cp -r "${node_shared_dir}/bls_keys" "${2}"
-    echo "Exported BLS keys to ${2}/bls_keys"
-    ;;
-  "export-logs")
-    if [ ! -d "${2}" ]; then
-      echo "${2}" is not a directory.
-      exit
-    fi
-    export_dir="${2}/logs"
-    mkdir -p "${export_dir}"
-    cp -r "${node_shared_dir}/node_sh_logs" "${export_dir}"
-    cp -r "${node_shared_dir}/backups" "${export_dir}"
-    cp -r "${node_shared_dir}/latest" "${export_dir}"
-    cp "${node_shared_dir}/auto_node_errors.log" "${export_dir}"
-    echo "Exported node.sh logs to ${export_dir}"
-    ;;
-  "hmy")
-    docker exec -it "${container_name}" /root/bin/hmy "${@:2}"
-    ;;
-  "setup")
-    setup
-    ;;
-  "clean")
-    docker kill "${container_name}"
-    docker rm "${container_name}"
-    rm -rf ./."${container_name}"
+    daemon_name=$(python3 -c "from AutoNode.daemon import Daemon; print(Daemon.name)")
+    sudo systemctl stop "$daemon_name"* || true
     ;;
   *)
     echo "
-      == Harmony auto-node deployment help message ==
+      == Harmony AutoNode help message ==
+      Note that all sensitive files are saved with read only access for user $USER.
+      Moreover, user $USER must have sudo access with no passphrase, contact your administrator for such access.
 
-      Optional:            Param:              Help:
+      Param:              Help:
 
-      [--container=<name>] run <run params>    Main execution to run a node. If errors are given
-                                                for other params, this needs to be ran. Use '-h' for run help msg
-      [--container=<name>] create-validator    Send a create validator transaction with the given config
-      [--container=<name>] activate            Make validator associated with node elegable for election in next epoch
-      [--container=<name>] deactivate          Make validator associated with node NOT elegable for election in next epoch
-      [--container=<name>] cleanse-bls <opts>  Remove BLS keys from validaor that are not earning. Use '-h' for help msg
-      [--container=<name>] info                Fetch information for validator associated with node
-      [--container=<name>] balances            Fetch balances for validator associated with node
-      [--container=<name>] node-version        Fetch the version for the harmony node binary and node.sh
-      [--container=<name>] version             Fetch the of the Docker image.
-      [--container=<name>] header              Fetch the latest header (shard chain) for the node
-      [--container=<name>] headers             Fetch the latest headers (beacon and shard chain) for the node
-      [--container=<name>] attach              Attach to the running node
-      [--container=<name>] attach-machine      Attach to the docker image that containes the node
-      [--container=<name>] export              Export the private keys associated with this node
-      [--container=<name>] export-bls <path>   Export all BLS keys used by the node
-      [--container=<name>] export-logs <path>  Export all node logs to the given path
-      [--container=<name>] hmy <CLI params>    Call the CLI where the localhost is the current node
-      [--container=<name>] clean               Kills and remove the node's docker container and shared directory
-      [--container=<name>] kill                Safely kill the node
-      [--container=<name>] setup               Setup auto_node
+      run <run params>    Main execution to run a node. If errors are given
+                           for other params, this needs to be ran. Use '-h' param for run param msg
+      init                Initlize AutoNode config. First fallback if any errors
+      monitor <cmd>       View/Command Harmony Node Monitor. Use '-h' cmd for node monitor cmd help msg
+      node <cmd>          View/Command Harmony Node. Use '-h' cmd for node cmd help msg
+      create-validator    Send a create validator transaction with the given config
+      activate            Make validator associated with node elegable for election in next epoch
+      deactivate          Make validator associated with node NOT elegable for election in next epoch
+      info                Fetch information for validator associated with node
+      cleanse-bls <opts>  Remove BLS keys from validaor that are not earning. Use '-h' opts for opts help msg
+      balances            Fetch balances for validator associated with node
+      collect-rewards     Collect rewards for the associated validator
+      version             Fetch the version of the node
+      header              Fetch the latest header (shard chain) for the node
+      headers             Fetch the latest headers (beacon and shard chain) for the node
+      kill                Safely kill AutoNode & its monitor (if alive)
     "
     exit
     ;;

@@ -1,15 +1,17 @@
+import subprocess
 from setuptools import setup
 
 setup(
     name='AutoNode',
-    description="AutoNode Python Library (this library is only used inside the sentry docker image)",
+    version=f"0.1.0",
+    description="AutoNode Python Library",
     author='Daniel Van Der Maden',
     author_email='daniel@harmony.one',
     url="http://harmony.one/auto-node",
     packages=['AutoNode'],
     install_requires=[
-        'requests',
-        'pexpect',
+        'requests==2.23.0',
+        'pexpect==4.8.0',
         'pyhmy',
     ]
 )
