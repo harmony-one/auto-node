@@ -133,7 +133,7 @@ case "${1}" in
     endpoint=$(echo "$node_config" | jq -r ".endpoint")
     pw_file=$(python3 -c "from AutoNode import common; print(common.saved_wallet_pass_path)")
     if [ -f "$HOME"/hmy ]; then
-      "$HOME"/hmy staking edit-validator validator-addr "$addr" --active true --passphrase-file "$pw_file" -n "$endpoint" | jq
+      "$HOME"/hmy staking edit-validator --validator-addr "$addr" --active true --passphrase-file "$pw_file" -n "$endpoint" | jq
     else
       echo "[AutoNode] Harmony CLI has been moved. Reinitlize AutoNode."
     fi
@@ -145,7 +145,7 @@ case "${1}" in
     endpoint=$(echo "$node_config" | jq -r ".endpoint")
     pw_file=$(python3 -c "from AutoNode import common; print(common.saved_wallet_pass_path)")
     if [ -f "$HOME"/hmy ]; then
-      "$HOME"/hmy staking edit-validator validator-addr "$addr" --active false --passphrase-file "$pw_file" -n "$endpoint" | jq
+      "$HOME"/hmy staking edit-validator --validator-addr "$addr" --active false --passphrase-file "$pw_file" -n "$endpoint" | jq
     else
       echo "[AutoNode] Harmony CLI has been moved. Reinitlize AutoNode."
     fi
