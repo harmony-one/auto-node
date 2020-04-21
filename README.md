@@ -246,7 +246,7 @@ Get the balances of the associated validator wallet
 
 ## Project Layout
 ### `./AutoNode/`
-This is the main python3 package for AutoNode. Each component is make into its own library within this package.
+This is the main python3 package for AutoNode. Each component is its own library within this package.
 ### `./scripts/`
 * `auto_node.sh` is the main script that people will be interfacing with
 * `autonode_service.py` is the daemon script
@@ -254,7 +254,7 @@ This is the main python3 package for AutoNode. Each component is make into its o
 * `init.py` is the initialization script called by `auto_node.sh`
 * `install.sh` is the main install script that people will be running to install AutoNode. This should handle most linux distros and common setups.
 **Note that the version of AutoNode is hard-coded in this script and needs to be bumped if a new version is desired**
-### `./scripts.py`
+### `./setup.py`
 This is the pypi setup script that is needed for distribution upload. 
 **Note that the version needs to be bumped manually and the install script must be updated accordingly.**
 
