@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
 set -e
 
-echo "[AutoNode] Starting installation..."
+echo "[AutoNode] Starting installation for user $USER (with home: $HOME)"
+
+sleep 5
 
 # Do prechecks for absolute requirements..
 if [ "$(uname)" != "Linux" ]; then
@@ -53,8 +55,10 @@ fi
 for dependency in "python3" "python3-pip" "jq" "unzip" "nano" "curl"; do
   check_and_install "$dependency"
 done
-echo "[AutoNode] Upgrading main python3 library"
-pip3 install --user AutoNode --upgrade
+echo "[AutoNode] Removing existing AutoNode installation"
+pip3 uninstall AutoNode -y || sudo pip3 uninstall AutoNode -y || echo "[AutoNode] Was not installed..."
+echo "[AutoNode] Installing main python3 library (as sudo)"
+sudo pip3 install AutoNode --upgrade
 echo "[AutoNode] Initilizing python3 library"
 python3 -c "from AutoNode import common; common.save_validator_config()" > /dev/null
 
@@ -125,6 +129,6 @@ echo "[AutoNode] Help message for auto_node.sh:"
 echo ""
 echo "[AutoNode] Note that you have to import your wallet using the Harmony CLI before"
 echo "           you can use validator features of AutoNode."
-run_cmd="$HOME/auto_node.sh run --auto-active --auto-reset --clean"
+run_cmd="$HOME/auto_node.sh run --auto-active --clean"
 echo -e "[AutoNode] Start your AutoNode with: \e[38;5;0;48;5;255m$run_cmd\e[0m"
 echo ""
