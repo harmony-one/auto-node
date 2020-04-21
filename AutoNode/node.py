@@ -133,10 +133,10 @@ def wait_for_node_response(endpoint, verbose=True, tries=float("inf"), sleep=0.5
         except (json.decoder.JSONDecodeError, requests.exceptions.ConnectionError,
                 RuntimeError, KeyError, AttributeError):
             if count > tries:
-                raise TimeoutError(f"{endpoint} did not respond in {count} attempts (~{tries * count} seconds)")
+                raise TimeoutError(f"{endpoint} did not respond in {count} attempts (~{sleep * count} seconds)")
             if verbose and count % 10 == 0:
                 log(f"{Typgpy.WARNING}Waiting for {endpoint} to respond, tried {count} times "
-                    f"(~{tries * count} seconds waited so far){Typgpy.ENDC}")
+                    f"(~{sleep * count} seconds waited so far){Typgpy.ENDC}")
             time.sleep(sleep)
     if verbose:
         log(f"{Typgpy.HEADER}[!] {endpoint} is alive!{Typgpy.ENDC}")

@@ -91,7 +91,7 @@ def _init():
                 imported_node_config = json.load(f)
                 node_config.update(imported_node_config)
         except (json.decoder.JSONDecodeError, IOError, PermissionError) as e:
-            raise SystemExit(f"Could not import saved node config from {saved_node_path}") from e
+            raise SystemExit(f"Could not import saved node config from {saved_node_path}, error: {e}")
 
 
 _init()

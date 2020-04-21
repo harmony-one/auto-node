@@ -3,6 +3,11 @@
 set -e
 
 # TODO: convert auto_node.sh into python3 click CLI since lib is in python3.
+if (( "$EUID" == 0 )); then
+  echo "Do not run as root"
+  exit
+fi
+
 
 sudo -n true
 if [ "$?" -ne 0 ]; then
@@ -45,19 +50,35 @@ case "${1}" in
     fi
     case "${2}" in
       "status")
-      systemctl status "$node_daemon"
+      if [ "${3}" == "init" ]; then
+        systemctl status "$daemon_name"@node.service
+      else
+        systemctl status "$node_daemon"
+      fi
       ;;
       "log")
       tail -f "$(python3 -c "from AutoNode import node; print(node.log_path)")"
       ;;
       "journal")
-      journalctl -u "$node_daemon" "${@:3}"
+      if [ "${3}" == "init" ]; then
+        journalctl -u "$daemon_name"@node.service "${@:4}"
+      else
+        journalctl -u "$node_daemon" "${@:3}"
+      fi
       ;;
       "restart")
-      sudo systemctl restart "$node_daemon"
+      if [ "${3}" == "init" ]; then
+        systemctl restart "$daemon_name"@node.service
+      else
+        systemctl restart "$node_daemon"
+      fi
       ;;
       "name")
-      echo "$node_daemon"
+      if [ "${3}" == "init" ]; then
+        echo "$daemon_name"@node.service
+      else
+        echo "$node_daemon"
+      fi
       ;;
       "info")
       curl --location --request POST 'http://localhost:9500/' \
@@ -75,14 +96,17 @@ case "${1}" in
 
       Usage: auto_node.sh node <cmd>
 
-      Cmd:           Help:
+      Cmd:                  Help:
 
-      log            View the current log of your Harmony Node
-      status         View the status of your current Harmony Node daemon
-      journal <opts> View the journal of your current Harmony Node daemon
-      restart        Manually restart your current Harmony Node daemon
-      name           Get the name of your current Harmony Node deamon
-      info           Get the node's current metadata
+      log                   View the current log of your Harmony Node
+      status [init]         View the status of your current Harmony Node daemon
+      journal [init] <opts> View the journal of your current Harmony Node daemon
+      restart [init]        Manually restart your current Harmony Node daemon
+      name [init]           Get the name of your current Harmony Node deamon
+      info                  Get the node's current metadata
+
+      'init' is a special option for the inital node daemon, may be needed for debugging.
+      Otherwise not needed.
         "
         exit
     esac
@@ -133,7 +157,7 @@ case "${1}" in
     endpoint=$(echo "$node_config" | jq -r ".endpoint")
     pw_file=$(python3 -c "from AutoNode import common; print(common.saved_wallet_pass_path)")
     if [ -f "$HOME"/hmy ]; then
-      "$HOME"/hmy staking edit-validator validator-addr "$addr" --active true --passphrase-file "$pw_file" -n "$endpoint" | jq
+      "$HOME"/hmy staking edit-validator --validator-addr "$addr" --active true --passphrase-file "$pw_file" -n "$endpoint" | jq
     else
       echo "[AutoNode] Harmony CLI has been moved. Reinitlize AutoNode."
     fi
@@ -145,7 +169,7 @@ case "${1}" in
     endpoint=$(echo "$node_config" | jq -r ".endpoint")
     pw_file=$(python3 -c "from AutoNode import common; print(common.saved_wallet_pass_path)")
     if [ -f "$HOME"/hmy ]; then
-      "$HOME"/hmy staking edit-validator validator-addr "$addr" --active false --passphrase-file "$pw_file" -n "$endpoint" | jq
+      "$HOME"/hmy staking edit-validator --validator-addr "$addr" --active false --passphrase-file "$pw_file" -n "$endpoint" | jq
     else
       echo "[AutoNode] Harmony CLI has been moved. Reinitlize AutoNode."
     fi

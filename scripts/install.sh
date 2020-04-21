@@ -30,9 +30,11 @@ function check_and_install(){
 }
 
 function yes_or_exit(){
-  read -r answer
-  if [ "$answer" != "${answer#[Yy]}" ] ;then
-    exit
+  read -n 1 -r
+  echo ""
+  if [[ ! $REPLY =~ ^[Yy]$ ]]
+  then
+    exit 1
   fi
 }
 
@@ -78,7 +80,6 @@ Description=Harmony AutoNode %I service
 Type=simple
 ExecStart=$(command -v python3) -u $HOME/bin/autonode_service.py %I
 User=$USER
-Restart=on-failure
 
 [Install]
 WantedBy=multi-user.target
