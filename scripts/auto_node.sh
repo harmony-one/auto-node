@@ -180,7 +180,7 @@ case "${1}" in
     nano "$(python3 -c "from AutoNode import common; print(common.saved_validator_path)")"
     ;;
   "cleanse-bls")
-    # TODO in python for simplitcy
+    echo "[AutoNode] Not implemented yet"  # TODO: implement this
     ;;
   "balances")
     val_config=$(python3 -c "from AutoNode import common; import json; print(json.dumps(common.validator_config))")
@@ -245,7 +245,8 @@ case "${1}" in
       node <cmd>          View/Command Harmony Node. Use '-h' cmd for node cmd help msg
       setup-validator     Run through the steps to setup your validator
       activate            Make validator associated with node elegable for election in next epoch
-      deactivate          Make validator associated with node NOT elegable for election in next epoch
+      deactivate          Make validator associated with node NOT elegable for election in next epoch.
+                           Note that this may not work as intended if auto-active was enabled
       info                Fetch information for validator associated with node
       cleanse-bls <opts>  Remove BLS keys from validaor that are not earning. Use '-h' opts for opts help msg
       balances            Fetch balances for validator associated with node

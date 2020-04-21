@@ -86,6 +86,7 @@ def _wait_for_node_block_two():
         time.sleep(_check_interval)
     try:
         wait_for_node_response("http://localhost:9500/", verbose=True, sleep=1, tries=300)  # Try for 5 min
+        log(f"{Typgpy.HEADER}Waiting for block 2 on node...{Typgpy.ENDC}")
     except (ConnectionError, TimeoutError) as e:
         raise ResetNode(clean=True) from e
     count = 0
@@ -161,9 +162,9 @@ def start():
     """
     Will throw a RestartNode exception to signal a need to restart the node.
     """
-    log(f"{Typgpy.HEADER}Starting monitor...{Typgpy.ENDC}")
     old_logging_handlers = logging.getLogger('AutoNode').handlers.copy()
     logging.getLogger('AutoNode').addHandler(get_simple_rotating_log_handler(log_path))
+    log(f"{Typgpy.HEADER}Starting monitor...{Typgpy.ENDC}")
     try:
         shard_endpoint = _init()
         _run_monitor(shard_endpoint)

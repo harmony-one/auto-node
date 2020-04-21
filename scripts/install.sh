@@ -33,9 +33,8 @@ function check_and_install(){
 }
 
 function yes_or_exit(){
-  read -n 1 -r
-  echo ""
-  if [[ ! $REPLY =~ ^[Yy]$ ]]
+  read -r reply
+  if [[ ! $reply =~ ^[Yy]$ ]]
   then
     exit 1
   fi
@@ -56,9 +55,9 @@ for dependency in "python3" "python3-pip" "jq" "unzip" "nano" "curl"; do
   check_and_install "$dependency"
 done
 echo "[AutoNode] Removing existing AutoNode installation"
-pip3 uninstall AutoNode -y || sudo pip3 uninstall AutoNode -y || echo "[AutoNode] Was not installed..."
+pip3 uninstall AutoNode -y 2>/dev/null || sudo pip3 uninstall AutoNode -y 2>/dev/null || echo "[AutoNode] Was not installed..."
 echo "[AutoNode] Installing main python3 library (as sudo)"
-sudo pip3 install AutoNode==0.1.2
+sudo pip3 install AutoNode==0.1.6 --no-cache-dir
 echo "[AutoNode] Initilizing python3 library"
 python3 -c "from AutoNode import common; common.save_validator_config()" > /dev/null
 
@@ -66,16 +65,15 @@ daemon_name=$(python3 -c "from AutoNode.daemon import Daemon; print(Daemon.name)
 if systemctl --type=service --state=active | grep -e ^"$daemon_name"; then
   echo "[AutoNode] Detected running AutoNode. Must stop existing AutoNode to continue. Proceed (y/n)?"
   yes_or_exit
+  if ! "$HOME"/auto_node.sh kill; then
+     echo "[AutoNode] Could not kill existing AutoNode, exiting"
+     exit 3
+  fi
 fi
 if pgrep harmony; then
   echo "[AutoNode] Harmony process is running, kill it for upgrade (y/n)?"
   yes_or_exit
   killall harmony
-fi
-if [ -f "$HOME"/auto_node.sh ]; then
-  echo "[AutoNode] Would you like to replace existing $HOME/auto_node.sh (y/n)?"
-  yes_or_exit
-  rm "$HOME"/auto_node.sh
 fi
 
 systemd_service="[Unit]

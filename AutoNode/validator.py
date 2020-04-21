@@ -109,7 +109,7 @@ def _verify_node_sync():
     curr_epoch_beacon = curr_headers['beacon-chain-header']['epoch']
     ref_epoch = get_latest_header(node_config['endpoint'])['epoch']
     has_looped = False
-    while curr_epoch_shard != ref_epoch or curr_epoch_beacon != ref_epoch:
+    while curr_epoch_shard < ref_epoch or curr_epoch_beacon < ref_epoch:
         sys.stdout.write(f"\rWaiting for node to sync: shard epoch ({curr_epoch_shard}/{ref_epoch}) "
                          f"& beacon epoch ({curr_epoch_beacon}/{ref_epoch})")
         sys.stdout.flush()
@@ -120,6 +120,10 @@ def _verify_node_sync():
         curr_epoch_shard = curr_headers['shard-chain-header']['epoch']
         curr_epoch_beacon = curr_headers['beacon-chain-header']['epoch']
         ref_epoch = get_latest_header(node_config['endpoint'])['epoch']
+    if curr_epoch_shard > ref_epoch or curr_epoch_beacon > ref_epoch:
+        log(f"{Typgpy.FAIL}Node epoch is greater than network epoch which is not possible, "
+            f"is config correct?{Typgpy.ENDC}")
+        raise SystemExit("Invalid node sync")
     if has_looped:
         log("")
     log(f"{Typgpy.OKGREEN}Node synced to current epoch{Typgpy.ENDC}")
@@ -147,9 +151,9 @@ def _send_create_validator_tx():
 
 
 def setup(recover_interaction=False):
-    log(f"{Typgpy.HEADER}Starting validator setup...{Typgpy.ENDC}")
     old_logging_handlers = logging.getLogger('AutoNode').handlers.copy()
     logging.getLogger('AutoNode').addHandler(get_simple_rotating_log_handler(log_path))
+    log(f"{Typgpy.HEADER}Starting validator setup...{Typgpy.ENDC}")
     if node_config['no-validator']:
         raise SystemExit(f"{Typgpy.WARNING}Node config specifies not validator automation, exiting...{Typgpy.ENDC}")
     auto_interaction = 'Y' if recover_interaction else None

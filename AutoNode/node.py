@@ -87,9 +87,9 @@ def _rclone_s0(verbose=True):
 
 
 def start(auto=False, verbose=True):
-    log(f"{Typgpy.HEADER}Starting node...{Typgpy.ENDC}")
     old_logging_handlers = logging.getLogger('AutoNode').handlers.copy()
     logging.getLogger('AutoNode').addHandler(get_simple_rotating_log_handler(log_path))
+    log(f"{Typgpy.HEADER}Starting node...{Typgpy.ENDC}")
     if not auto:
         log(f"{Typgpy.WARNING}You are starting a Harmony Node manually, "
             f"this is not recommended, continue? [Y]/n{Typgpy.ENDC}")

@@ -32,9 +32,9 @@ def parse_args():
                                           "Default: 'staking'.", type=str, default='staking')
     parser.add_argument("--duration", type=int, help="Duration of how long the node is to run in seconds.\n  "
                                                      "Default is forever.", default=None)
-    parser.add_argument("--beacon-endpoint", dest="endpoint", type=str, default=AutoNode.node_config['endpoint'],
+    parser.add_argument("--beacon-endpoint", dest="endpoint", type=str, default="https://api.s0.os.hmny.io/",
                         help=f"Beacon chain (shard 0) endpoint for staking transactions.\n  "
-                             f"Default is {AutoNode.node_config['endpoint']}")
+                             f"Default is https://api.s0.os.hmny.io/")
     return parser.parse_args()
 
 
