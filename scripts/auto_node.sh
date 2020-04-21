@@ -12,6 +12,9 @@ case "${1}" in
   "run")
     harmony_dir=$(python3 -c "from AutoNode import common; print(common.harmony_dir)")
     python3 -u "$harmony_dir"/init.py "${@:2}"
+    if [ "$2" == "-h" ] || [ "$2" == "--help" ]; then
+      exit
+    fi
     echo "[AutoNode] Initilized service..."
     daemon_name=$(python3 -c "from AutoNode.daemon import Daemon; print(Daemon.name)")
     sudo systemctl start "$daemon_name"@node.service
@@ -230,7 +233,7 @@ case "${1}" in
       == Harmony AutoNode help message ==
       Note that all sensitive files are saved with read only access for user $USER.
 
-      To auto-reset your node during hard refreshes (), user $USER must have sudo access
+      To auto-reset your node during hard refreshes (for testnets), user $USER must have sudo access
       with no passphrase since the monitor daemon needs to stop and start the node daemon.
 
 

@@ -1,102 +1,146 @@
-# TODO: UPDATE README
+# AutoNode - Run a Harmony node with 1 command!
 
-# Script + Docker Image to run a harmony node automagically
-
-On any machine with docker (install [here](https://docs.docker.com/install/)) one could run a node, create a validator, and maintain it will 1 command.
+Documentation for most users can be found [here](https://docs.harmony.one/home/validators/autonode)
 
 ## Setup
 
-Download the `auto_node.sh` shell script:
-```
-curl -O https://raw.githubusercontent.com/harmony-one/auto-node/master/scripts/auto_node.sh && chmod +x ./auto_node.sh && ./auto_node.sh setup
-```
-> For help on the parameters of `auto_node.sh` use the help option with `./auto_node.sh --help` 
-
-**Currently, there is an assumption that `auto_node.sh` is in the current working directory for all commands.** 
-
-## Usages
-
-1. To run a node, use the `run` param of `auto_node.sh`. For example:
+**1) Install AutoNode with the following command:**
 ```bash
-$ ./auto_node.sh run --clean --auto-active --auto-interaction --auto-reset
+bash <(curl -s -S -L 'https://raw.githubusercontent.com/harmony-one/auto-node/master/scripts/install.sh')
 ```
-> For help or details of the parameters use the `run` help option with `./auto_node.sh run --help`.
->
-> Note that keys from the CLI keystore are used to create a validator.
 
-2. Export the BLS key files used by the running node with `./auto_node.sh export-bls <path to directory>`
+or
 
-3. Get the version of the harmony node with `./auto_node.sh version.`
-
-4. Safely kill the node with `./auto_node.sh kill`.
-
-5. Manually activate a node for EPOS with `./auto_node.sh activate`.
-
-6. Get validator information of the account associated with the node with `./auto_node.sh info`.
-
-7. Get latest header of the node with `./auto_node.sh header`.
-
-8. Get node config info with `./auto_node.sh export`.
-
-9. Export the node's logs with  `./auto_node.sh export-logs`.
-
-10. Export the validator private key and BLS key associated with the node with `./auto_node.sh export`.
-
-11. Attach to the docker image (to look around / debug) with `./auto_node.sh attach`.
-
-12. Call the CLI with the node as localhost with `./auto_node.sh hmy <cli args>`.
-
-13. Kill and remove a node's docker container and shared directory with `./auto_node.sh clean`.
-
-### A note on BLS keys
-
-If you wish to use your own BLS keys, you can add the `.key` files to the `./harmony_bls_keys` directory. If you have
-a custom passphrase for the BLS key, enable passphrase input for BLS keys at node run with the `--bls-passphrase` run option.
-Note that this method is supported for multi key nodes as well. 
-
-## Advanced `run` usage
-
-**It is important to note that the CLI used in the docker image shares the keystore with the host machine.**
-
-* A node is always ran with the following command `./node.sh -N <network> -z -f <BLS key dir path> -M`. 
-* One can define the validator information used in the create validator tx by setting the 
-fields in the `validator_config.json` file (which is in the same directory as `auto_node.sh`). 
-**Note that this is where you define the wallet linked to the auto_node. Moreover, the defined wallet MUST 
-be in the CLI's keystore.**
-* If a custom passphrase is needed for the wallet, specify a passphrase toggle with `--wallet-passphrase` run option. 
-This will toggle an interactive session and ask for the passphrase when needed. Alternatively, one can specify the
-passphrase as a string with the `--wallet-passphrase-string <PASSPHRASE>` run option (this is a less secure option).
-* If a validator is already created, auto node will ask to add the BLS key to the validator.
-* One can skip all interactions (except for passphrase) with the `--auto-interaction` run option. It will automatically
-say yes to creating a validator or adding the BLS key to an existing validator.
-* Note that the node files are shared with the host machine and can be inspected / debugged as needed.
-* One can define the container name with the `--container=<name>` **PRE-OPTION**. So the run command will now be:
+```bash
+curl -O https://raw.githubusercontent.com/harmony-one/auto-node/master/scripts/install.sh && chmod +x ./install.sh && ./install.sh && rm ./install.sh
 ```
-./auto_node.sh --container=test123 run --clean --auto-active --auto-interaction
+
+**2) Create and/or import you validator wallet with the included CLI:**
+
+Create Validator
+```bash
+~/hmy keys add validator
+```
+
+Import wallet from Keystore file
+```bash
+~/hmy keys import-ks <path-to-keystore-file>
+```
+
+Import wallet from private-key (not recommended)
+```bash
+~/hmy keys import-private-key <private-key-string>
 ``` 
 
-### `run` help message for reference:
+**3) Edit the config**
+```bash
+~/auto_node.sh edit-config
 ```
+> Set your one1... address. Note that it has to be in quotes. 
+>
+> Save and exit by pressing **Ctrl+X**, then **`Y`**, then **enter**.
+
+**4) Run you validator node**
+```bash
+~/auto_node.sh run --auto-active --auto-reset --clean
+```
+> Answer the prompts with `Y` or `N`, **make sure to fund your validator before creating the validator**.
+>
+> Once you see a looping print of header information, feel free to exit with **Ctrl+Z**
+>
+> You can also close your SSH session.
+
+## Dev Setup
+**Note that you must be in a linux machine to test most things, though some dev can be done on a mac machine.**
+
+### Installation:
+1) First, install the release version AutoNode (needed for dependencies).
+
+2) Clone this repo and install the AutoNode library with:
+```
+pip3 install . --user
+```
+
+3) (Optional) Copy over the AutoNode scripts as needed with: 
+```
+cp ./scripts/init.py ~/.hmy
+cp ./scripts/cleanse-bls.py ~/.hmy
+cp ./scripts/auto_node.sh ~/
+cp ./scripts/autonode_service.py ~/bin/autonode_service.py
+```
+
+### Release:
+1) Bump the AutoNode version in `./setup.py`
+2) Bump the AutoNode version in `./scripts/install.py`
+3) Build AutoNode with `python3 setup.py sdist` (while in root of this project)
+4) Release AutoNode with `twine upload dist/*` (credentials are needed)
+
+
+## Importing notes and assumptions
+
+* AutoNode assumes that you are not root.
+* Your node (db files, harmony binary, logs, etc...) will be saved in `~/harmony_node`.
+* For the `--auto-reset` option (which is what enables the auto-reset of hard refreshes) your user needs
+to have access to sudo without a passphrase. This is needed as the monitor will need to stop and start services.
+* AutoNode will save sensitive information with read only access for the user (and root).
+
+## Common Usages
+
+###1) AutoNode help message:
+```bash
+~/auto_node.sh -h
+```
+
+For reference here is the help message:
+```
+== Harmony AutoNode help message ==
+Note that all sensitive files are saved with read only access for user $USER.
+
+To auto-reset your node during hard refreshes (for testnets), user $USER must have sudo access
+with no passphrase since the monitor daemon needs to stop and start the node daemon.
+
+
+Param:              Help:
+
+run <run params>    Main execution to run a node. If errors are given
+                   for other params, this needs to be ran. Use '-h' param for run param msg
+init                Initlize AutoNode config. First fallback if any errors
+config              View the validator_config.json file used by AutoNode
+edit-config         Edit the validator_config.json file used by AutoNode
+monitor <cmd>       View/Command Harmony Node Monitor. Use '-h' cmd for node monitor cmd help msg
+node <cmd>          View/Command Harmony Node. Use '-h' cmd for node cmd help msg
+setup-validator     Run through the steps to setup your validator
+activate            Make validator associated with node elegable for election in next epoch
+deactivate          Make validator associated with node NOT elegable for election in next epoch.
+                   Note that this may not work as intended if auto-active was enabled
+info                Fetch information for validator associated with node
+cleanse-bls <opts>  Remove BLS keys from validaor that are not earning. Use '-h' opts for opts help msg
+balances            Fetch balances for validator associated with node
+collect-rewards     Collect rewards for the associated validator
+version             Fetch the version of the node
+header              Fetch the latest header (shard chain) for the node
+headers             Fetch the latest headers (beacon and shard chain) for the node
+kill                Safely kill AutoNode & its monitor (if alive)
+```
+
+###2) Run AutoNode:
+```bash
+~/auto_node.sh run <options>
+```
+
+For reference here is the run help msg for `<options>`:
+```
+usage: auto_node.sh run [OPTIONS]
+
 == Run a Harmony node & validator automagically ==
 
 optional arguments:
   -h, --help            Show this help message and exit
   --auto-active         Always try to set active when EPOS status is inactive.
   --auto-reset          Automatically reset node during hard resets.
-  --auto-interaction    Say yes to all interaction (except wallet pw).
+  --no-validator        Disable validator automation.
+  --update-cli          Toggle upgrading the Harmony CLI used by AutoNode
   --clean               Clean shared node directory before starting node.
-  --wallet-passphrase   Toggle specifying a passphrase interactively for the wallet.
-                          If not toggled, default CLI passphrase will be used.
-  --wallet-passphrase-string WALLET_PASSPHRASE_STRING
-                        Specify passphrase string for validator's wallet.
-                          The passphrase may be exposed on the host machine.
-
-  --bls-passphrase      Toggle specifying a passphrase interactively for the BLS key.
-                          If not toggled, default CLI passphrase will be used.
-  --bls-passphrase-string BLS_PASSPHRASE_STRING
-                        Specify passphrase string for validator's BLS key.
-                          The passphrase may be exposed on the host machine.
-
   --shard SHARD         Specify shard of generated bls key.
                           Only used if no BLS keys are not provided.
   --network NETWORK     Network to connect to (staking, partner, stress).
@@ -108,4 +152,109 @@ optional arguments:
                           Default is https://api.s0.os.hmny.io/
 ```
 
+###3) (Re)initialize AutoNode without running it 
+```bash
+~/auto_node.sh init
+```
+
+###4) Node information & status:
+```bash
+~/auto_node.sh node <cmd>
+```
+
+For reference here is the node help msg for `<cmd>`:
+```
+== AutoNode node command help ==
+
+Usage: auto_node.sh node <cmd>
+
+Cmd:                  Help:
+
+log                   View the current log of your Harmony Node
+status [init]         View the status of your current Harmony Node daemon
+journal [init] <opts> View the journal of your current Harmony Node daemon
+restart [init]        Manually restart your current Harmony Node daemon
+name [init]           Get the name of your current Harmony Node deamon
+info                  Get the node's current metadata
+
+'init' is a special option for the inital node daemon, may be needed for debugging.
+Otherwise not needed.
+```
+
+###5) Monitor information & status:
+```bash
+~/auto_node.sh monitor <cmd>
+```
   
+For reference here is the monitor help msg for `<cmd>`:
+```
+== AutoNode node monitor command help ==
+
+Usage: auto_node.sh monitor <cmd>
+
+Cmd:            Help:
+
+log             View the log of your Harmony Monitor
+status          View the status of your Harmony Monitor daemon
+journal <opts>  View the journal of your Harmony Monitor daemon
+restart         Manually restart your Harmony Monitor daemon
+name            Get the name of your Harmony Monitor deamon
+```
+
+###6) See validator information for associated AutoNode
+```bash
+~/auto_node.sh info
+```
+
+###7) See node latest header (for quick view of node activity)
+```bash
+~/auto_node.sh headers
+```
+
+###8) See AutoNode validator config
+```bash
+~/auto_node.sh config
+```
+
+###9) Edit AutNode validator config
+```bash
+~/auto_node.sh edit-config
+```
+
+###10) Aliased Harmony CLI commands:
+
+Send a edit-validator transaction to activate your associated validator
+```bash
+~/auto_node.sh activate
+```
+
+Send a edit-validator transaction to deactivate your associated validator
+```bash
+~/auto_node.sh deactivate
+```
+> Note that this may not work as desired with `--auto-active` option
+
+Get the balances of the associated validator wallet
+```bash
+~/auto_node.sh balances
+```
+
+###11) Kill AutoNode
+```bash
+~/auto_node.sh kill
+```
+
+## Project Layout
+### `./AutoNode/`
+This is the main python3 package for AutoNode. Each component is make into its own library within this package.
+### `./scripts/`
+* `auto_node.sh` is the main script that people will be interfacing with
+* `autonode_service.py` is the daemon script
+* `cleanse-bls.py` is a command script needed for `auto_node.sh`
+* `init.py` is the initialization script called by `auto_node.sh`
+* `install.sh` is the main install script that people will be running to install AutoNode. This should handle most linux distros and common setups.
+**Note that the version of AutoNode is hard-coded in this script and needs to be bumped if a new version is desired**
+### `./scripts.py`
+This is the pypi setup script that is needed for distribution upload. 
+**Note that the version needs to be bumped manually and the install script must be updated accordingly.**
+

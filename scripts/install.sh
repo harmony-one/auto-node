@@ -93,13 +93,13 @@ curl -s -LO https://harmony.one/hmycli && mv hmycli "$HOME"/hmy && chmod +x "$HO
 harmony_dir=$(python3 -c "from AutoNode import common; print(common.harmony_dir)")
 mkdir -p "$harmony_dir"
 echo "[AutoNode] Installing AutoNode wrapper script"
-curl -s -o "$HOME"/auto_node.sh  https://raw.githubusercontent.com/harmony-one/auto-node/migrate_off_docker/scripts/auto_node.sh  # TODO: change back url
+curl -s -o "$HOME"/auto_node.sh  https://raw.githubusercontent.com/harmony-one/auto-node/master/scripts/auto_node.sh
 chmod +x "$HOME"/auto_node.sh
-curl -s -o "$harmony_dir"/init.py https://raw.githubusercontent.com/harmony-one/auto-node/migrate_off_docker/init.py  # TODO: change back url
+curl -s -o "$harmony_dir"/init.py https://raw.githubusercontent.com/harmony-one/auto-node/master/script/init.py
 daemon_name=$(python3 -c "from AutoNode.daemon import Daemon; print(Daemon.name)")
 echo "[AutoNode] Installing AutoNode daemon: $daemon_name"
 mkdir -p "$HOME"/bin
-curl -s -o "$HOME"/bin/autonode_service.py https://raw.githubusercontent.com/harmony-one/auto-node/migrate_off_docker/autonode_service.py # TODO: change back url
+curl -s -o "$HOME"/bin/autonode_service.py https://raw.githubusercontent.com/harmony-one/auto-node/master/script/autonode_service.py
 sudo echo "$systemd_service" | sudo tee /etc/systemd/system/"$daemon_name"@.service > /dev/null
 sudo chmod 644 /etc/systemd/system/"$daemon_name"@.service
 sudo systemctl daemon-reload
