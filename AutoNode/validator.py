@@ -147,6 +147,7 @@ def _send_create_validator_tx():
 
 
 def setup(recover_interaction=False):
+    log(f"{Typgpy.HEADER}Starting validator setup...{Typgpy.ENDC}")
     old_logging_handlers = logging.getLogger('AutoNode').handlers.copy()
     logging.getLogger('AutoNode').addHandler(get_simple_rotating_log_handler(log_path))
     if node_config['no-validator']:

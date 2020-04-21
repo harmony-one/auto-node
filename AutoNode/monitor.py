@@ -161,6 +161,7 @@ def start():
     """
     Will throw a RestartNode exception to signal a need to restart the node.
     """
+    log(f"{Typgpy.HEADER}Starting monitor...{Typgpy.ENDC}")
     old_logging_handlers = logging.getLogger('AutoNode').handlers.copy()
     logging.getLogger('AutoNode').addHandler(get_simple_rotating_log_handler(log_path))
     try:

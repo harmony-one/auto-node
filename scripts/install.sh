@@ -58,7 +58,7 @@ done
 echo "[AutoNode] Removing existing AutoNode installation"
 pip3 uninstall AutoNode -y || sudo pip3 uninstall AutoNode -y || echo "[AutoNode] Was not installed..."
 echo "[AutoNode] Installing main python3 library (as sudo)"
-sudo pip3 install AutoNode --upgrade
+sudo pip3 install AutoNode==0.1.2
 echo "[AutoNode] Initilizing python3 library"
 python3 -c "from AutoNode import common; common.save_validator_config()" > /dev/null
 
