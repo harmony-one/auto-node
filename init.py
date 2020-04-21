@@ -51,6 +51,8 @@ if __name__ == "__main__":
     args = parse_args()
     assert_dead_daemons()
     AutoNode.initialize.reset()
+    if args.auto_reset:
+        Daemon.assert_perms_for_auto_reset()
     AutoNode.node_config.update({
         "endpoint": args.endpoint,
         "network": args.network,

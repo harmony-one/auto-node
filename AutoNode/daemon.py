@@ -37,13 +37,11 @@ class Daemon:
     }
 
     @staticmethod
-    def _assert_perms_for_auto_reset():
+    def assert_perms_for_auto_reset():
         if subprocess.call("sudo -n true", shell=True, env=os.environ) != 0:
             raise SystemExit(
                 f"{Typgpy.FAIL}User {os.environ['USER']} does not have sudo privileges without password.\n "
-                f"For auto-reset option, user must have said privilege.\n "
-                f"Node still running and/or syncing. To have status monitoring, rerun/reinitialize "
-                f"AutoNode without auto-reset. {Typgpy.ENDC}")
+                f"For auto-reset option, user must have said privilege.{Typgpy.ENDC}")
 
     @staticmethod
     def validate_config():
@@ -72,7 +70,7 @@ class Daemon:
         self.node_sh_pid = None
         self.service = service
         if node_config['auto-reset']:
-            self._assert_perms_for_auto_reset()
+            self.assert_perms_for_auto_reset()
 
     def __del__(self):
         if self.node_sh_pid is not None:
@@ -96,17 +94,17 @@ class Daemon:
                 # Invariant: Monitor will raise a ResetNode exception to trigger a node reset,
                 # otherwise it will gracefully exit to restart monitor
                 start_monitor()
+            except ResetNode as e:  # All other errors should blow up
+                log(f"{Typgpy.FAIL}Resetting Node: {e}{Typgpy.ENDC}")
                 if not node_config['auto-reset']:
-                    break
-            except ResetNode:  # All other errors should blow up
-                log(f"{Typgpy.FAIL}Resetting Node{Typgpy.ENDC}")
+                    log(f"{Typgpy.WARNING}Auto-reset is disabled, Terminating monitor...{Typgpy.ENDC}")
+                    return
                 self.stop_all_daemons(ignore_self=True)
                 time.sleep(5)  # wait for node shutdown
                 daemon_name = f"{self.name}@node_recovered.service"
                 log(f"{Typgpy.WARNING}Starting daemon {daemon_name}{Typgpy.ENDC}")
                 subprocess.check_call(f"sudo systemctl start {daemon_name}", shell=True, env=os.environ)
-        self.stop_all_daemons(ignore_self=True)
-        log(f"{Typgpy.WARNING}Terminating monitor...{Typgpy.ENDC}")
+            log(f"{Typgpy.WARNING}Terminating monitor...{Typgpy.ENDC}")
 
     def start(self):
         if self.service == 'monitor':

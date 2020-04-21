@@ -21,7 +21,8 @@ function check_and_install(){
   pkg=$1
   if ! command -v "$pkg" > /dev/null; then
     if [ -z "$PKG_INSTALL" ]; then
-      echo "[AutoNode] Unknown package manager, please install $pkg"
+      echo "[AutoNode] Unknown package manager, please install $pkg and run install again."
+      exit 2
     else
       echo "[AutoNode] Installing $pkg"
       $PKG_INSTALL "$pkg"

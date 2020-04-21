@@ -78,8 +78,12 @@ def _wait_for_node_block_two():
     """
     Triggers a clean node restart if node is not able to boot 5 mins after rclone.
     """
+    informed_rclone = False
     while subprocess.call("pgrep rclone", shell=True, env=os.environ) == 0:
-        time.sleep(_check_interval)  # wait for rclone to finish
+        if not informed_rclone:
+            informed_rclone = True
+            log(f"{Typgpy.HEADER}Waiting for rclone to finish...{Typgpy.ENDC}")
+        time.sleep(_check_interval)
     try:
         wait_for_node_response("http://localhost:9500/", verbose=True, sleep=1, tries=300)  # Try for 5 min
     except (ConnectionError, TimeoutError) as e:

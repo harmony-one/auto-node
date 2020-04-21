@@ -8,18 +8,6 @@ if (( "$EUID" == 0 )); then
   exit
 fi
 
-
-sudo -n true
-if [ "$?" -ne 0 ]; then
-  echo "[AutoNode] user $USER needs sudo privaliges without a passphrase to run AutoNode correctly, continue (y/n)?"
-  read -r answer
-  if [ "$answer" != "${answer#[Yy]}" ] ;then
-    echo "[AutoNode] AutoNode monitor will not function correctly."
-  else
-    exit
-  fi
-fi
-
 case "${1}" in
   "run")
     harmony_dir=$(python3 -c "from AutoNode import common; print(common.harmony_dir)")
@@ -241,7 +229,10 @@ case "${1}" in
     echo "
       == Harmony AutoNode help message ==
       Note that all sensitive files are saved with read only access for user $USER.
-      Moreover, user $USER must have sudo access with no passphrase, contact your administrator for such access.
+
+      To auto-reset your node during hard refreshes (), user $USER must have sudo access
+      with no passphrase since the monitor daemon needs to stop and start the node daemon.
+
 
       Param:              Help:
 
