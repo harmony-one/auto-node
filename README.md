@@ -86,7 +86,7 @@ to have access to sudo without a passphrase. This is needed as the monitor will 
 
 ## Common Usages
 
-###1) AutoNode help message:
+### 1) AutoNode help message:
 ```bash
 ~/auto_node.sh -h
 ```
@@ -123,7 +123,7 @@ headers             Fetch the latest headers (beacon and shard chain) for the no
 kill                Safely kill AutoNode & its monitor (if alive)
 ```
 
-###2) Run AutoNode:
+### 2) Run AutoNode:
 ```bash
 ~/auto_node.sh run <options>
 ```
@@ -152,12 +152,12 @@ optional arguments:
                           Default is https://api.s0.os.hmny.io/
 ```
 
-###3) (Re)initialize AutoNode without running it 
+### 3) (Re)initialize AutoNode without running it 
 ```bash
 ~/auto_node.sh init
 ```
 
-###4) Node information & status:
+### 4) Node information & status:
 ```bash
 ~/auto_node.sh node <cmd>
 ```
@@ -181,7 +181,7 @@ info                  Get the node's current metadata
 Otherwise not needed.
 ```
 
-###5) Monitor information & status:
+### 5) Monitor information & status:
 ```bash
 ~/auto_node.sh monitor <cmd>
 ```
@@ -201,27 +201,27 @@ restart         Manually restart your Harmony Monitor daemon
 name            Get the name of your Harmony Monitor deamon
 ```
 
-###6) See validator information for associated AutoNode
+### 6) See validator information for associated AutoNode
 ```bash
 ~/auto_node.sh info
 ```
 
-###7) See node latest header (for quick view of node activity)
+### 7) See node latest header (for quick view of node activity)
 ```bash
 ~/auto_node.sh headers
 ```
 
-###8) See AutoNode validator config
+### 8) See AutoNode validator config
 ```bash
 ~/auto_node.sh config
 ```
 
-###9) Edit AutNode validator config
+### 9) Edit AutNode validator config
 ```bash
 ~/auto_node.sh edit-config
 ```
 
-###10) Aliased Harmony CLI commands:
+### 10) Aliased Harmony CLI commands:
 
 Send a edit-validator transaction to activate your associated validator
 ```bash
@@ -239,7 +239,7 @@ Get the balances of the associated validator wallet
 ~/auto_node.sh balances
 ```
 
-###11) Kill AutoNode
+### 11) Kill AutoNode
 ```bash
 ~/auto_node.sh kill
 ```

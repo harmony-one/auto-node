@@ -56,8 +56,8 @@ for dependency in "python3" "python3-pip" "jq" "unzip" "nano" "curl"; do
 done
 echo "[AutoNode] Removing existing AutoNode installation"
 pip3 uninstall AutoNode -y 2>/dev/null || sudo pip3 uninstall AutoNode -y 2>/dev/null || echo "[AutoNode] Was not installed..."
-echo "[AutoNode] Installing main python3 library (as sudo)"
-sudo pip3 install AutoNode==0.1.6 --no-cache-dir
+echo "[AutoNode] Installing main python3 library"
+pip3 install AutoNode==0.1.6 --no-cache-dir --user || sudo pip3 install AutoNode==0.1.6 --no-cache-dir
 echo "[AutoNode] Initilizing python3 library"
 python3 -c "from AutoNode import common; common.save_validator_config()" > /dev/null
 
@@ -95,11 +95,11 @@ mkdir -p "$harmony_dir"
 echo "[AutoNode] Installing AutoNode wrapper script"
 curl -s -o "$HOME"/auto_node.sh  https://raw.githubusercontent.com/harmony-one/auto-node/master/scripts/auto_node.sh
 chmod +x "$HOME"/auto_node.sh
-curl -s -o "$harmony_dir"/init.py https://raw.githubusercontent.com/harmony-one/auto-node/master/script/init.py
+curl -s -o "$harmony_dir"/init.py https://raw.githubusercontent.com/harmony-one/auto-node/master/scripts/init.py
 daemon_name=$(python3 -c "from AutoNode.daemon import Daemon; print(Daemon.name)")
 echo "[AutoNode] Installing AutoNode daemon: $daemon_name"
 mkdir -p "$HOME"/bin
-curl -s -o "$HOME"/bin/autonode_service.py https://raw.githubusercontent.com/harmony-one/auto-node/master/script/autonode_service.py
+curl -s -o "$HOME"/bin/autonode_service.py https://raw.githubusercontent.com/harmony-one/auto-node/master/scripts/autonode_service.py
 sudo echo "$systemd_service" | sudo tee /etc/systemd/system/"$daemon_name"@.service > /dev/null
 sudo chmod 644 /etc/systemd/system/"$daemon_name"@.service
 sudo systemctl daemon-reload
