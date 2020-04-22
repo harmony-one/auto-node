@@ -1,23 +1,17 @@
 #!/usr/bin/env bash
 set -e
 
-echo "[AutoNode] Starting installation for user $USER (with home: $HOME)"
-
-sleep 5
-
-# Do prechecks for absolute requirements..
 if [ "$(uname)" != "Linux" ]; then
   echo "[AutoNode] not on a Linux machine, exiting."
-  exit
-fi
-if (( "$EUID" == 0 )); then
-  echo "Do not install as root"
   exit
 fi
 if ! command -v systemctl > /dev/null; then
   echo "[AutoNode] distro does not have systemd, exiting."
   exit
 fi
+
+
+stable_auto_node_version="0.1.8"
 
 function check_and_install(){
   pkg=$1
@@ -40,6 +34,22 @@ function yes_or_exit(){
   fi
 }
 
+echo "[AutoNode] Starting installation for user $USER (with home: $HOME)"
+echo "[AutoNode] Will install the following:"
+echo "           * AutoNode ($stable_auto_node_version) python3 library and all dependencies"
+echo "           * autonode_service.py service script in $HOME/bin"
+echo "           * auto_node.sh main shell script in $HOME"
+echo "           * validator_config.json config file in $HOME"
+echo "           * harmony node files generated in $HOME/harmony_node"
+echo "           * supporting script, saved configs, and BLS key(s) will generated/saved in $HOME/.hmy"
+echo "[AutoNode] Continue to install (y/n)?"
+yes_or_exit
+
+if (( "$EUID" == 0 )); then
+  echo "You are installing as root, which is not recommended. Continue (y/n)?"
+  yes_or_exit
+fi
+
 echo "[AutoNode] Installing for user $USER"
 echo "[AutoNode] Checking dependencies..."
 unset PKG_INSTALL
@@ -57,7 +67,7 @@ done
 echo "[AutoNode] Removing existing AutoNode installation"
 pip3 uninstall AutoNode -y 2>/dev/null || sudo pip3 uninstall AutoNode -y 2>/dev/null || echo "[AutoNode] Was not installed..."
 echo "[AutoNode] Installing main python3 library"
-pip3 install AutoNode==0.1.6 --no-cache-dir --user || sudo pip3 install AutoNode==0.1.6 --no-cache-dir
+pip3 install AutoNode=="$stable_auto_node_version"--no-cache-dir --user || sudo pip3 install AutoNode=="$stable_auto_node_version" --no-cache-dir
 echo "[AutoNode] Initilizing python3 library"
 python3 -c "from AutoNode import common; common.save_validator_config()" > /dev/null
 

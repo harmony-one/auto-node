@@ -40,7 +40,6 @@ def _add_bls_key_to_validator():
     Assumes past staking epoch by definition of adding keys to existing validator
     """
     _verify_account_balance(0.1 * len(node_config["public-bls-keys"]))  # Heuristic amount for balance
-    _verify_node_sync()
     chain_val_info = get_validator_information(validator_config['validator-addr'], node_config['endpoint'])
     bls_keys = set(x.replace('0x', '') for x in chain_val_info["validator"]["bls-public-keys"])
     for k in (x.replace('0x', '') for x in node_config["public-bls-keys"]):
@@ -49,6 +48,7 @@ def _add_bls_key_to_validator():
         else:
             log(f"{Typgpy.WARNING}Bls key: {Typgpy.OKGREEN}{k}{Typgpy.WARNING} "
                 f"is already present, ignoring...{Typgpy.ENDC}")
+    _verify_node_sync()
 
 
 def _send_edit_validator_tx(bls_key_to_add):
@@ -64,9 +64,9 @@ def _send_edit_validator_tx(bls_key_to_add):
 
 def _create_new_validator():
     _verify_staking_epoch()
-    _verify_account_balance(validator_config['amount'] + 1)
-    _verify_node_sync()
+    _verify_account_balance(validator_config['amount'] + 50)
     _send_create_validator_tx()
+    _verify_node_sync()
 
 
 def _verify_staking_epoch():
@@ -102,13 +102,15 @@ def _verify_node_sync():
     Invariant: Node sync is always checked before sending any validator transactions.
     """
     log(f"{Typgpy.OKBLUE}Verifying Node Sync...{Typgpy.ENDC}")
-    # Wait until node boots, monitor should reboot if needed, but timeout at 15 min otherwise.
-    wait_for_node_response("http://localhost:9500/", sleep=1, tries=900)
+    wait_for_node_response("http://localhost:9500/", sleep=1, verbose=True)
     curr_headers = get_latest_headers("http://localhost:9500/")
     curr_epoch_shard = curr_headers['shard-chain-header']['epoch']
     curr_epoch_beacon = curr_headers['beacon-chain-header']['epoch']
     ref_epoch = get_latest_header(node_config['endpoint'])['epoch']
     has_looped = False
+    if curr_epoch_shard < ref_epoch or curr_epoch_beacon < ref_epoch:
+        log(f"{Typgpy.OKBLUE}Deactivating validator until node is synced.{Typgpy.ENDC}")
+        deactivate_validator()
     while curr_epoch_shard < ref_epoch or curr_epoch_beacon < ref_epoch:
         sys.stdout.write(f"\rWaiting for node to sync: shard epoch ({curr_epoch_shard}/{ref_epoch}) "
                          f"& beacon epoch ({curr_epoch_beacon}/{ref_epoch})")
@@ -127,6 +129,7 @@ def _verify_node_sync():
     if has_looped:
         log("")
     log(f"{Typgpy.OKGREEN}Node synced to current epoch{Typgpy.ENDC}")
+    activate_validator()
 
 
 def _send_create_validator_tx():
@@ -148,6 +151,46 @@ def _send_create_validator_tx():
                                f'--passphrase-file "{saved_wallet_pass_path}" '
                                f'--bls-pubkeys-dir "{bls_key_dir}" ')
     log(f"{Typgpy.OKBLUE}Created Validator!{Typgpy.OKGREEN}{response}{Typgpy.ENDC}")
+
+
+def deactivate_validator():
+    """
+    Assumption that endpoint is alive. Will throw error if not.
+    """
+    all_val = get_all_validator_addresses(node_config['endpoint'])
+    if validator_config["validator-addr"] in all_val:
+        val_chain_info = get_validator_information(validator_config["validator-addr"], node_config['endpoint'])
+        if "not eligible" not in val_chain_info['epos-status']:
+            log(f"{Typgpy.OKBLUE}Deactivating validator{Typgpy.ENDC}")
+            response = cli.single_call(
+                f"hmy staking edit-validator --validator-addr {validator_config['validator-addr']} "
+                f"--active false --node {node_config['endpoint']} "
+                f"--passphrase-file {saved_wallet_pass_path} ")
+            log(f"{Typgpy.OKGREEN}Edit-validator response: {response}{Typgpy.ENDC}")
+        else:
+            log(f"{Typgpy.WARNING}Validator {validator_config['validator-addr']} is already deactivated!{Typgpy.ENDC}")
+    else:
+        log(f"{Typgpy.FAIL}Address {validator_config['validator-addr']} is not a validator!{Typgpy.ENDC}")
+
+
+def activate_validator():
+    """
+    Assumption that endpoint is alive. Will throw error if not.
+    """
+    all_val = get_all_validator_addresses(node_config['endpoint'])
+    if validator_config["validator-addr"] in all_val:
+        val_chain_info = get_validator_information(validator_config["validator-addr"], node_config['endpoint'])
+        if "not eligible" in val_chain_info['epos-status']:
+            log(f"{Typgpy.OKBLUE}Activating validator{Typgpy.ENDC}")
+            response = cli.single_call(
+                f"hmy staking edit-validator --validator-addr {validator_config['validator-addr']} "
+                f"--active true --node {node_config['endpoint']} "
+                f"--passphrase-file {saved_wallet_pass_path} ")
+            log(f"{Typgpy.OKGREEN}Edit-validator response: {response}{Typgpy.ENDC}")
+        else:
+            log(f"{Typgpy.WARNING}Validator {validator_config['validator-addr']} is already active!{Typgpy.ENDC}")
+    else:
+        log(f"{Typgpy.FAIL}Address {validator_config['validator-addr']} is not a validator!{Typgpy.ENDC}")
 
 
 def setup(recover_interaction=False):

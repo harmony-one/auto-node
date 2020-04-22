@@ -94,6 +94,9 @@ class Daemon:
                 # Invariant: Monitor will raise a ResetNode exception to trigger a node reset,
                 # otherwise it will gracefully exit to restart monitor
                 start_monitor()
+                if not node_config['auto-reset']:
+                    log(f"{Typgpy.WARNING}Terminating monitor...{Typgpy.ENDC}")
+                    return
             except ResetNode as e:  # All other errors should blow up
                 log(f"{Typgpy.FAIL}Resetting Node: {e}{Typgpy.ENDC}")
                 if not node_config['auto-reset']:
@@ -104,7 +107,6 @@ class Daemon:
                 daemon_name = f"{self.name}@node_recovered.service"
                 log(f"{Typgpy.WARNING}Starting daemon {daemon_name}{Typgpy.ENDC}")
                 subprocess.check_call(f"sudo systemctl start {daemon_name}", shell=True, env=os.environ)
-            log(f"{Typgpy.WARNING}Terminating monitor...{Typgpy.ENDC}")
 
     def start(self):
         if self.service == 'monitor':

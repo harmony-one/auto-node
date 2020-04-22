@@ -88,6 +88,7 @@ def _wait_for_node_block_two():
         wait_for_node_response("http://localhost:9500/", verbose=True, sleep=1, tries=300)  # Try for 5 min
         log(f"{Typgpy.HEADER}Waiting for block 2 on node...{Typgpy.ENDC}")
     except (ConnectionError, TimeoutError) as e:
+        log(f"{Typgpy.FAIL}Could not connect to node after 5 min...{Typgpy.ENDC}")
         raise ResetNode(clean=True) from e
     count = 0
     try:
