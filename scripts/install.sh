@@ -11,7 +11,7 @@ if ! command -v systemctl > /dev/null; then
 fi
 
 
-stable_auto_node_version="0.1.8"
+stable_auto_node_version="0.1.9"
 
 function check_and_install(){
   pkg=$1
@@ -67,7 +67,7 @@ done
 echo "[AutoNode] Removing existing AutoNode installation"
 pip3 uninstall AutoNode -y 2>/dev/null || sudo pip3 uninstall AutoNode -y 2>/dev/null || echo "[AutoNode] Was not installed..."
 echo "[AutoNode] Installing main python3 library"
-pip3 install AutoNode=="$stable_auto_node_version"--no-cache-dir --user || sudo pip3 install AutoNode=="$stable_auto_node_version" --no-cache-dir
+pip3 install AutoNode=="$stable_auto_node_version" --no-cache-dir --user || sudo pip3 install AutoNode=="$stable_auto_node_version" --no-cache-dir
 echo "[AutoNode] Initilizing python3 library"
 python3 -c "from AutoNode import common; common.save_validator_config()" > /dev/null
 
