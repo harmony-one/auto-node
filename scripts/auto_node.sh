@@ -3,9 +3,17 @@
 set -e
 
 # TODO: convert auto_node.sh into python3 click CLI since lib is in python3.
+function yes_or_exit(){
+  read -r reply
+  if [[ ! $reply =~ ^[Yy]$ ]]
+  then
+    exit 1
+  fi
+}
+
 if (( "$EUID" == 0 )); then
-  echo "Do not run as root"
-  exit
+  echo "You are running as root, which is not recommended. Continue (y/n)?"
+  yes_or_exit
 fi
 
 case "${1}" in

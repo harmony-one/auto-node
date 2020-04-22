@@ -6,12 +6,6 @@ Documentation for most users can be found [here](https://docs.harmony.one/home/v
 
 **1) Install AutoNode with the following command:**
 ```bash
-bash <(curl -s -S -L 'https://raw.githubusercontent.com/harmony-one/auto-node/master/scripts/install.sh')
-```
-
-or
-
-```bash
 curl -O https://raw.githubusercontent.com/harmony-one/auto-node/master/scripts/install.sh && chmod +x ./install.sh && ./install.sh && rm ./install.sh
 ```
 

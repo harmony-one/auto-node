@@ -88,6 +88,7 @@ def _wait_for_node_block_two():
         wait_for_node_response("http://localhost:9500/", verbose=True, sleep=1, tries=300)  # Try for 5 min
         log(f"{Typgpy.HEADER}Waiting for block 2 on node...{Typgpy.ENDC}")
     except (ConnectionError, TimeoutError) as e:
+        log(f"{Typgpy.FAIL}Could not connect to node after 5 min...{Typgpy.ENDC}")
         raise ResetNode(clean=True) from e
     count = 0
     try:
@@ -119,6 +120,9 @@ def _run_monitor(shard_endpoint):
     count = 0
     while curr_time - start_time < duration:
         if node_config["auto-reset"]:
+            if subprocess.call("sudo -n true", shell=True, env=os.environ) != 0:
+                log(f"{Typgpy.WARNING}User {os.environ['USER']} does not have sudo access without passphrase.\n " 
+                    f"Cannot trigger auto-reset if there is a Hard reset.{Typgpy.ENDC}")
             _check_for_hard_reset(shard_endpoint)
         log(f"{Typgpy.HEADER}Validator address: {Typgpy.OKGREEN}{validator_config['validator-addr']}{Typgpy.ENDC}")
         meta_data = get_metadata('http://localhost:9500/')
@@ -165,6 +169,10 @@ def start():
     old_logging_handlers = logging.getLogger('AutoNode').handlers.copy()
     logging.getLogger('AutoNode').addHandler(get_simple_rotating_log_handler(log_path))
     log(f"{Typgpy.HEADER}Starting monitor...{Typgpy.ENDC}")
+    if node_config['auto-reset'] and subprocess.call("sudo -n true", shell=True, env=os.environ) != 0:
+        log(f"{Typgpy.WARNING}User {os.environ['USER']} does not have sudo privileges without password.\n "
+            f"For auto-reset option, user must have said privilege. Continuing...{Typgpy.ENDC}")
+        time.sleep(2)  # So user can read message...
     try:
         shard_endpoint = _init()
         _run_monitor(shard_endpoint)

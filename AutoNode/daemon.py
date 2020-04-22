@@ -1,6 +1,7 @@
 import os
 import subprocess
 import time
+import logging
 
 from pyhmy import (
     Typgpy,
@@ -12,6 +13,7 @@ from .common import (
     saved_wallet_pass_path,
     bls_key_dir,
     node_config,
+    harmony_dir,
     log
 )
 from .node import (
@@ -24,6 +26,9 @@ from .monitor import (
     start as start_monitor,
     ResetNode
 )
+from .util import (
+    get_simple_rotating_log_handler
+)
 
 
 class Daemon:
@@ -35,13 +40,6 @@ class Daemon:
         "node_recovered",
         "monitor"
     }
-
-    @staticmethod
-    def assert_perms_for_auto_reset():
-        if subprocess.call("sudo -n true", shell=True, env=os.environ) != 0:
-            raise SystemExit(
-                f"{Typgpy.FAIL}User {os.environ['USER']} does not have sudo privileges without password.\n "
-                f"For auto-reset option, user must have said privilege.{Typgpy.ENDC}")
 
     @staticmethod
     def validate_config():
@@ -69,10 +67,12 @@ class Daemon:
             raise ValueError(f"{service} is not a valid service. Valid services: {self.services}")
         self.node_sh_pid = None
         self.service = service
-        if node_config['auto-reset']:
-            self.assert_perms_for_auto_reset()
+        self.log_path = f"{harmony_dir}/daemon@{service}.log"
+        self.old_logging_handlers = logging.getLogger('AutoNode').handlers.copy()
+        logging.getLogger('AutoNode').addHandler(get_simple_rotating_log_handler(self.log_path))
 
     def __del__(self):
+        logging.getLogger('AutoNode').handlers = self.old_logging_handlers
         if self.node_sh_pid is not None:
             subprocess.call(f"kill -2 {self.node_sh_pid}", shell=True, env=os.environ)
 
@@ -94,6 +94,9 @@ class Daemon:
                 # Invariant: Monitor will raise a ResetNode exception to trigger a node reset,
                 # otherwise it will gracefully exit to restart monitor
                 start_monitor()
+                if not node_config['auto-reset']:
+                    log(f"{Typgpy.WARNING}Terminating monitor...{Typgpy.ENDC}")
+                    return
             except ResetNode as e:  # All other errors should blow up
                 log(f"{Typgpy.FAIL}Resetting Node: {e}{Typgpy.ENDC}")
                 if not node_config['auto-reset']:
@@ -104,7 +107,6 @@ class Daemon:
                 daemon_name = f"{self.name}@node_recovered.service"
                 log(f"{Typgpy.WARNING}Starting daemon {daemon_name}{Typgpy.ENDC}")
                 subprocess.check_call(f"sudo systemctl start {daemon_name}", shell=True, env=os.environ)
-            log(f"{Typgpy.WARNING}Terminating monitor...{Typgpy.ENDC}")
 
     def start(self):
         if self.service == 'monitor':
@@ -113,13 +115,20 @@ class Daemon:
             self.start_node()
 
     def stop_all_daemons(self, ignore_self=True):
+        """
+        Let stopping daemons blow up here to at-least allow initial execution of node.
+        """
         for service in self.services:
             if ignore_self and service == self.service:
                 continue
             daemon_name = f"{self.name}@{service}.service"
             log(f"{Typgpy.WARNING}Stopping daemon {daemon_name}{Typgpy.ENDC}")
             command = f"sudo systemctl stop {daemon_name}"
-            subprocess.check_call(command, shell=True, env=os.environ)  # let it blow up if error.
+            try:
+                subprocess.check_call(command, shell=True, env=os.environ)
+            except subprocess.CalledProcessError as e:
+                log(f"{Typgpy.FAIL}Unable to stop service {daemon_name} because of error: {e}{Typgpy.ENDC}")
+                raise SystemExit("Unable to kill AutoNode daemons!")
 
     def block(self):
         log("Blocking process...")

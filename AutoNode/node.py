@@ -9,17 +9,14 @@ import logging
 import requests
 
 from pyhmy import (
-    cli,
     Typgpy
 )
 
 from .common import (
     log,
-    validator_config,
     node_script_source,
     node_sh_log_dir,
     node_config,
-    saved_wallet_pass_path,
     node_dir,
     bls_key_dir,
     sync_dir_map,
@@ -32,6 +29,9 @@ from .blockchain import (
 from .util import (
     input_with_print,
     get_simple_rotating_log_handler
+)
+from .validator import (
+    activate_validator
 )
 
 node_sh_out_path = f"{node_sh_log_dir}/out.log"
@@ -176,11 +176,7 @@ def check_and_activate(epos_status_msg):
         wait_for_node_response(node_config['endpoint'], tries=900, sleep=1, verbose=False)  # Try for 15 min
         ref_epoch = get_latest_header(node_config['endpoint'])['epoch']
         if curr_epoch_shard == ref_epoch and curr_epoch_beacon == ref_epoch:
-            response = cli.single_call(
-                f"hmy staking edit-validator --validator-addr {validator_config['validator-addr']} "
-                f"--active true --node {node_config['endpoint']} "
-                f"--passphrase-file {saved_wallet_pass_path} ")
-            log(f"{Typgpy.OKGREEN}Edit-validator response: {response}{Typgpy.ENDC}")
+            activate_validator()
             return True
         else:
             log(f"{Typgpy.WARNING}Node not synced, did NOT activate node.{Typgpy.ENDC}")
