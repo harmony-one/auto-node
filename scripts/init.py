@@ -50,9 +50,11 @@ def assert_dead_daemons():
 if __name__ == "__main__":
     args = parse_args()
     assert_dead_daemons()
+    if args.auto_reset and subprocess.call("sudo -n true", shell=True, env=os.environ) != 0:
+        raise SystemExit(
+            f"{Typgpy.FAIL}User {os.environ['USER']} does not have sudo privileges without password.\n "
+            f"For `--auto-reset` option, user must have said privilege.{Typgpy.ENDC}")
     AutoNode.initialize.reset()
-    if args.auto_reset:
-        Daemon.assert_perms_for_auto_reset()
     AutoNode.node_config.update({
         "endpoint": args.endpoint,
         "network": args.network,
