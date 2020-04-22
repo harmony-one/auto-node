@@ -121,8 +121,8 @@ def _run_monitor(shard_endpoint):
     while curr_time - start_time < duration:
         if node_config["auto-reset"]:
             if subprocess.call("sudo -n true", shell=True, env=os.environ) != 0:
-                log(f"{Typgpy.WARNING}User {os.environ['USER']} does not have sudo access without passphrase.\n " 
-                    f"Cannot trigger auto-reset if there is a Hard reset.{Typgpy.ENDC}")
+                log(f"{Typgpy.WARNING}User {os.environ['USER']} does not have sudo access without passphrase. " 
+                    f"Cannot trigger auto-reset if there is a hard reset (on testnet).{Typgpy.ENDC}")
             _check_for_hard_reset(shard_endpoint)
         log(f"{Typgpy.HEADER}Validator address: {Typgpy.OKGREEN}{validator_config['validator-addr']}{Typgpy.ENDC}")
         meta_data = get_metadata('http://localhost:9500/')
