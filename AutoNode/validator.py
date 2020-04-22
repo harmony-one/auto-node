@@ -26,7 +26,9 @@ from .blockchain import (
 from .node import (
     log_path,
     wait_for_node_response,
-    assert_no_bad_blocks
+    assert_no_bad_blocks,
+    deactivate_validator,
+    activate_validator
 )
 from .util import (
     check_min_bal_on_s0,
@@ -151,46 +153,6 @@ def _send_create_validator_tx():
                                f'--passphrase-file "{saved_wallet_pass_path}" '
                                f'--bls-pubkeys-dir "{bls_key_dir}" ')
     log(f"{Typgpy.OKBLUE}Created Validator!{Typgpy.OKGREEN}{response}{Typgpy.ENDC}")
-
-
-def deactivate_validator():
-    """
-    Assumption that endpoint is alive. Will throw error if not.
-    """
-    all_val = get_all_validator_addresses(node_config['endpoint'])
-    if validator_config["validator-addr"] in all_val:
-        val_chain_info = get_validator_information(validator_config["validator-addr"], node_config['endpoint'])
-        if "not eligible" not in val_chain_info['epos-status']:
-            log(f"{Typgpy.OKBLUE}Deactivating validator{Typgpy.ENDC}")
-            response = cli.single_call(
-                f"hmy staking edit-validator --validator-addr {validator_config['validator-addr']} "
-                f"--active false --node {node_config['endpoint']} "
-                f"--passphrase-file {saved_wallet_pass_path} ")
-            log(f"{Typgpy.OKGREEN}Edit-validator response: {response}{Typgpy.ENDC}")
-        else:
-            log(f"{Typgpy.WARNING}Validator {validator_config['validator-addr']} is already deactivated!{Typgpy.ENDC}")
-    else:
-        log(f"{Typgpy.FAIL}Address {validator_config['validator-addr']} is not a validator!{Typgpy.ENDC}")
-
-
-def activate_validator():
-    """
-    Assumption that endpoint is alive. Will throw error if not.
-    """
-    all_val = get_all_validator_addresses(node_config['endpoint'])
-    if validator_config["validator-addr"] in all_val:
-        val_chain_info = get_validator_information(validator_config["validator-addr"], node_config['endpoint'])
-        if "not eligible" in val_chain_info['epos-status']:
-            log(f"{Typgpy.OKBLUE}Activating validator{Typgpy.ENDC}")
-            response = cli.single_call(
-                f"hmy staking edit-validator --validator-addr {validator_config['validator-addr']} "
-                f"--active true --node {node_config['endpoint']} "
-                f"--passphrase-file {saved_wallet_pass_path} ")
-            log(f"{Typgpy.OKGREEN}Edit-validator response: {response}{Typgpy.ENDC}")
-        else:
-            log(f"{Typgpy.WARNING}Validator {validator_config['validator-addr']} is already active!{Typgpy.ENDC}")
-    else:
-        log(f"{Typgpy.FAIL}Address {validator_config['validator-addr']} is not a validator!{Typgpy.ENDC}")
 
 
 def setup(recover_interaction=False):

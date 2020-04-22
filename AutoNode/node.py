@@ -9,7 +9,8 @@ import logging
 import requests
 
 from pyhmy import (
-    Typgpy
+    Typgpy,
+    cli
 )
 
 from .common import (
@@ -21,17 +22,18 @@ from .common import (
     bls_key_dir,
     sync_dir_map,
     harmony_dir,
+    validator_config,
+    saved_wallet_pass_path
 )
 from .blockchain import (
     get_latest_header,
-    get_latest_headers
+    get_latest_headers,
+    get_all_validator_addresses,
+    get_validator_information
 )
 from .util import (
     input_with_print,
     get_simple_rotating_log_handler
-)
-from .validator import (
-    activate_validator
 )
 
 node_sh_out_path = f"{node_sh_log_dir}/out.log"
@@ -182,3 +184,43 @@ def check_and_activate(epos_status_msg):
             log(f"{Typgpy.WARNING}Node not synced, did NOT activate node.{Typgpy.ENDC}")
             return False
     return False
+
+
+def deactivate_validator():
+    """
+    Assumption that endpoint is alive. Will throw error if not.
+    """
+    all_val = get_all_validator_addresses(node_config['endpoint'])
+    if validator_config["validator-addr"] in all_val:
+        val_chain_info = get_validator_information(validator_config["validator-addr"], node_config['endpoint'])
+        if "not eligible" not in val_chain_info['epos-status']:
+            log(f"{Typgpy.OKBLUE}Deactivating validator{Typgpy.ENDC}")
+            response = cli.single_call(
+                f"hmy staking edit-validator --validator-addr {validator_config['validator-addr']} "
+                f"--active false --node {node_config['endpoint']} "
+                f"--passphrase-file {saved_wallet_pass_path} ")
+            log(f"{Typgpy.OKGREEN}Edit-validator response: {response}{Typgpy.ENDC}")
+        else:
+            log(f"{Typgpy.WARNING}Validator {validator_config['validator-addr']} is already deactivated!{Typgpy.ENDC}")
+    else:
+        log(f"{Typgpy.FAIL}Address {validator_config['validator-addr']} is not a validator!{Typgpy.ENDC}")
+
+
+def activate_validator():
+    """
+    Assumption that endpoint is alive. Will throw error if not.
+    """
+    all_val = get_all_validator_addresses(node_config['endpoint'])
+    if validator_config["validator-addr"] in all_val:
+        val_chain_info = get_validator_information(validator_config["validator-addr"], node_config['endpoint'])
+        if "not eligible" in val_chain_info['epos-status']:
+            log(f"{Typgpy.OKBLUE}Activating validator{Typgpy.ENDC}")
+            response = cli.single_call(
+                f"hmy staking edit-validator --validator-addr {validator_config['validator-addr']} "
+                f"--active true --node {node_config['endpoint']} "
+                f"--passphrase-file {saved_wallet_pass_path} ")
+            log(f"{Typgpy.OKGREEN}Edit-validator response: {response}{Typgpy.ENDC}")
+        else:
+            log(f"{Typgpy.WARNING}Validator {validator_config['validator-addr']} is already active!{Typgpy.ENDC}")
+    else:
+        log(f"{Typgpy.FAIL}Address {validator_config['validator-addr']} is not a validator!{Typgpy.ENDC}")
