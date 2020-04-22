@@ -15,6 +15,7 @@ if (( "$EUID" == 0 )); then
   echo "You are running as root, which is not recommended. Continue (y/n)?"
   yes_or_exit
 fi
+sudo -l > /dev/null  # To trigger sudo first
 
 case "${1}" in
   "run")
