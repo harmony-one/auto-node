@@ -41,7 +41,7 @@ echo "           * autonode_service.py service script in $HOME/bin"
 echo "           * auto_node.sh main shell script in $HOME"
 echo "           * validator_config.json config file in $HOME"
 echo "           * harmony node files generated in $HOME/harmony_node"
-echo "           * supporting script, saved configs, and BLS key(s) will generated/saved in $HOME/.hmy"
+echo "           * supporting script, saved configs, and BLS key(s) will be generated/saved in $HOME/.hmy"
 echo "[AutoNode] Continue to install (y/n)?"
 yes_or_exit
 
