@@ -114,6 +114,7 @@ collect-rewards     Collect rewards for the associated validator
 version             Fetch the version of the node
 header              Fetch the latest header (shard chain) for the node
 headers             Fetch the latest headers (beacon and shard chain) for the node
+clear-node-bls      Remove the BLS key directory used by the node.
 kill                Safely kill AutoNode & its monitor (if alive)
 ```
 

@@ -232,6 +232,16 @@ case "${1}" in
       echo "[AutoNode] Harmony CLI has been moved. Reinitlize AutoNode."
     fi
     ;;
+  "clear-node-bls")
+    daemon_name=$(python3 -c "from AutoNode.daemon import Daemon; print(Daemon.name)")
+    if systemctl --type=service --state=active | grep -e ^"$daemon_name"; then
+      echo "[AutoNode] AutoNode is still running. Kill with 'auto_node.sh kill' before clearning BLS keys."
+      exit 4
+    fi
+    bls_key_dir=$(python3 -c "from AutoNode import common; print(common.bls_key_dir)")
+    echo "[AutoNode] removing directory: $bls_key_dir"
+    rm -rf "$bls_key_dir"
+    ;;
   "kill")
     daemon_name=$(python3 -c "from AutoNode.daemon import Daemon; print(Daemon.name)")
     sudo systemctl stop "$daemon_name"* || true
@@ -265,6 +275,7 @@ case "${1}" in
       version             Fetch the version of the node
       header              Fetch the latest header (shard chain) for the node
       headers             Fetch the latest headers (beacon and shard chain) for the node
+      clear-node-bls      Remove the BLS key directory used by the node.
       kill                Safely kill AutoNode & its monitor (if alive)
     "
     exit

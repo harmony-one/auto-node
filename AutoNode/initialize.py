@@ -156,7 +156,7 @@ def _import_bls(passphrase):
         os.remove(tmp_bls_pass_path)
         return [k.replace('.key', '').replace('0x', '') for k in bls_keys]
     elif node_config['shard'] is not None:
-        assert isinstance(int, node_config['shard']), f"shard: {node_config['shard']} is not an integer."
+        assert isinstance(node_config['shard'], int), f"shard: {node_config['shard']} is not an integer."
         while True:
             key = json_load(cli.single_call(f"hmy keys generate-bls-key --passphrase-file {tmp_bls_pass_path}"))
             public_bls_key, bls_file_path = key['public-key'], key['encrypted-private-key-path']
