@@ -54,7 +54,6 @@ def _add_bls_key_to_validator():
         else:
             log(f"{Typgpy.WARNING}Bls key: {Typgpy.OKGREEN}{k}{Typgpy.WARNING} "
                 f"is already present, ignoring...{Typgpy.ENDC}")
-    _verify_node_sync()
 
 
 def _send_edit_validator_tx(bls_key_to_add):
@@ -72,7 +71,6 @@ def _create_new_validator():
     _verify_staking_epoch()
     _verify_account_balance(validator_config['amount'] + 50)
     _send_create_validator_tx()
-    _verify_node_sync()
 
 
 def _verify_staking_epoch():
@@ -103,10 +101,8 @@ def _verify_account_balance(amount):
         log(f"{Typgpy.OKGREEN}Address: {validator_config['validator-addr']} has enough funds{Typgpy.ENDC}")
 
 
-def _verify_node_sync():
-    """
-    Invariant: Node sync is always checked before sending any validator transactions.
-    """
+# TODO: move this to node.py and update libs accordingly
+def verify_node_sync():
     log(f"{Typgpy.OKBLUE}Verifying Node Sync...{Typgpy.ENDC}")
     wait_for_node_response("http://localhost:9500/", sleep=1, verbose=True)
     wait_for_node_response(node_config['endpoint'], sleep=1, verbose=True)
@@ -200,6 +196,7 @@ def setup(recover_interaction=False):
         else:
             node_config['no-validator'] = True
         log(f"{Typgpy.HEADER}{Typgpy.BOLD}Finished setting up validator!{Typgpy.ENDC}")
+        verify_node_sync()
         logging.getLogger('AutoNode').handlers = old_logging_handlers  # Reset logger to old handlers
     except Exception as e:
         raise SystemExit(e)

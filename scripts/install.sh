@@ -11,7 +11,7 @@ if ! command -v systemctl > /dev/null; then
 fi
 
 
-stable_auto_node_version="0.2.4"
+stable_auto_node_version="0.2.5"
 
 function check_and_install(){
   pkg=$1
