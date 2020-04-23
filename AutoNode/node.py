@@ -150,7 +150,7 @@ def assert_no_bad_blocks():
         files = [x for x in os.listdir(f"{node_dir}/latest") if x.endswith(".log")]
         if files:
             log_path = f"{node_dir}/latest/{files[-1]}"
-            assert not has_bad_block(log_path), f"`BAD BLOCK` present in {log_path}"
+            assert not has_bad_block(log_path), f"`BAD BLOCK` present in {log_path}, restart AutoNode with clean option"
 
 
 def has_bad_block(log_file_path):
@@ -178,8 +178,13 @@ def check_and_activate(epos_status_msg):
         wait_for_node_response(node_config['endpoint'], tries=900, sleep=1, verbose=False)  # Try for 15 min
         ref_epoch = get_latest_header(node_config['endpoint'])['epoch']
         if curr_epoch_shard == ref_epoch and curr_epoch_beacon == ref_epoch:
-            activate_validator()
-            return True
+            try:
+                activate_validator()
+                return True
+            except (TimeoutError, RuntimeError, subprocess.CalledProcessError) as e:
+                log(f"{Typgpy.FAIL}Unable to activate validator {validator_config['validator-addr']}"
+                    f"error {e}. Continuing...{Typgpy.ENDC}")
+                return False
         else:
             log(f"{Typgpy.WARNING}Node not synced, did NOT activate node.{Typgpy.ENDC}")
             return False

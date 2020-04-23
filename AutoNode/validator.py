@@ -2,6 +2,7 @@ import sys
 import time
 import json
 import logging
+import subprocess
 
 from pyhmy import cli
 from pyhmy import (
@@ -34,6 +35,9 @@ from .util import (
     check_min_bal_on_s0,
     input_with_print,
     get_simple_rotating_log_handler
+)
+from .monitor import (
+    check_interval
 )
 
 
@@ -105,6 +109,7 @@ def _verify_node_sync():
     """
     log(f"{Typgpy.OKBLUE}Verifying Node Sync...{Typgpy.ENDC}")
     wait_for_node_response("http://localhost:9500/", sleep=1, verbose=True)
+    wait_for_node_response(node_config['endpoint'], sleep=1, verbose=True)
     curr_headers = get_latest_headers("http://localhost:9500/")
     curr_epoch_shard = curr_headers['shard-chain-header']['epoch']
     curr_epoch_beacon = curr_headers['beacon-chain-header']['epoch']
@@ -112,13 +117,17 @@ def _verify_node_sync():
     has_looped = False
     if curr_epoch_shard < ref_epoch or curr_epoch_beacon < ref_epoch:
         log(f"{Typgpy.OKBLUE}Deactivating validator until node is synced.{Typgpy.ENDC}")
-        deactivate_validator()
+        try:
+            deactivate_validator()
+        except (TimeoutError, RuntimeError, subprocess.CalledProcessError) as e:
+            log(f"{Typgpy.FAIL}Unable to deactivate validator {validator_config['validator-addr']}"
+                f"error {e}. Continuing...{Typgpy.ENDC}")
     while curr_epoch_shard < ref_epoch or curr_epoch_beacon < ref_epoch:
         sys.stdout.write(f"\rWaiting for node to sync: shard epoch ({curr_epoch_shard}/{ref_epoch}) "
                          f"& beacon epoch ({curr_epoch_beacon}/{ref_epoch})")
         sys.stdout.flush()
         has_looped = True
-        time.sleep(2)
+        time.sleep(check_interval)
         assert_no_bad_blocks()
         curr_headers = get_latest_headers("http://localhost:9500/")
         curr_epoch_shard = curr_headers['shard-chain-header']['epoch']
@@ -130,8 +139,15 @@ def _verify_node_sync():
         raise SystemExit("Invalid node sync")
     if has_looped:
         log("")
-    log(f"{Typgpy.OKGREEN}Node synced to current epoch{Typgpy.ENDC}")
-    activate_validator()
+    log(f"{Typgpy.OKGREEN}Node synced to current epoch...{Typgpy.ENDC}")
+    if not has_looped:
+        log(f"{Typgpy.OKGREEN}Waiting {check_interval} seconds before sending activate transaction{Typgpy.ENDC}")
+        time.sleep(check_interval)  # Wait for nonce to finalize before sending activate
+    try:
+        activate_validator()
+    except (TimeoutError, RuntimeError, subprocess.CalledProcessError) as e:
+        log(f"{Typgpy.FAIL}Unable to activate validator {validator_config['validator-addr']}"
+            f"error {e}. Continuing...{Typgpy.ENDC}")
 
 
 def _send_create_validator_tx():

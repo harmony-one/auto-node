@@ -39,8 +39,7 @@ from .util import (
 )
 
 log_path = f"{harmony_dir}/autonode_monitor.log"
-
-_check_interval = 8  # Estimated block time
+check_interval = 8  # Estimated block time
 
 
 # TODO: move this to an exceptions library
@@ -83,7 +82,7 @@ def _wait_for_node_block_two():
         if not informed_rclone:
             informed_rclone = True
             log(f"{Typgpy.HEADER}Waiting for rclone to finish...{Typgpy.ENDC}")
-        time.sleep(_check_interval)
+        time.sleep(check_interval)
     try:
         wait_for_node_response("http://localhost:9500/", verbose=True, sleep=1, tries=300)  # Try for 5 min
         log(f"{Typgpy.HEADER}Waiting for block 2 on node...{Typgpy.ENDC}")
@@ -98,7 +97,7 @@ def _wait_for_node_block_two():
             sys.stdout.write(f"\rWaiting for node (http://localhost:9500/) to get past block 1, "
                              f"checked {count} times")
             sys.stdout.flush()
-            time.sleep(_check_interval)
+            time.sleep(check_interval)
     except AssertionError as e:
         raise ResetNode("BAD BLOCK", clean=True) from e
     node_config['clean'] = False  # Once node got past block 1, don't clean until absolutely needed.
@@ -148,7 +147,7 @@ def _run_monitor(shard_endpoint):
         log(f"{Typgpy.HEADER}This node's latest header at {datetime.datetime.utcnow()}: "
             f"{Typgpy.OKGREEN}{json.dumps(get_latest_headers('http://localhost:9500/'), indent=4)}"
             f"{Typgpy.ENDC}")
-        time.sleep(_check_interval)
+        time.sleep(check_interval)
         curr_time = time.time()
 
 
