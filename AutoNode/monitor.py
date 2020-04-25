@@ -46,10 +46,10 @@ check_interval = 8  # Estimated block time
 class ResetNode(Exception):
     """The only exception that triggers a hard reset."""
 
-    def __init__(self, *args, clean=False, **kwargs):
+    def __init__(self, *args, clean=False):
         node_config['clean'] = clean
         save_node_config()
-        Exception.__init__(*args, **kwargs)
+        super(ResetNode, self).__init__(*args)
 
 
 def _check_for_hard_reset(shard_endpoint, error_ok=False):
