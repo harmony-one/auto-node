@@ -10,9 +10,7 @@ from .common import (
 # TODO: move this to library collection of exceptions...
 class RpcError(RuntimeError):
     """Exception raised when RPC call returns an exception"""
-
-    def __init__(self, *args, **kwargs):
-        pass
+    pass
 
 
 def rpc_request(method, params=None, endpoint=node_config['endpoint'], timeout=60):
