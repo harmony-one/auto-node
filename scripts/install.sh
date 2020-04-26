@@ -11,7 +11,7 @@ if ! command -v systemctl > /dev/null; then
 fi
 
 
-stable_auto_node_version="0.2.7"
+stable_auto_node_version="0.2.8"
 
 function check_and_install(){
   pkg=$1
@@ -36,6 +36,7 @@ function yes_or_exit(){
 
 echo "[AutoNode] Starting installation for user $USER (with home: $HOME)"
 echo "[AutoNode] Will install the following:"
+echo "           * Python 3.6 if needed and upgrade pip3"
 echo "           * AutoNode ($stable_auto_node_version) python3 library and all dependencies"
 echo "           * autonode_service.py service script in $HOME/bin"
 echo "           * auto_node.sh main shell script in $HOME"
@@ -81,7 +82,8 @@ if (( $(echo "3.6 > $python_version" | bc -l) )); then
   fi
 fi
 
-
+echo "[AutoNode] Upgrading pip3"
+pip3 install --upgrade pip || sudo -H pip3 install --upgrade pip || echo "[AutoNode] cannot update your pip3, attempting install anyways..."
 echo "[AutoNode] Removing existing AutoNode installation"
 pip3 uninstall AutoNode -y 2>/dev/null || sudo pip3 uninstall AutoNode -y 2>/dev/null || echo "[AutoNode] Was not installed..."
 echo "[AutoNode] Installing main python3 library"

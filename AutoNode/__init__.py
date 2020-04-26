@@ -63,7 +63,7 @@ def _init():
     os.makedirs(imported_wallet_pass_file_dir, exist_ok=True)
 
     log_handler = logging.StreamHandler(sys.stdout)
-    formatter = logging.Formatter(f'{msg_tag} %(message)s')
+    formatter = logging.Formatter(f'{msg_tag} [%(asctime)s] %(message)s')
     log_handler.setFormatter(formatter)
     logging.getLogger('AutoNode').handlers = []
     logging.getLogger('AutoNode').addHandler(log_handler)

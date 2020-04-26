@@ -103,6 +103,7 @@ class Daemon:
                     log(f"{Typgpy.WARNING}Auto-reset is disabled, Terminating monitor...{Typgpy.ENDC}")
                     return
                 self.stop_all_daemons(ignore_self=True)
+                subprocess.call(f"killall harmony", shell=True, env=os.environ)  # OK if this fails
                 time.sleep(5)  # wait for node shutdown
                 daemon_name = f"{self.name}@node_recovered.service"
                 log(f"{Typgpy.WARNING}Starting daemon {daemon_name}{Typgpy.ENDC}")
@@ -132,6 +133,6 @@ class Daemon:
 
     def block(self):
         log("Blocking process...")
-        if self.service == 'monitor' and not node_config['auto-reset']:
+        if self.service == 'monitor':
             return
         subprocess.call("tail -f /dev/null", shell=True, env=os.environ)

@@ -77,6 +77,7 @@ def _wait_for_node_block_two():
     """
     Triggers a clean node restart if node is not able to boot 5 mins after rclone.
     """
+    time.sleep(check_interval * 2)  # Wait 2 intervals for node process to start.
     informed_rclone = False
     while subprocess.call("pgrep rclone", shell=True, env=os.environ) == 0:
         if not informed_rclone:
@@ -176,7 +177,7 @@ def start():
         shard_endpoint = _init()
         _run_monitor(shard_endpoint)
     except Exception as err:  # Catch all to handle recover options
-        traceback.print_exc(file=sys.stdout)
+        log(traceback.format_exc())
         log(f"{Typgpy.FAIL}Node failed with error: {err}{Typgpy.ENDC}")
         if not node_config['auto-reset']:  # Exit early since no need for restart
             logging.getLogger('AutoNode').handlers = old_logging_handlers

@@ -181,7 +181,7 @@ def check_and_activate(epos_status_msg):
             try:
                 activate_validator()
                 return True
-            except (TimeoutError, RuntimeError, subprocess.CalledProcessError) as e:
+            except (TimeoutError, ConnectionError, RuntimeError, subprocess.CalledProcessError) as e:
                 log(f"{Typgpy.FAIL}Unable to activate validator {validator_config['validator-addr']}"
                     f"error {e}. Continuing...{Typgpy.ENDC}")
                 return False
