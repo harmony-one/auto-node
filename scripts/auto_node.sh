@@ -147,7 +147,7 @@ case "${1}" in
         exit
     esac
     ;;
-  "setup-validator")
+  "create-validator")
     python3 -u -c "from AutoNode import validator; validator.setup(recover_interaction=False)"
     ;;
   "activate")
@@ -265,7 +265,7 @@ case "${1}" in
       edit-config         Edit the validator_config.json file used by AutoNode
       monitor <cmd>       View/Command Harmony Node Monitor. Use '-h' cmd for node monitor cmd help msg
       node <cmd>          View/Command Harmony Node. Use '-h' cmd for node cmd help msg
-      setup-validator     Run through the steps to setup your validator
+      create-validator    Run through the steps to setup your validator
       activate            Make validator associated with node elegable for election in next epoch
       deactivate          Make validator associated with node NOT elegable for election in next epoch.
                            Note that this may not work as intended if auto-active was enabled

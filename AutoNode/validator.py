@@ -145,9 +145,9 @@ def verify_node_sync():
         curr_epoch_shard = curr_headers['shard-chain-header']['epoch']
         curr_epoch_beacon = curr_headers['beacon-chain-header']['epoch']
         ref_epoch = get_latest_header(node_config['endpoint'])['epoch']
-    if curr_epoch_shard > ref_epoch or curr_epoch_beacon > ref_epoch:
-        log(f"{Typgpy.FAIL}Node epoch is greater than network epoch which is not possible, "
-            f"is config correct?{Typgpy.ENDC}")
+    if curr_epoch_shard + 1 > ref_epoch or curr_epoch_beacon + 1 > ref_epoch:  # +1 for some slack on epoch change.
+        log(f"{Typgpy.FAIL}Node epoch (shard: {curr_epoch_shard} beacon: {curr_epoch_beacon}) is greater than network "
+            f"epoch ({ref_epoch}) which is not possible, is config correct?{Typgpy.ENDC}")
         raise SystemExit("Invalid node sync")
     if has_looped:
         log("")
