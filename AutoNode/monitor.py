@@ -40,6 +40,7 @@ from .util import (
 
 log_path = f"{harmony_dir}/autonode_monitor.log"
 check_interval = 8  # Estimated block time
+progress_check_interval = 300  # Must account for view-change
 
 
 # TODO: move this to an exceptions library
@@ -59,8 +60,16 @@ def _check_for_hard_reset(shard_endpoint, error_ok=False):
     network_epoch = get_latest_header(endpoint=shard_endpoint)['epoch']
     node_epoch = get_latest_header(endpoint='http://localhost:9500/')['epoch']
     if node_epoch > network_epoch:
-        raise ResetNode(f"Blockchains don't match! "
-                        f"Network epoch {network_epoch} < Node epoch {node_epoch}", clean=True)
+        log(f"{Typgpy.WARNING}Epoch of node higher than endpoint epoch, sleeping {progress_check_interval} before "
+            f"checking endpoint progress for hard-reset trigger.{Typgpy.ENDC}")
+        time.sleep(progress_check_interval)  # check that network is not making progress
+        new_network_epoch = get_latest_header(endpoint=shard_endpoint)['epoch']
+        if network_epoch < new_network_epoch < node_epoch:  # made progress so reset
+            raise ResetNode(f"Blockchains don't match! Network "
+                            f"epoch {new_network_epoch} < Node epoch {node_epoch}", clean=True)
+        else:
+            log(f"{Typgpy.WARNING} Shard endpoint ({shard_endpoint}) is not making progress, "
+                f"possible endpoint issue, or hard-reset.{Typgpy.ENDC}")
     try:
         assert_no_bad_blocks()
     except AssertionError as e:
