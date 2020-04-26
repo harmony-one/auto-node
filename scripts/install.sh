@@ -61,9 +61,27 @@ if command -v apt-get > /dev/null; then
   sudo apt update
   PKG_INSTALL='sudo apt-get install -y'
 fi
-for dependency in "python3" "python3-pip" "jq" "unzip" "nano" "curl"; do
+for dependency in "python3" "python3-pip" "jq" "unzip" "nano" "curl" "bc"; do
   check_and_install "$dependency"
 done
+
+
+python_version=$(python3 -V | cut -d ' ' -f2 | cut -d '.' -f1-2)
+if (( $(echo "3.6 > $python_version" | bc -l) )); then
+  if command -v apt-get > /dev/null; then
+    echo "[AutoNode] Must have python 3.6 or higher. Automatically upgrade (y/n)?"
+    yes_or_exit
+    sudo add-apt-repository ppa:deadsnakes/ppa -y
+    sudo apt update -y
+    sudo apt install python3.6 -y
+    sudo update-alternatives --install "$(command -v python3)" python3 "$(command -v python3.6)" 1
+  else
+    echo "[AutoNode] Must have python 3.6 or higher. Please install that first before installing AutoNode. Exiting..."
+    exit 5
+  fi
+fi
+
+
 echo "[AutoNode] Removing existing AutoNode installation"
 pip3 uninstall AutoNode -y 2>/dev/null || sudo pip3 uninstall AutoNode -y 2>/dev/null || echo "[AutoNode] Was not installed..."
 echo "[AutoNode] Installing main python3 library"
