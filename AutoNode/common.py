@@ -26,17 +26,18 @@ msg_tag = "[AutoNode]"
 
 _validator_config_default = {
     "validator-addr": None,
-    "name": "harmony autonode",
+    "name": "Harmony AutoNode Default Name",
     "website": "harmony.one",
     "security-contact": "Daniel-VDM",
-    "identity": "auto-node-2",
+    "identity": f"AutoNode-{hash(os.urandom(42))}",
     "amount": 10100,
     "min-self-delegation": 10000,
     "rate": 0.1,
     "max-rate": 0.75,
     "max-change-rate": 0.05,
     "max-total-delegation": 100000000.0,
-    "details": "This version does not use docker :)"
+    "details": "Harmony AutoNode default details",
+    "gas-price": 1
 }
 validator_config = _validator_config_default.copy()
 
@@ -65,7 +66,9 @@ sync_dir_map = {
 def save_validator_config():
     for key in _validator_config_default.keys():
         if key not in validator_config.keys():
-            raise KeyError(f"{key} not present in validator config to save: {validator_config}")
+            raise KeyError(f"{key} not present in validator config to save: {validator_config}. "
+                           f"Remove `{saved_validator_path}` or edit validator config and follow template: "
+                           f"{json.dumps(_validator_config_default, indent=4)}")
     try:
         config_string = json.dumps(validator_config, indent=4)
     except json.decoder.JSONDecodeError as e:

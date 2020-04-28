@@ -68,7 +68,7 @@ def _send_edit_validator_tx(bls_key_to_add):
             response = cli.single_call(f"hmy --node={node_config['endpoint']} staking edit-validator "
                                        f"--validator-addr {validator_config['validator-addr']} "
                                        f"--add-bls-key {bls_key_to_add} --passphrase-file {saved_wallet_pass_path} "
-                                       f"--bls-pubkeys-dir {bls_key_dir}")
+                                       f"--bls-pubkeys-dir {bls_key_dir} --gas-price {validator_config['gas-price']} ")
             log(f"{Typgpy.OKBLUE}Edit-validator transaction response: "
                 f"{Typgpy.OKGREEN}{response}{Typgpy.ENDC}")
             return
@@ -183,7 +183,8 @@ def _send_create_validator_tx():
                                        f'--amount {validator_config["amount"]} '
                                        f'--bls-pubkeys {",".join(node_config["public-bls-keys"])} '
                                        f'--passphrase-file "{saved_wallet_pass_path}" '
-                                       f'--bls-pubkeys-dir "{bls_key_dir}" ')
+                                       f'--bls-pubkeys-dir "{bls_key_dir}" '
+                                       f'--gas-price {validator_config["gas-price"]} ')
             log(f"{Typgpy.OKBLUE}Create-validator transaction response: "
                 f"{Typgpy.OKGREEN}{response}{Typgpy.ENDC}")
             return

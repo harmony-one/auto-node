@@ -203,7 +203,7 @@ def deactivate_validator():
             response = cli.single_call(
                 f"hmy staking edit-validator --validator-addr {validator_config['validator-addr']} "
                 f"--active false --node {node_config['endpoint']} "
-                f"--passphrase-file {saved_wallet_pass_path} ")
+                f"--passphrase-file {saved_wallet_pass_path} --gas-price {validator_config['gas-price']} ")
             log(f"{Typgpy.OKGREEN}Edit-validator response: {response}{Typgpy.ENDC}")
         else:
             log(f"{Typgpy.WARNING}Validator {validator_config['validator-addr']} is already deactivated!{Typgpy.ENDC}")
@@ -223,7 +223,7 @@ def activate_validator():
             response = cli.single_call(
                 f"hmy staking edit-validator --validator-addr {validator_config['validator-addr']} "
                 f"--active true --node {node_config['endpoint']} "
-                f"--passphrase-file {saved_wallet_pass_path} ")
+                f"--passphrase-file {saved_wallet_pass_path} --gas-price {validator_config['gas-price']} ")
             log(f"{Typgpy.OKGREEN}Edit-validator response: {response}{Typgpy.ENDC}")
         else:
             log(f"{Typgpy.WARNING}Validator {validator_config['validator-addr']} is already active!{Typgpy.ENDC}")
