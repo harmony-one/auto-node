@@ -3,6 +3,7 @@ import time
 import json
 import logging
 import subprocess
+import traceback
 
 from pyhmy import cli
 from pyhmy import (
@@ -148,7 +149,8 @@ def verify_node_sync():
     if curr_epoch_shard > ref_epoch + 1 or curr_epoch_beacon > ref_epoch + 1:  # +1 for some slack on epoch change.
         log(f"{Typgpy.FAIL}Node epoch (shard: {curr_epoch_shard} beacon: {curr_epoch_beacon}) is greater than network "
             f"epoch ({ref_epoch}) which is not possible, is config correct?{Typgpy.ENDC}")
-        raise SystemExit("Invalid node sync")
+        if not _recover_interaction:
+            raise SystemExit("Invalid node sync")
     if has_looped:
         log("")
     log(f"{Typgpy.OKGREEN}Node synced to current epoch...{Typgpy.ENDC}")
@@ -203,7 +205,8 @@ def setup(recover_interaction=False):
     logging.getLogger('AutoNode').addHandler(get_simple_rotating_log_handler(log_path))
     log(f"{Typgpy.HEADER}Starting validator setup...{Typgpy.ENDC}")
     if node_config['no-validator']:
-        raise SystemExit(f"{Typgpy.WARNING}Node config specifies not validator automation, exiting...{Typgpy.ENDC}")
+        print(f"{Typgpy.WARNING}Node config specifies not validator automation, exiting...{Typgpy.ENDC}")
+        exit(0)
 
     log(f"{Typgpy.OKBLUE}Create validator config: {Typgpy.OKGREEN}"
         f"{json.dumps(validator_config, indent=4)}{Typgpy.ENDC}")
@@ -229,4 +232,8 @@ def setup(recover_interaction=False):
         verify_node_sync()
         logging.getLogger('AutoNode').handlers = old_logging_handlers  # Reset logger to old handlers
     except Exception as e:
-        raise SystemExit(e)
+        if not _recover_interaction:
+            raise SystemExit(e)
+        else:
+            log(traceback.format_exc())
+            log(f"{Typgpy.FAIL}{Typgpy.BOLD}Validator creation error: {e}{Typgpy.ENDC}")
