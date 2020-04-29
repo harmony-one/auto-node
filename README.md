@@ -246,6 +246,9 @@ This is the main python3 package for AutoNode. Each component is its own library
 * `auto_node.sh` is the main script that people will be interfacing with
 * `autonode_service.py` is the daemon script
 * `cleanse-bls.py` is a command script needed for `auto_node.sh`
+* `tui.sh` is a command script needed for `auto_node.sh`
+* `node.sh` is a command script needed for `auto_node.sh`
+* `monitor.sh` is a command script needed for `auto_node.sh`
 * `init.py` is the initialization script called by `auto_node.sh`
 * `install.sh` is the main install script that people will be running to install AutoNode. This should handle most linux distros and common setups.
 **Note that the version of AutoNode is hard-coded in this script and needs to be bumped if a new version is desired**
