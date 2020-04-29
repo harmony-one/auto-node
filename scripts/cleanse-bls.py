@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import argparse
 import time
+import json
 from argparse import RawTextHelpFormatter
 
 from pyhmy import (
@@ -62,7 +63,8 @@ def shard_cleanse():
         key_shard = json_load(cli.single_call(f"hmy utility shard-for-bls {key.replace('0x', '')} "
                                               f"-n {endpoint}"))['shard-id']
         if key_shard != shard and key not in bls_keys:
-            common.log(f"{Typgpy.WARNING}Removing {key}, key for shard {key_shard}, node for shard {shard}{Typgpy.ENDC}")
+            common.log(
+                f"{Typgpy.WARNING}Removing {key}, key for shard {key_shard}, node for shard {shard}{Typgpy.ENDC}")
             response = cli.single_call(f"hmy --node={endpoint} staking edit-validator "
                                        f"--validator-addr {validator_addr} "
                                        f"--remove-bls-key {key} --passphrase-file {common.saved_wallet_pass_path} ")
@@ -77,7 +79,7 @@ def reward_cleanse():
     val_metrics = blockchain.get_validator_information(validator_addr, endpoint)['metrics']
     if val_metrics is None:
         common.log(f"{Typgpy.WARNING}Can not get current BLS key performance, "
-              f"validator ({validator_addr}) is not elected.{Typgpy.ENDC}")
+                   f"validator ({validator_addr}) is not elected.{Typgpy.ENDC}")
         if args.yes or util.input_with_print(f"Wait for election? [Y]/n\n> ") in {'Y', 'y', 'yes', 'Yes'}:
             while val_metrics is None:
                 time.sleep(8)
@@ -89,6 +91,7 @@ def reward_cleanse():
     while 0 <= blockchain.get_latest_header("http://localhost:9500/")['blockNumber'] % block_per_epoch <= 5:
         pass
     bls_metrics = blockchain.get_validator_information(validator_addr, endpoint)['metrics']['by-bls-key']
+    common.log(f"{Typgpy.OKBLUE}BLS key metrics: {Typgpy.OKGREEN}{json.dumps(bls_metrics, indent=2)}{Typgpy.ENDC}")
     keys_on_chain = blockchain.get_validator_information(validator_addr, endpoint)['validator']['bls-public-keys']
     for metric in bls_metrics:
         if metric['earned-reward'] == 0:
@@ -110,6 +113,8 @@ if __name__ == "__main__":
     if validator_addr not in all_val:
         common.log(f"{Typgpy.FAIL}{validator_addr} is not a validator on {endpoint}.{Typgpy.ENDC}")
         exit(-1)
+    keys_on_chain = blockchain.get_validator_information(validator_addr, endpoint)['validator']['bls-public-keys']
+    common.log(f"{Typgpy.OKBLUE}Keys on validator {validator_addr} (before cleanse): {Typgpy.OKGREEN}{keys_on_chain}{Typgpy.ENDC}")
     if args.hard:
         hard_cleanse()
     elif args.keep_shard:
@@ -118,4 +123,4 @@ if __name__ == "__main__":
         reward_cleanse()
     keys_on_chain = blockchain.get_validator_information(validator_addr, endpoint)['validator']['bls-public-keys']
     common.log(f"{Typgpy.OKBLUE}Cleansed following BLS keys: {Typgpy.OKGREEN}{removed_keys}{Typgpy.ENDC}")
-    common.log(f"{Typgpy.OKBLUE}Keys on validator {validator_addr}: {Typgpy.OKGREEN}{keys_on_chain}{Typgpy.ENDC}")
+    common.log(f"{Typgpy.OKBLUE}Keys on validator {validator_addr} (after cleanse): {Typgpy.OKGREEN}{keys_on_chain}{Typgpy.ENDC}")
