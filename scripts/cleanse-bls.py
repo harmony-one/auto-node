@@ -18,6 +18,7 @@ from AutoNode import (
 validator_addr = common.validator_config['validator-addr']
 endpoint = common.node_config['endpoint']
 bls_keys = common.node_config['public-bls-keys']
+removed_keys = []
 
 
 def parse_args():
@@ -47,6 +48,7 @@ def hard_cleanse():
                                        f"--validator-addr {validator_addr} "
                                        f"--remove-bls-key {key} --passphrase-file {common.saved_wallet_pass_path} ")
             common.log(f"{Typgpy.OKGREEN}Edit-validator transaction response: {response}{Typgpy.ENDC}")
+            removed_keys.append(key)
 
 
 def shard_cleanse():
@@ -65,6 +67,7 @@ def shard_cleanse():
                                        f"--validator-addr {validator_addr} "
                                        f"--remove-bls-key {key} --passphrase-file {common.saved_wallet_pass_path} ")
             common.log(f"{Typgpy.OKGREEN}Edit-validator transaction response: {response}{Typgpy.ENDC}")
+            removed_keys.append(key)
 
 
 def reward_cleanse():
@@ -96,6 +99,7 @@ def reward_cleanse():
                                            f"--validator-addr {validator_addr} "
                                            f"--remove-bls-key {key} --passphrase-file {common.saved_wallet_pass_path} ")
                 common.log(f"{Typgpy.OKGREEN}Edit-validator transaction response: {response}{Typgpy.ENDC}")
+                removed_keys.append(key)
 
 
 if __name__ == "__main__":
@@ -112,3 +116,6 @@ if __name__ == "__main__":
         shard_cleanse()
     else:
         reward_cleanse()
+    keys_on_chain = blockchain.get_validator_information(validator_addr, endpoint)['validator']['bls-public-keys']
+    common.log(f"{Typgpy.OKBLUE}Cleansed following BLS keys: {Typgpy.OKGREEN}{removed_keys}{Typgpy.ENDC}")
+    common.log(f"{Typgpy.OKBLUE}Keys on validator {validator_addr}: {Typgpy.OKGREEN}{keys_on_chain}{Typgpy.ENDC}")
