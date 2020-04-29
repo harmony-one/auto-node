@@ -139,7 +139,7 @@ WantedBy=multi-user.target
   mkdir -p "$harmony_dir"
   curl -s -o "$HOME"/auto_node.sh  https://raw.githubusercontent.com/harmony-one/auto-node/master/scripts/auto_node.sh
   chmod +x "$HOME"/auto_node.sh
-  for autonode_script in "init.py" "cleanse-bls.py" "tui.sh"; do
+  for autonode_script in "init.py" "cleanse-bls.py" "tui.sh" "monitor.sh" "node.sh"; do
     curl -s -o "$harmony_dir/$autonode_script" "https://raw.githubusercontent.com/harmony-one/auto-node/master/scripts/$autonode_script"
   done
   "$HOME"/auto_node.sh tui update
