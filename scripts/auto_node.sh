@@ -62,7 +62,8 @@ case "${1}" in
     endpoint=$(echo "$node_config" | jq -r ".endpoint")
     pw_file=$(python3 -c "from AutoNode import common; print(common.saved_wallet_pass_path)")
     if [ -f "$HOME"/hmy ]; then
-      "$HOME"/hmy staking edit-validator --validator-addr "$addr" --active true --passphrase-file "$pw_file" -n "$endpoint" | jq
+      output=$("$HOME"/hmy staking edit-validator --validator-addr "$addr" --active true --passphrase-file "$pw_file" -n "$endpoint")
+      echo "$output" | jq || echo "$output"
     else
       echo "[AutoNode] Harmony CLI has been moved. Reinitlize AutoNode."
     fi
@@ -74,7 +75,8 @@ case "${1}" in
     endpoint=$(echo "$node_config" | jq -r ".endpoint")
     pw_file=$(python3 -c "from AutoNode import common; print(common.saved_wallet_pass_path)")
     if [ -f "$HOME"/hmy ]; then
-      "$HOME"/hmy staking edit-validator --validator-addr "$addr" --active false --passphrase-file "$pw_file" -n "$endpoint" | jq
+      output=$("$HOME"/hmy staking edit-validator --validator-addr "$addr" --active false --passphrase-file "$pw_file" -n "$endpoint")
+      echo "$output" | jq || echo "$output"
     else
       echo "[AutoNode] Harmony CLI has been moved. Reinitlize AutoNode."
     fi
@@ -85,7 +87,8 @@ case "${1}" in
     addr=$(echo "$val_config" | jq -r '.["validator-addr"]')
     endpoint=$(echo "$node_config" | jq -r ".endpoint")
     if [ -f "$HOME"/hmy ]; then
-      "$HOME"/hmy blockchain validator information "$addr" -n "$endpoint" | jq
+      output=$("$HOME"/hmy blockchain validator information "$addr" -n "$endpoint")
+      echo "$output" | jq || echo "$output"
     else
       echo "[AutoNode] Harmony CLI has been moved. Reinitlize AutoNode."
     fi
@@ -106,7 +109,8 @@ case "${1}" in
     addr=$(echo "$val_config" | jq -r '.["validator-addr"]')
     endpoint=$(echo "$node_config" | jq -r ".endpoint")
     if [ -f "$HOME"/hmy ]; then
-      "$HOME"/hmy balances "$addr" -n "$endpoint" | jq
+      output=$("$HOME"/hmy balances "$addr" -n "$endpoint")
+      echo "$output" | jq || echo "$output"
     else
       echo "[AutoNode] Harmony CLI has been moved. Reinitlize AutoNode."
     fi
@@ -115,7 +119,8 @@ case "${1}" in
     val_config=$(python3 -c "from AutoNode import common; import json; print(json.dumps(common.validator_config))")
     addr=$(echo "$val_config" | jq -r '.["validator-addr"]')
     if [ -f "$HOME"/hmy ]; then
-      "$HOME"/hmy staking collect-rewards --delegator-addr "$addr" -n "$endpoint" | jq
+      output=$("$HOME"/hmy staking collect-rewards --delegator-addr "$addr" -n "$endpoint")
+      echo "$output" | jq || echo "$output"
     else
       echo "[AutoNode] Harmony CLI has been moved. Reinitlize AutoNode."
     fi
@@ -127,14 +132,16 @@ case "${1}" in
     ;;
   "header")
     if [ -f "$HOME"/hmy ]; then
-      "$HOME"/hmy blockchain latest-header | jq
+      output=$("$HOME"/hmy blockchain latest-header)
+      echo "$output" | jq || echo "$output"
     else
       echo "[AutoNode] Harmony CLI has been moved. Reinitlize AutoNode."
     fi
     ;;
   "headers")
     if [ -f "$HOME"/hmy ]; then
-      "$HOME"/hmy blockchain latest-headers | jq
+      output=$("$HOME"/hmy blockchain latest-headers)
+      echo "$output" | jq || echo "$output"
     else
       echo "[AutoNode] Harmony CLI has been moved. Reinitlize AutoNode."
     fi
