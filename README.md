@@ -48,23 +48,15 @@ Import wallet from private-key (not recommended)
 **Note that you must be in a linux machine to test most things, though some dev can be done on a mac machine.**
 
 ### Installation (after cloning this repo):
-1) (1-time setup) Install the release version with the following command while in the root of this project. 
 ```bash
-chmod +x ./scripts/install.sh && ./scripts/install.sh
+make install
 ```
-
-2) (Dev iteration) To install the dev version of AutoNode, run the following command while in the root of this project.
-```bash
-chmod +x ./scripts/dev_install.sh && ./scripts/dev_install.sh
-```
-
-3) (Optional) If the systemd service needs to be changed, edit the service file in `./scripts/install.sh` and rerun the 1-time setup.
 
 ### Release:
 1) Bump the AutoNode version in `./setup.py`
 2) Bump the AutoNode version in `./scripts/install.py`
-3) Build AutoNode with `python3 setup.py sdist` (while in root of this project)
-4) Release AutoNode with `twine upload dist/*` (credentials are needed)
+3) Release AutoNode to pypi with `make release`
+4) If any scripts are needed for the install, they won't take effect until changes are merged to master. 
 
 
 ## Importing notes and assumptions

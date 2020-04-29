@@ -191,7 +191,8 @@ case "${1}" in
     nano "$(python3 -c "from AutoNode import common; print(common.saved_validator_path)")"
     ;;
   "cleanse-bls")
-    echo "[AutoNode] Not implemented yet"  # TODO: implement this
+    harmony_dir=$(python3 -c "from AutoNode import common; print(common.harmony_dir)")
+    python3 -u "$harmony_dir"/cleanse-bls.py "${@:2}"
     ;;
   "balances")
     val_config=$(python3 -c "from AutoNode import common; import json; print(json.dumps(common.validator_config))")
