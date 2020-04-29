@@ -117,6 +117,10 @@ def start(auto=False, verbose=True):
             log(f"{Typgpy.WARNING}[!] Starting node with clean mode.{Typgpy.ENDC}")
         _node_clean(verbose=verbose)
         _rclone_s0(verbose=verbose)
+    if node_config['archival']:
+        if verbose:
+            log(f"{Typgpy.WARNING}[!] Starting in archival mode.{Typgpy.ENDC}")
+        node_args.append("-A")
     with open(node_sh_out_path, 'w') as fo:
         with open(node_sh_err_path, 'w') as fe:
             if verbose:

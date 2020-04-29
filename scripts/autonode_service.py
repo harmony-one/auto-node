@@ -4,7 +4,7 @@ import os
 
 from AutoNode import (
     daemon,
-    common
+    common,
 )
 
 
@@ -16,7 +16,7 @@ def parse_args():
 
 if __name__ == "__main__":
     args = parse_args()
-    common.log(f"Running daemon as user: {os.environ['USER']}")
+    common.log(f"Running daemon as user: {common.user}")
     daemon = daemon.Daemon(args.service)
     daemon.validate_config()
     daemon.start()

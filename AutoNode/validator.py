@@ -109,7 +109,7 @@ def _verify_account_balance(amount):
         count += 1
         if not check_min_bal_on_s0(validator_config['validator-addr'], amount, node_config['endpoint']):
             log(f"{Typgpy.FAIL}Cannot create validator, {validator_config['validator-addr']} "
-                f"does not have sufficient funds (need {amount} ONE). Checked {count} times.{Typgpy.ENDC}")
+                f"does not have sufficient funds (need {amount} ONE). Checked {count} time(s).{Typgpy.ENDC}")
             if not _recover_interaction:
                 raise SystemExit("Create Validator Error")
             log(f"{Typgpy.WARNING}Checking again in {check_interval} seconds.{Typgpy.ENDC}")

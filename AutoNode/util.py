@@ -2,6 +2,7 @@ import gzip
 import os
 import logging
 import logging.handlers
+import sys
 
 from pyhmy import cli
 from pyhmy import (
@@ -45,6 +46,8 @@ def input_with_print(prompt_str, auto_interaction=None):
     if auto_interaction is not None:
         return auto_interaction
     user_input = input(prompt_str).strip()
+    sys.stdout.write(f"{Typgpy.ENDC}")
+    sys.stdout.flush()
     log(f"{Typgpy.OKBLUE}You entered: `{Typgpy.OKGREEN}{user_input}{Typgpy.OKBLUE}`{Typgpy.ENDC}")
     return user_input
 
