@@ -80,7 +80,7 @@ For reference here is the help message:
 Note that all sensitive files are saved with read only access for user $USER.
 
 To auto-reset your node during hard refreshes (for testnets), user $USER must have sudo access
-with no passphrase since the monitor daemon needs to stop and start the node daemon.
+with no passphrase since services must be stopped and started by a monitor.
 
 
 Param:              Help:
@@ -92,6 +92,8 @@ config              View the validator_config.json file used by AutoNode
 edit-config         Edit the validator_config.json file used by AutoNode
 monitor <cmd>       View/Command Harmony Node Monitor. Use '-h' cmd for node monitor cmd help msg
 node <cmd>          View/Command Harmony Node. Use '-h' cmd for node cmd help msg
+tui <cmd>           Start the text-based user interface to monitor your node and validator.
+                   User '-h' command to view all commands
 create-validator    Run through the steps to setup your validator
 activate            Make validator associated with node elegable for election in next epoch
 deactivate          Make validator associated with node NOT elegable for election in next epoch.
