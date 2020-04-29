@@ -188,27 +188,35 @@ restart         Manually restart your Harmony Monitor daemon
 name            Get the name of your Harmony Monitor deamon
 ```
 
-### 6) See validator information for associated AutoNode
+### 6) Start the TUI
+```bash
+~/auto_node.sh tui run
+```
+
+![](https://github.com/harmony-one/harmony-tui/blob/master/doc/images/staking-tui-sample.png?raw=true&s=800)
+
+
+### 7) See validator information for associated AutoNode
 ```bash
 ~/auto_node.sh info
 ```
 
-### 7) See node latest header (for quick view of node activity)
+### 8) See node latest header (for quick view of node activity)
 ```bash
 ~/auto_node.sh headers
 ```
 
-### 8) See AutoNode validator config
+### 9) See AutoNode validator config
 ```bash
 ~/auto_node.sh config
 ```
 
-### 9) Edit AutNode validator config
+### 10) Edit AutNode validator config
 ```bash
 ~/auto_node.sh edit-config
 ```
 
-### 10) Aliased Harmony CLI commands:
+### 11) Aliased Harmony CLI commands:
 
 Send a edit-validator transaction to activate your associated validator
 ```bash
@@ -226,7 +234,7 @@ Get the balances of the associated validator wallet
 ~/auto_node.sh balances
 ```
 
-### 11) Kill AutoNode
+### 12) Kill AutoNode
 ```bash
 ~/auto_node.sh kill
 ```
