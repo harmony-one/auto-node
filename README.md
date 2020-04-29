@@ -47,21 +47,18 @@ Import wallet from private-key (not recommended)
 ## Dev Setup
 **Note that you must be in a linux machine to test most things, though some dev can be done on a mac machine.**
 
-### Installation:
-1) First, install the release version AutoNode (needed for dependencies).
-
-2) Clone this repo and install the AutoNode library with:
-```
-pip3 install . --user
+### Installation (after cloning this repo):
+1) (1-time setup) Install the release version with the following command while in the root of this project. 
+```bash
+chmod +x ./scripts/install.sh && ./scripts/install.sh
 ```
 
-3) (Optional) Copy over the AutoNode scripts as needed with: 
+2) (Dev iteration) To install the dev version of AutoNode, run the following command while in the root of this project.
+```bash
+chmod +x ./scripts/dev_install.sh && ./scripts/dev_install.sh
 ```
-cp ./scripts/init.py ~/.hmy
-cp ./scripts/cleanse-bls.py ~/.hmy
-cp ./scripts/auto_node.sh ~/
-cp ./scripts/autonode_service.py ~/bin/autonode_service.py
-```
+
+3) (Optional) If the systemd service needs to be changed, edit the service file in `./scripts/install.sh` and rerun the 1-time setup.
 
 ### Release:
 1) Bump the AutoNode version in `./setup.py`
@@ -103,7 +100,7 @@ config              View the validator_config.json file used by AutoNode
 edit-config         Edit the validator_config.json file used by AutoNode
 monitor <cmd>       View/Command Harmony Node Monitor. Use '-h' cmd for node monitor cmd help msg
 node <cmd>          View/Command Harmony Node. Use '-h' cmd for node cmd help msg
-setup-validator     Run through the steps to setup your validator
+create-validator    Run through the steps to setup your validator
 activate            Make validator associated with node elegable for election in next epoch
 deactivate          Make validator associated with node NOT elegable for election in next epoch.
                    Note that this may not work as intended if auto-active was enabled
@@ -134,6 +131,7 @@ optional arguments:
   --auto-active         Always try to set active when EPOS status is inactive.
   --auto-reset          Automatically reset node during hard resets.
   --no-validator        Disable validator automation.
+  --archival            Run node with archival mode.
   --update-cli          Toggle upgrading the Harmony CLI used by AutoNode
   --clean               Clean shared node directory before starting node.
   --shard SHARD         Specify shard of generated bls key.

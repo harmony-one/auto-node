@@ -18,7 +18,8 @@ from .common import (
     harmony_dir,
     validator_config,
     node_config,
-    save_node_config
+    save_node_config,
+    user
 )
 from .node import (
     wait_for_node_response,
@@ -131,7 +132,7 @@ def _run_monitor(shard_endpoint):
     while curr_time - start_time < duration:
         if node_config["auto-reset"]:
             if subprocess.call("sudo -n true", shell=True, env=os.environ) != 0:
-                log(f"{Typgpy.WARNING}User {os.environ['USER']} does not have sudo access without passphrase. " 
+                log(f"{Typgpy.WARNING}User {user} does not have sudo access without passphrase. " 
                     f"Cannot trigger auto-reset if there is a hard reset (on testnet).{Typgpy.ENDC}")
             _check_for_hard_reset(shard_endpoint)
         log(f"{Typgpy.HEADER}Validator address: {Typgpy.OKGREEN}{validator_config['validator-addr']}{Typgpy.ENDC}")
@@ -140,6 +141,7 @@ def _run_monitor(shard_endpoint):
         log(f"{Typgpy.HEADER}Node version: {Typgpy.OKGREEN}{meta_data['version']}{Typgpy.ENDC}")
         log(f"{Typgpy.HEADER}Node network: {Typgpy.OKGREEN}{meta_data['network']}{Typgpy.ENDC}")
         log(f"{Typgpy.HEADER}Node is leader: {Typgpy.OKGREEN}{meta_data['is-leader']}{Typgpy.ENDC}")
+        log(f"{Typgpy.HEADER}Node is archival: {Typgpy.OKGREEN}{meta_data['is-archival']}{Typgpy.ENDC}")
         log(f"{Typgpy.HEADER}Node shard: {Typgpy.OKGREEN}{meta_data['shard-id']}{Typgpy.ENDC}")
         log(f"{Typgpy.HEADER}Node role: {Typgpy.OKGREEN}{meta_data['role']}{Typgpy.ENDC}")
         all_val = get_all_validator_addresses(node_config['endpoint'])
@@ -153,7 +155,7 @@ def _run_monitor(shard_endpoint):
                 if check_and_activate(val_chain_info['epos-status']):
                     count += 1
                 log(f"{Typgpy.HEADER}Auto activation count: {Typgpy.OKGREEN}{count}{Typgpy.ENDC}")
-        else:
+        elif not node_config["no-validator"]:
             log(f"{Typgpy.WARNING}{validator_config['validator-addr']} is not a validator.{Typgpy.ENDC}")
         log(f"{Typgpy.HEADER}This node's latest header at {datetime.datetime.utcnow()}: "
             f"{Typgpy.OKGREEN}{json.dumps(get_latest_headers('http://localhost:9500/'), indent=4)}"
@@ -180,7 +182,7 @@ def start():
     logging.getLogger('AutoNode').addHandler(get_simple_rotating_log_handler(log_path))
     log(f"{Typgpy.HEADER}Starting monitor...{Typgpy.ENDC}")
     if node_config['auto-reset'] and subprocess.call("sudo -n true", shell=True, env=os.environ) != 0:
-        log(f"{Typgpy.WARNING}User {os.environ['USER']} does not have sudo privileges without password.\n "
+        log(f"{Typgpy.WARNING}User {user} does not have sudo privileges without password.\n "
             f"For auto-reset option, user must have said privilege. Continuing...{Typgpy.ENDC}")
         time.sleep(2)  # So user can read message...
     try:

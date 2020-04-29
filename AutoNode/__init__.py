@@ -63,7 +63,7 @@ def _init():
     os.makedirs(imported_wallet_pass_file_dir, exist_ok=True)
 
     log_handler = logging.StreamHandler(sys.stdout)
-    formatter = logging.Formatter(f'{msg_tag} [%(asctime)s] %(message)s')
+    formatter = logging.Formatter(f'{msg_tag} %(message)s')
     log_handler.setFormatter(formatter)
     logging.getLogger('AutoNode').handlers = []
     logging.getLogger('AutoNode').addHandler(log_handler)
@@ -71,10 +71,10 @@ def _init():
 
     try:
         # TODO: implement logic to check for latest version of CLI and download if out of date.
-        cli.environment.update(cli.download(cli_bin_path, replace=False))
+        cli.environment.update(cli.download(cli_bin_path, replace=False, verbose=False))
         cli.set_binary(cli_bin_path)
     except requests.exceptions.RequestException as e:
-        log(f"{Typgpy.FAIL}Request error: {e}. Exiting.{Typgpy.ENDC}")
+        print(f"{Typgpy.FAIL}Request error: {e}. Exiting.{Typgpy.ENDC}", file=sys.stderr)
         raise SystemExit(e)
 
     try:  # Config file that should exist on setup
@@ -82,8 +82,8 @@ def _init():
             imported_val_config = json.load(f)
             validator_config.update(imported_val_config)
     except (json.decoder.JSONDecodeError, IOError, PermissionError) as e:
-        log(f"{Typgpy.WARNING}Could not import validator config from {saved_validator_path}. Error: {e}\n"
-            f"Using default config: {json.dumps(validator_config, indent=4)}{Typgpy.ENDC}")
+        print(f"{Typgpy.WARNING}Could not import validator config from {saved_validator_path}. Error: {e}\n"
+              f"Using default config: {json.dumps(validator_config, indent=4)}{Typgpy.ENDC}", file=sys.stderr)
 
     if os.path.isfile(saved_node_path):  # Internal file that could not exist.
         try:

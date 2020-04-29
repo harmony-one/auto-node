@@ -25,6 +25,7 @@ from .common import (
     protect_file,
     save_protected_file,
     reset_node_config,
+    user
 )
 from .node import (
     log_path as n_log_path
@@ -32,21 +33,35 @@ from .node import (
 from .monitor import (
     log_path as m_log_path
 )
+from .util import (
+    input_with_print
+)
 
 
 def _import_validator_address():
     if validator_config["validator-addr"] is None:
-        log(f"{Typgpy.OKBLUE}Selecting random address in CLI keystore to be validator.{Typgpy.ENDC}")
-        keys_list = list(cli.get_accounts_keystore().values())
+        keys_list = list(sorted(cli.get_accounts_keystore().values()))
         if not keys_list:
             log(f"{Typgpy.FAIL}CLI keystore has no wallets.{Typgpy.ENDC}")
             raise SystemExit("Bad wallet import.")
-        validator_config["validator-addr"] = keys_list[0]
-    elif validator_config['validator-addr'] not in cli.get_accounts_keystore().values():
+        log(f"{Typgpy.HEADER}Keystore Wallet Addresses:{Typgpy.ENDC}")
+        for i, addr in enumerate(keys_list):
+            log(f"{Typgpy.BOLD}{Typgpy.OKBLUE}#{i}{Typgpy.ENDC}\t{Typgpy.OKGREEN}{addr}{Typgpy.ENDC}")
+        log("")
+        index = None
+        while True:
+            try:
+                index = input_with_print(f"{Typgpy.HEADER}Which wallet would you like to use? {Typgpy.ENDC}\n"
+                                         f"> {Typgpy.OKBLUE}#").strip()
+                validator_config["validator-addr"] = keys_list[int(index)]
+                log(f"{Typgpy.HEADER}Using validator {Typgpy.OKGREEN}{keys_list[int(index)]}{Typgpy.ENDC}")
+                break
+            except (IndexError, TypeError, ValueError) as e:
+                log(f"{Typgpy.FAIL}Input `{index}` is not valid, error: {e}{Typgpy.ENDC}")
+    if validator_config['validator-addr'] not in cli.get_accounts_keystore().values():
         log(f"{Typgpy.FAIL}Cannot create validator, {validator_config['validator-addr']} "
             f"not in shared CLI keystore.{Typgpy.ENDC}")
         raise SystemExit("Bad wallet import or validator config.")
-    return validator_config["validator-addr"]
 
 
 def _bls_filter(file_name, suffix):
@@ -126,10 +141,13 @@ def _import_bls(passphrase):
     """
     bls_keys = list(filter(lambda e: _bls_filter(e, '.key'), os.listdir(bls_key_dir)))
     if passphrase is None:  # Assumes passphrase files were imported when passphrase is None.
+        if node_config['shard'] is not None:
+            log(f"{Typgpy.WARNING}[!] Shard option ignored since BLS keys were imported.{Typgpy.ENDC}")
+            time.sleep(3)  # Sleep so user can read message
         for k in bls_keys:
             passphrase_file = f"{bls_key_dir}/{k.replace('.key', '.pass')}"
             if protect_file(passphrase_file) != 0:
-                raise SystemExit(f"Unable to protect `{passphrase_file}`, check user (\"{os.environ['USER']}\") "
+                raise SystemExit(f"Unable to protect `{passphrase_file}`, check user ({user}) "
                                  f"permissions on file.")
             try:
                 cli.single_call(f"hmy keys recover-bls-key {bls_key_dir}/{k} "
@@ -214,15 +232,19 @@ def reset():
 def config(update_cli=False):
     cli.download(cli_bin_path, replace=update_cli)
 
-    validator_config['validator-addr'] = _import_validator_address()
-    wallet_passphrase = _import_wallet_passphrase()
+    if not node_config['no-validator']:
+        _import_validator_address()
+        wallet_passphrase = _import_wallet_passphrase()
+        _save_protected_file(wallet_passphrase, saved_wallet_pass_path)
     bls_passphrase = _import_bls_passphrase()
     public_bls_keys = _import_bls(bls_passphrase)
     _assert_same_shard_bls_keys(public_bls_keys)
     node_config['public-bls-keys'] = public_bls_keys
+    shard_id = json_load(cli.single_call(f"hmy --node={node_config['endpoint']} utility "
+                                         f"shard-for-bls {public_bls_keys[0]}"))["shard-id"]
 
-    _save_protected_file(wallet_passphrase, saved_wallet_pass_path)
     log("~" * 110)
+    log(f"Shard ID: {shard_id}")
     log(f"Saved Validator Information: {json.dumps(validator_config, indent=4)}")
     save_validator_config()
     log(f"Saved Node Information: {json.dumps(node_config, indent=4)}")

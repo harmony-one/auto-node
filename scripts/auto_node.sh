@@ -1,5 +1,4 @@
 #!/bin/bash
-
 set -e
 
 # TODO: convert auto_node.sh into python3 click CLI since lib is in python3.

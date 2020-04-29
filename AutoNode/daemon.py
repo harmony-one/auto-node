@@ -14,7 +14,8 @@ from .common import (
     bls_key_dir,
     node_config,
     harmony_dir,
-    log
+    log,
+    user
 )
 from .node import (
     start as node_start
@@ -34,7 +35,7 @@ from .util import (
 class Daemon:
     """Main AutoNode daemon logic"""
 
-    name = f"{os.environ['USER']}-autonoded"
+    name = f"{user}-autonoded"
     services = {
         "node",
         "node_recovered",

@@ -2,9 +2,11 @@ import json
 import subprocess
 import logging
 import os
+import getpass
 
 from pyhmy import Typgpy
 
+user = getpass.getuser()
 harmony_dir = f"{os.environ['HOME']}/.hmy"
 node_dir = f"{os.environ['HOME']}/harmony_node"
 node_sh_log_dir = f"{node_dir}/node_sh_logs"
@@ -28,7 +30,7 @@ _validator_config_default = {
     "validator-addr": None,
     "name": "Harmony AutoNode Default Name",
     "website": "harmony.one",
-    "security-contact": "Daniel-VDM",
+    "security-contact": "daniel@harmony.one",
     "identity": f"AutoNode-{hash(os.urandom(42))}",
     "amount": 10100,
     "min-self-delegation": 10000,
@@ -50,6 +52,7 @@ _node_config_default = {
     "auto-reset": False,
     "auto-active": False,
     "no-validator": False,
+    "archival": False,
     "public-bls-keys": []
 }
 node_config = _node_config_default.copy()
@@ -98,7 +101,7 @@ def save_protected_file(string_content, file_path, verbose=True):
         if os.access(file_path, os.R_OK):  # check for min needed perms.
             os.remove(file_path)
         else:
-            raise PermissionError(f"Cannot save protected file to {file_path} for user {os.environ['USER']}")
+            raise PermissionError(f"Cannot save protected file to {file_path} for user {user}")
     with open(file_path, 'w', encoding='utf8') as f:
         f.write(string_content)
         protect_file(file_path, verbose=verbose)
@@ -127,5 +130,5 @@ def protect_file(file_path, verbose=True):
     Protect a file with chmod 400.
     """
     if verbose:
-        log(f"{Typgpy.WARNING}Protecting file `{file_path}` for user {os.environ['USER']}{Typgpy.ENDC}")
+        log(f"{Typgpy.WARNING}Protecting file `{file_path}` for user {user}{Typgpy.ENDC}")
     return subprocess.check_call(f"chmod 400 {file_path}", shell=True, env=os.environ)

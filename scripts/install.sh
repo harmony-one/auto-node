@@ -11,7 +11,7 @@ if ! command -v systemctl > /dev/null; then
 fi
 
 
-stable_auto_node_version="0.3.6"
+stable_auto_node_version="0.3.8"
 
 function check_and_install(){
   pkg=$1
@@ -83,11 +83,11 @@ if (( $(echo "3.6 > $python_version" | bc -l) )); then
 fi
 
 echo "[AutoNode] Upgrading pip3"
-pip3 install --upgrade pip || sudo -H pip3 install --upgrade pip || echo "[AutoNode] cannot update your pip3, attempting install anyways..."
+python3 -m pip install --upgrade pip || sudo -H python3 -m pip install --upgrade pip || echo "[AutoNode] cannot update your pip3, attempting install anyways..."
 echo "[AutoNode] Removing existing AutoNode installation"
-pip3 uninstall AutoNode -y 2>/dev/null || sudo pip3 uninstall AutoNode -y 2>/dev/null || echo "[AutoNode] Was not installed..."
+python3 -m pip uninstall AutoNode -y 2>/dev/null || sudo python3 -m pip uninstall AutoNode -y 2>/dev/null || echo "[AutoNode] Was not installed..."
 echo "[AutoNode] Installing main python3 library"
-pip3 install AutoNode=="$stable_auto_node_version" --no-cache-dir --user || sudo pip3 install AutoNode=="$stable_auto_node_version" --no-cache-dir
+python3 -m pip install AutoNode=="$stable_auto_node_version" --no-cache-dir --user || sudo python3 -m pip install AutoNode=="$stable_auto_node_version" --no-cache-dir
 echo "[AutoNode] Initilizing python3 library"
 python3 -c "from AutoNode import common; common.save_validator_config()" > /dev/null
 

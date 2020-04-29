@@ -22,6 +22,8 @@ def parse_args():
                         help="Automatically reset node during hard resets.")
     parser.add_argument("--no-validator", action="store_true",
                         help="Disable validator automation.")
+    parser.add_argument("--archival", action="store_true",
+                        help="Run node with archival mode.")
     parser.add_argument("--update-cli", action="store_true",
                         help="Toggle upgrading the Harmony CLI used by AutoNode")
     parser.add_argument("--clean", action="store_true", help="Clean shared node directory before starting node.")
@@ -52,7 +54,7 @@ if __name__ == "__main__":
     assert_dead_daemons()
     if args.auto_reset and subprocess.call("sudo -n true", shell=True, env=os.environ) != 0:
         raise SystemExit(
-            f"{Typgpy.FAIL}User {os.environ['USER']} does not have sudo privileges without password.\n "
+            f"{Typgpy.FAIL}User {AutoNode.common.user} does not have sudo privileges without password.\n "
             f"For `--auto-reset` option, user must have said privilege.{Typgpy.ENDC}")
     AutoNode.initialize.reset()
     AutoNode.node_config.update({
@@ -64,6 +66,7 @@ if __name__ == "__main__":
         "auto-reset": args.auto_reset,
         "auto-active": args.auto_active,
         "no-validator": args.no_validator,
+        "archival": args.archival
     })
     AutoNode.initialize.config(update_cli=args.update_cli)
     AutoNode.common.log(f"{Typgpy.HEADER}AutoNode has been initialized!{Typgpy.ENDC}")
