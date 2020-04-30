@@ -48,23 +48,15 @@ Import wallet from private-key (not recommended)
 **Note that you must be in a linux machine to test most things, though some dev can be done on a mac machine.**
 
 ### Installation (after cloning this repo):
-1) (1-time setup) Install the release version with the following command while in the root of this project. 
 ```bash
-chmod +x ./scripts/install.sh && ./scripts/install.sh
+make install
 ```
-
-2) (Dev iteration) To install the dev version of AutoNode, run the following command while in the root of this project.
-```bash
-chmod +x ./scripts/dev_install.sh && ./scripts/dev_install.sh
-```
-
-3) (Optional) If the systemd service needs to be changed, edit the service file in `./scripts/install.sh` and rerun the 1-time setup.
 
 ### Release:
 1) Bump the AutoNode version in `./setup.py`
 2) Bump the AutoNode version in `./scripts/install.py`
-3) Build AutoNode with `python3 setup.py sdist` (while in root of this project)
-4) Release AutoNode with `twine upload dist/*` (credentials are needed)
+3) Release AutoNode to pypi with `make release`
+4) If any scripts are needed for the install, they won't take effect until changes are merged to master. 
 
 
 ## Importing notes and assumptions
@@ -88,7 +80,7 @@ For reference here is the help message:
 Note that all sensitive files are saved with read only access for user $USER.
 
 To auto-reset your node during hard refreshes (for testnets), user $USER must have sudo access
-with no passphrase since the monitor daemon needs to stop and start the node daemon.
+with no passphrase since services must be stopped and started by a monitor.
 
 
 Param:              Help:
@@ -100,6 +92,8 @@ config              View the validator_config.json file used by AutoNode
 edit-config         Edit the validator_config.json file used by AutoNode
 monitor <cmd>       View/Command Harmony Node Monitor. Use '-h' cmd for node monitor cmd help msg
 node <cmd>          View/Command Harmony Node. Use '-h' cmd for node cmd help msg
+tui <cmd>           Start the text-based user interface to monitor your node and validator.
+                   User '-h' command to view all commands
 create-validator    Run through the steps to setup your validator
 activate            Make validator associated with node elegable for election in next epoch
 deactivate          Make validator associated with node NOT elegable for election in next epoch.
@@ -194,27 +188,35 @@ restart         Manually restart your Harmony Monitor daemon
 name            Get the name of your Harmony Monitor deamon
 ```
 
-### 6) See validator information for associated AutoNode
+### 6) Start the TUI
+```bash
+~/auto_node.sh tui run
+```
+
+![](https://github.com/harmony-one/harmony-tui/blob/master/doc/images/staking-tui-sample.png?raw=true&s=800)
+
+
+### 7) See validator information for associated AutoNode
 ```bash
 ~/auto_node.sh info
 ```
 
-### 7) See node latest header (for quick view of node activity)
+### 8) See node latest header (for quick view of node activity)
 ```bash
 ~/auto_node.sh headers
 ```
 
-### 8) See AutoNode validator config
+### 9) See AutoNode validator config
 ```bash
 ~/auto_node.sh config
 ```
 
-### 9) Edit AutNode validator config
+### 10) Edit AutNode validator config
 ```bash
 ~/auto_node.sh edit-config
 ```
 
-### 10) Aliased Harmony CLI commands:
+### 11) Aliased Harmony CLI commands:
 
 Send a edit-validator transaction to activate your associated validator
 ```bash
@@ -232,7 +234,7 @@ Get the balances of the associated validator wallet
 ~/auto_node.sh balances
 ```
 
-### 11) Kill AutoNode
+### 12) Kill AutoNode
 ```bash
 ~/auto_node.sh kill
 ```
@@ -244,6 +246,9 @@ This is the main python3 package for AutoNode. Each component is its own library
 * `auto_node.sh` is the main script that people will be interfacing with
 * `autonode_service.py` is the daemon script
 * `cleanse-bls.py` is a command script needed for `auto_node.sh`
+* `tui.sh` is a command script needed for `auto_node.sh`
+* `node.sh` is a command script needed for `auto_node.sh`
+* `monitor.sh` is a command script needed for `auto_node.sh`
 * `init.py` is the initialization script called by `auto_node.sh`
 * `install.sh` is the main install script that people will be running to install AutoNode. This should handle most linux distros and common setups.
 **Note that the version of AutoNode is hard-coded in this script and needs to be bumped if a new version is desired**

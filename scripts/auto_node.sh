@@ -41,110 +41,16 @@ case "${1}" in
     python3 -u "$harmony_dir"/init.py "${@:2}"
     ;;
   "node")
-    daemon_name=$(python3 -c "from AutoNode.daemon import Daemon; print(Daemon.name)")
-    if systemctl --type=service --state=active | grep -e ^"$daemon_name"@node.service; then
-      node_daemon="$daemon_name"@node.service
-    else
-      node_daemon="$daemon_name"@node_recovered.service
-    fi
-    case "${2}" in
-      "status")
-      if [ "${3}" == "init" ]; then
-        systemctl status "$daemon_name"@node.service
-      else
-        systemctl status "$node_daemon"
-      fi
-      ;;
-      "log")
-      tail -f "$(python3 -c "from AutoNode import node; print(node.log_path)")"
-      ;;
-      "journal")
-      if [ "${3}" == "init" ]; then
-        journalctl -u "$daemon_name"@node.service "${@:4}"
-      else
-        journalctl -u "$node_daemon" "${@:3}"
-      fi
-      ;;
-      "restart")
-      if [ "${3}" == "init" ]; then
-        systemctl restart "$daemon_name"@node.service
-      else
-        systemctl restart "$node_daemon"
-      fi
-      ;;
-      "name")
-      if [ "${3}" == "init" ]; then
-        echo "$daemon_name"@node.service
-      else
-        echo "$node_daemon"
-      fi
-      ;;
-      "info")
-      curl --location --request POST 'http://localhost:9500/' \
-      --header 'Content-Type: application/json' \
-      --data-raw '{
-          "jsonrpc": "2.0",
-          "method": "hmy_getNodeMetadata",
-          "params": [],
-          "id": 1
-      }' | jq
-      ;;
-      *)
-        echo "
-      == AutoNode node command help ==
-
-      Usage: auto_node.sh node <cmd>
-
-      Cmd:                  Help:
-
-      log                   View the current log of your Harmony Node
-      status [init]         View the status of your current Harmony Node daemon
-      journal [init] <opts> View the journal of your current Harmony Node daemon
-      restart [init]        Manually restart your current Harmony Node daemon
-      name [init]           Get the name of your current Harmony Node deamon
-      info                  Get the node's current metadata
-
-      'init' is a special option for the inital node daemon, may be needed for debugging.
-      Otherwise not needed.
-        "
-        exit
-    esac
+    harmony_dir=$(python3 -c "from AutoNode import common; print(common.harmony_dir)")
+    bash "$harmony_dir"/node.sh "${@:2}"
     ;;
   "monitor")
-    daemon_name=$(python3 -c "from AutoNode.daemon import Daemon; print(Daemon.name)")
-    monitor_daemon="$daemon_name"@monitor.service
-    case "${2}" in
-      "status")
-      systemctl status "$monitor_daemon"
-      ;;
-      "log")
-      tail -f "$(python3 -c "from AutoNode import monitor; print(monitor.log_path)")"
-      ;;
-      "journal")
-      journalctl -u "$monitor_daemon" "${@:3}"
-      ;;
-      "restart")
-      sudo systemctl restart "$monitor_daemon"
-      ;;
-      "name")
-      echo "$monitor_daemon"
-      ;;
-      *)
-        echo "
-      == AutoNode node monitor command help ==
-
-      Usage: auto_node.sh monitor <cmd>
-
-      Cmd:            Help:
-
-      log             View the log of your Harmony Monitor
-      status          View the status of your Harmony Monitor daemon
-      journal <opts>  View the journal of your Harmony Monitor daemon
-      restart         Manually restart your Harmony Monitor daemon
-      name            Get the name of your Harmony Monitor deamon
-        "
-        exit
-    esac
+    harmony_dir=$(python3 -c "from AutoNode import common; print(common.harmony_dir)")
+    bash "$harmony_dir"/monitor.sh "${@:2}"
+    ;;
+  "tui")
+    harmony_dir=$(python3 -c "from AutoNode import common; print(common.harmony_dir)")
+    bash "$harmony_dir"/tui.sh "${@:2}"
     ;;
   "create-validator")
     python3 -u -c "from AutoNode import validator; validator.setup(recover_interaction=False)"
@@ -156,7 +62,8 @@ case "${1}" in
     endpoint=$(echo "$node_config" | jq -r ".endpoint")
     pw_file=$(python3 -c "from AutoNode import common; print(common.saved_wallet_pass_path)")
     if [ -f "$HOME"/hmy ]; then
-      "$HOME"/hmy staking edit-validator --validator-addr "$addr" --active true --passphrase-file "$pw_file" -n "$endpoint" | jq
+      output=$("$HOME"/hmy staking edit-validator --validator-addr "$addr" --active true --passphrase-file "$pw_file" -n "$endpoint")
+      echo "$output" | jq || echo "$output"
     else
       echo "[AutoNode] Harmony CLI has been moved. Reinitlize AutoNode."
     fi
@@ -168,7 +75,8 @@ case "${1}" in
     endpoint=$(echo "$node_config" | jq -r ".endpoint")
     pw_file=$(python3 -c "from AutoNode import common; print(common.saved_wallet_pass_path)")
     if [ -f "$HOME"/hmy ]; then
-      "$HOME"/hmy staking edit-validator --validator-addr "$addr" --active false --passphrase-file "$pw_file" -n "$endpoint" | jq
+      output=$("$HOME"/hmy staking edit-validator --validator-addr "$addr" --active false --passphrase-file "$pw_file" -n "$endpoint")
+      echo "$output" | jq || echo "$output"
     else
       echo "[AutoNode] Harmony CLI has been moved. Reinitlize AutoNode."
     fi
@@ -179,7 +87,8 @@ case "${1}" in
     addr=$(echo "$val_config" | jq -r '.["validator-addr"]')
     endpoint=$(echo "$node_config" | jq -r ".endpoint")
     if [ -f "$HOME"/hmy ]; then
-      "$HOME"/hmy blockchain validator information "$addr" -n "$endpoint" | jq
+      output=$("$HOME"/hmy blockchain validator information "$addr" -n "$endpoint")
+      echo "$output" | jq || echo "$output"
     else
       echo "[AutoNode] Harmony CLI has been moved. Reinitlize AutoNode."
     fi
@@ -191,7 +100,8 @@ case "${1}" in
     nano "$(python3 -c "from AutoNode import common; print(common.saved_validator_path)")"
     ;;
   "cleanse-bls")
-    echo "[AutoNode] Not implemented yet"  # TODO: implement this
+    harmony_dir=$(python3 -c "from AutoNode import common; print(common.harmony_dir)")
+    python3 -u "$harmony_dir"/cleanse-bls.py "${@:2}"
     ;;
   "balances")
     val_config=$(python3 -c "from AutoNode import common; import json; print(json.dumps(common.validator_config))")
@@ -199,7 +109,8 @@ case "${1}" in
     addr=$(echo "$val_config" | jq -r '.["validator-addr"]')
     endpoint=$(echo "$node_config" | jq -r ".endpoint")
     if [ -f "$HOME"/hmy ]; then
-      "$HOME"/hmy balances "$addr" -n "$endpoint" | jq
+      output=$("$HOME"/hmy balances "$addr" -n "$endpoint")
+      echo "$output" | jq || echo "$output"
     else
       echo "[AutoNode] Harmony CLI has been moved. Reinitlize AutoNode."
     fi
@@ -208,7 +119,8 @@ case "${1}" in
     val_config=$(python3 -c "from AutoNode import common; import json; print(json.dumps(common.validator_config))")
     addr=$(echo "$val_config" | jq -r '.["validator-addr"]')
     if [ -f "$HOME"/hmy ]; then
-      "$HOME"/hmy staking collect-rewards --delegator-addr "$addr" -n "$endpoint" | jq
+      output=$("$HOME"/hmy staking collect-rewards --delegator-addr "$addr" -n "$endpoint")
+      echo "$output" | jq || echo "$output"
     else
       echo "[AutoNode] Harmony CLI has been moved. Reinitlize AutoNode."
     fi
@@ -220,14 +132,16 @@ case "${1}" in
     ;;
   "header")
     if [ -f "$HOME"/hmy ]; then
-      "$HOME"/hmy blockchain latest-header | jq
+      output=$("$HOME"/hmy blockchain latest-header)
+      echo "$output" | jq || echo "$output"
     else
       echo "[AutoNode] Harmony CLI has been moved. Reinitlize AutoNode."
     fi
     ;;
   "headers")
     if [ -f "$HOME"/hmy ]; then
-      "$HOME"/hmy blockchain latest-headers | jq
+      output=$("$HOME"/hmy blockchain latest-headers)
+      echo "$output" | jq || echo "$output"
     else
       echo "[AutoNode] Harmony CLI has been moved. Reinitlize AutoNode."
     fi
@@ -252,7 +166,7 @@ case "${1}" in
       Note that all sensitive files are saved with read only access for user $USER.
 
       To auto-reset your node during hard refreshes (for testnets), user $USER must have sudo access
-      with no passphrase since the monitor daemon needs to stop and start the node daemon.
+      with no passphrase since services must be stopped and started by a monitor.
 
 
       Param:              Help:
@@ -264,6 +178,8 @@ case "${1}" in
       edit-config         Edit the validator_config.json file used by AutoNode
       monitor <cmd>       View/Command Harmony Node Monitor. Use '-h' cmd for node monitor cmd help msg
       node <cmd>          View/Command Harmony Node. Use '-h' cmd for node cmd help msg
+      tui <cmd>           Start the text-based user interface to monitor your node and validator.
+                           User '-h' command to view all commands
       create-validator    Run through the steps to setup your validator
       activate            Make validator associated with node elegable for election in next epoch
       deactivate          Make validator associated with node NOT elegable for election in next epoch.
