@@ -159,8 +159,8 @@ case "${1}" in
     ;;
   "hmy")
     cli_bin=$(python3 -c "from AutoNode import common; print(common.cli_bin_path)")
-    val_config=$(python3 -c "from AutoNode import common; import json; print(json.dumps(common.validator_config))")
-    endpoint=$(echo "$val_config" | jq -r '.["endpoint"]')
+    node_config=$(python3 -c "from AutoNode import common; import json; print(json.dumps(common.node_config))")
+    endpoint=$(echo "$node_config" | jq -r ".endpoint")
     $cli_bin -n "$endpoint" "${@:2}"
     ;;
   "hmy-update")
