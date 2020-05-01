@@ -162,7 +162,7 @@ def verify_node_sync():
     if curr_epoch_shard < ref_epoch or curr_epoch_beacon < ref_epoch:
         log(f"{Typgpy.OKBLUE}Deactivating validator until node is synced.{Typgpy.ENDC}")
         try:
-            if not is_active_validator():
+            if is_active_validator():
                 deactivate_validator()
         except (TimeoutError, ConnectionError, RuntimeError, subprocess.CalledProcessError) as e:
             log(f"{Typgpy.FAIL}Unable to deactivate validator {validator_config['validator-addr']}"
@@ -186,11 +186,12 @@ def verify_node_sync():
     if has_looped:
         log("")
     log(f"{Typgpy.OKGREEN}Node synced to current epoch...{Typgpy.ENDC}")
-    if not has_looped and not is_active_validator():
-        log(f"{Typgpy.OKGREEN}Waiting {check_interval} seconds before sending activate transaction{Typgpy.ENDC}")
-        time.sleep(check_interval)  # Wait for nonce to finalize before sending activate
     try:
-        activate_validator()
+        if not has_looped and not is_active_validator():
+            log(f"{Typgpy.OKGREEN}Waiting {check_interval} seconds before sending activate transaction{Typgpy.ENDC}")
+            time.sleep(check_interval)  # Wait for nonce to finalize before sending activate
+        if not is_active_validator():
+            activate_validator()
     except (TimeoutError, ConnectionError, RuntimeError, subprocess.CalledProcessError) as e:
         log(f"{Typgpy.FAIL}Unable to activate validator {validator_config['validator-addr']}"
             f"error {e}. Continuing...{Typgpy.ENDC}")
