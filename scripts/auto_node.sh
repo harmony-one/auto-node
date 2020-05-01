@@ -98,7 +98,7 @@ case "${1}" in
     ;;
   "edit-config")
     nano "$(python3 -c "from AutoNode import common; print(common.saved_validator_path)")"
-    python3 -c "from AutoNode import validator; update_validator_info(recover_interaction=False)"
+    python3 -u -c "from AutoNode import validator; update_validator_info(recover_interaction=False)"
     ;;
   "cleanse-bls")
     harmony_dir=$(python3 -c "from AutoNode import common; print(common.harmony_dir)")
@@ -165,7 +165,7 @@ case "${1}" in
     ;;
   "hmy-update")
     cli_bin=$(python3 -c "from AutoNode import common; print(common.cli_bin_path)")
-    python3 -c "from pyhmy import cli; cli.download($cli_bin, replace=True, verbose=True)"
+    python3 -u -c "from pyhmy import cli; cli.download($cli_bin, replace=True, verbose=True)"
     ;;
   "kill")
     daemon_name=$(python3 -c "from AutoNode.daemon import Daemon; print(Daemon.name)")
