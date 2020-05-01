@@ -156,6 +156,16 @@ case "${1}" in
     echo "[AutoNode] removing directory: $bls_key_dir"
     rm -rf "$bls_key_dir"
     ;;
+  "hmy")
+    cli_bin=$(python3 -c "from AutoNode import common; print(common.cli_bin_path)")
+    val_config=$(python3 -c "from AutoNode import common; import json; print(json.dumps(common.validator_config))")
+    endpoint=$(echo "$val_config" | jq -r '.["endpoint"]')
+    $cli_bin -n "$endpoint" "${@:2}"
+    ;;
+  "hmy-update")
+    cli_bin=$(python3 -c "from AutoNode import common; print(common.cli_bin_path)")
+    python3 -c "from pyhmy import cli; cli.download($cli_bin, replace=True, verbose=True)"
+    ;;
   "kill")
     daemon_name=$(python3 -c "from AutoNode.daemon import Daemon; print(Daemon.name)")
     sudo systemctl stop "$daemon_name"* || true
@@ -179,7 +189,7 @@ case "${1}" in
       monitor <cmd>       View/Command Harmony Node Monitor. Use '-h' cmd for node monitor cmd help msg
       node <cmd>          View/Command Harmony Node. Use '-h' cmd for node cmd help msg
       tui <cmd>           Start the text-based user interface to monitor your node and validator.
-                           User '-h' command to view all commands
+                           Use '-h' command to view all commands
       create-validator    Run through the steps to setup your validator
       activate            Make validator associated with node elegable for election in next epoch
       deactivate          Make validator associated with node NOT elegable for election in next epoch.
@@ -192,6 +202,9 @@ case "${1}" in
       header              Fetch the latest header (shard chain) for the node
       headers             Fetch the latest headers (beacon and shard chain) for the node
       clear-node-bls      Remove the BLS key directory used by the node.
+      hmy <command>       Execute the Harmony CLI with the given command on the configed becaon endpoint.
+                           Use '-h' command to view all commands
+      hmy-update          Update the Harmony CLI used AutoNode
       kill                Safely kill AutoNode & its monitor (if alive)
     "
     exit
