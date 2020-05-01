@@ -19,6 +19,7 @@ from .common import (
     validator_config,
     node_config,
     save_node_config,
+    check_interval,
     user
 )
 from .validator import (
@@ -42,7 +43,6 @@ from .util import (
 )
 
 log_path = f"{harmony_dir}/autonode_monitor.log"
-check_interval = 8  # Estimated block time
 progress_check_interval = 300  # Must account for view-change
 node_epoch_slack = 500  # Account for recovery time
 

@@ -24,6 +24,7 @@ from .common import (
     node_config,
     validator_config,
     saved_wallet_pass_path,
+    check_interval
 )
 from .blockchain import (
     get_latest_header,
@@ -42,9 +43,6 @@ from .util import (
     check_min_bal_on_s0,
     input_with_print,
     get_simple_rotating_log_handler
-)
-from .monitor import (
-    check_interval
 )
 
 _recover_interaction = False
