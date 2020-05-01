@@ -11,6 +11,7 @@ import json
 import logging
 import subprocess
 import traceback
+import requests
 
 from pyhmy import cli
 from pyhmy import (
@@ -36,8 +37,6 @@ from .node import (
     log_path,
     wait_for_node_response,
     assert_no_bad_blocks,
-    deactivate_validator,
-    activate_validator
 )
 from .util import (
     check_min_bal_on_s0,
@@ -140,6 +139,19 @@ def _verify_account_balance(amount):
             return
 
 
+def is_active_validator():
+    """
+    Default to false if exception to be defensive.
+    """
+    try:
+        val_chain_info = get_validator_information(validator_config["validator-addr"], node_config['endpoint'])
+        return "not eligible" in val_chain_info['epos-status']
+    except (ConnectionError, requests.exceptions.RequestException, TimeoutError) as e:
+        log(f"{Typgpy.WARNING}Could not fetch validator active status, error: {e}{Typgpy.ENDC}")
+        return False
+
+
+# TODO: separate this function into its own or proper lib
 def verify_node_sync():
     log(f"{Typgpy.OKBLUE}Verifying Node Sync...{Typgpy.ENDC}")
     wait_for_node_response("http://localhost:9500/", sleep=1, verbose=True)
@@ -152,7 +164,8 @@ def verify_node_sync():
     if curr_epoch_shard < ref_epoch or curr_epoch_beacon < ref_epoch:
         log(f"{Typgpy.OKBLUE}Deactivating validator until node is synced.{Typgpy.ENDC}")
         try:
-            deactivate_validator()
+            if not is_active_validator():
+                deactivate_validator()
         except (TimeoutError, ConnectionError, RuntimeError, subprocess.CalledProcessError) as e:
             log(f"{Typgpy.FAIL}Unable to deactivate validator {validator_config['validator-addr']}"
                 f"error {e}. Continuing...{Typgpy.ENDC}")
@@ -175,7 +188,7 @@ def verify_node_sync():
     if has_looped:
         log("")
     log(f"{Typgpy.OKGREEN}Node synced to current epoch...{Typgpy.ENDC}")
-    if not has_looped:
+    if not has_looped and not is_active_validator():
         log(f"{Typgpy.OKGREEN}Waiting {check_interval} seconds before sending activate transaction{Typgpy.ENDC}")
         time.sleep(check_interval)  # Wait for nonce to finalize before sending activate
     try:
@@ -217,6 +230,73 @@ def _send_create_validator_tx():
                 raise e
             log(f"{Typgpy.WARNING}Trying again in {check_interval} seconds.{Typgpy.ENDC}")
             time.sleep(check_interval)
+
+
+def check_and_activate():
+    """
+    Return True when attempted to activate, otherwise return False.
+    """
+    try:
+        if not is_active_validator():
+            log(f"{Typgpy.FAIL}Node not active, reactivating...{Typgpy.ENDC}")
+            curr_headers = get_latest_headers("http://localhost:9500/")
+            curr_epoch_shard = curr_headers['shard-chain-header']['epoch']
+            curr_epoch_beacon = curr_headers['beacon-chain-header']['epoch']
+            wait_for_node_response(node_config['endpoint'], tries=900, sleep=1, verbose=False)  # Try for 15 min
+            ref_epoch = get_latest_header(node_config['endpoint'])['epoch']
+            if curr_epoch_shard == ref_epoch and curr_epoch_beacon == ref_epoch:
+                activate_validator()
+                return True
+            else:
+                log(f"{Typgpy.WARNING}Node not synced, did NOT activate node.{Typgpy.ENDC}")
+                return False
+    except (TimeoutError, ConnectionError, RuntimeError, subprocess.CalledProcessError) as e:
+        log(traceback.format_exc())
+        log(f"{Typgpy.FAIL}Unable to activate validator {validator_config['validator-addr']}"
+            f"error {e}. Continuing...{Typgpy.ENDC}")
+        if not _recover_interaction:
+            raise e
+    return False
+
+
+def deactivate_validator():
+    try:
+        all_val = get_all_validator_addresses(node_config['endpoint'])
+        if validator_config["validator-addr"] in all_val:
+            log(f"{Typgpy.OKBLUE}Deactivating validator{Typgpy.ENDC}")
+            response = cli.single_call(
+                f"hmy staking edit-validator --validator-addr {validator_config['validator-addr']} "
+                f"--active false --node {node_config['endpoint']} "
+                f"--passphrase-file {saved_wallet_pass_path} --gas-price {validator_config['gas-price']} ")
+            log(f"{Typgpy.OKGREEN}Edit-validator response: {response}{Typgpy.ENDC}")
+        else:
+            log(f"{Typgpy.FAIL}Address {validator_config['validator-addr']} is not a validator!{Typgpy.ENDC}")
+    except (TimeoutError, ConnectionError, RuntimeError, subprocess.CalledProcessError) as e:
+        log(traceback.format_exc())
+        log(f"{Typgpy.FAIL}{Typgpy.BOLD}Edit-validator error: {e}{Typgpy.ENDC}")
+        if not _recover_interaction:
+            raise e
+        log(f"{Typgpy.WARNING}{Typgpy.BOLD}Continuing...{Typgpy.ENDC}")
+
+
+def activate_validator():
+    try:
+        all_val = get_all_validator_addresses(node_config['endpoint'])
+        if validator_config["validator-addr"] in all_val:
+            log(f"{Typgpy.OKBLUE}Activating validator{Typgpy.ENDC}")
+            response = cli.single_call(
+                f"hmy staking edit-validator --validator-addr {validator_config['validator-addr']} "
+                f"--active true --node {node_config['endpoint']} "
+                f"--passphrase-file {saved_wallet_pass_path} --gas-price {validator_config['gas-price']} ")
+            log(f"{Typgpy.OKGREEN}Edit-validator response: {response}{Typgpy.ENDC}")
+        else:
+            log(f"{Typgpy.FAIL}Address {validator_config['validator-addr']} is not a validator!{Typgpy.ENDC}")
+    except (TimeoutError, ConnectionError, RuntimeError, subprocess.CalledProcessError) as e:
+        log(traceback.format_exc())
+        log(f"{Typgpy.FAIL}{Typgpy.BOLD}Edit-validator error: {e}{Typgpy.ENDC}")
+        if not _recover_interaction:
+            raise e
+        log(f"{Typgpy.WARNING}{Typgpy.BOLD}Continuing...{Typgpy.ENDC}")
 
 
 def setup(recover_interaction=False):

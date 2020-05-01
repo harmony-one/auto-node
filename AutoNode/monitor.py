@@ -21,10 +21,12 @@ from .common import (
     save_node_config,
     user
 )
+from .validator import (
+    check_and_activate
+)
 from .node import (
     wait_for_node_response,
     assert_no_bad_blocks,
-    check_and_activate
 )
 from .blockchain import (
     get_latest_header,
@@ -152,7 +154,7 @@ def _run_monitor(shard_endpoint):
             log(f"{Typgpy.HEADER}Current epoch performance: {Typgpy.OKGREEN}"
                 f"{json.dumps(val_chain_info['current-epoch-performance'], indent=4)}{Typgpy.ENDC}")
             if node_config["auto-active"]:
-                if check_and_activate(val_chain_info['epos-status']):
+                if check_and_activate():
                     count += 1
                 log(f"{Typgpy.HEADER}Auto activation count: {Typgpy.OKGREEN}{count}{Typgpy.ENDC}")
         elif not node_config["no-validator"]:
