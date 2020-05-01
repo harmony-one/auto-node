@@ -98,6 +98,8 @@ case "${1}" in
     ;;
   "edit-config")
     nano "$(python3 -c "from AutoNode import common; print(common.saved_validator_path)")"
+    echo "[AutoNode] Would you like to update your validator on-chain (y/n)?"
+    yes_or_exit
     python3 -u -c "from AutoNode import validator; validator.update_info(recover_interaction=False)"
     ;;
   "cleanse-bls")

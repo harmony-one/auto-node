@@ -45,7 +45,7 @@ def hard_cleanse():
     for key in keys_on_chain:
         if key not in bls_keys:
             common.log(f"{Typgpy.WARNING}Removing {key}, key not in node's list of BLS keys: {bls_keys}{Typgpy.ENDC}")
-            response = cli.single_call(f"hmy --node={endpoint} staking edit-validator "
+            response = cli.single_call(f"hmy --node {endpoint} staking edit-validator "
                                        f"--validator-addr {validator_addr} "
                                        f"--remove-bls-key {key} --passphrase-file {common.saved_wallet_pass_path} ")
             common.log(f"{Typgpy.OKGREEN}Edit-validator transaction response: {response}{Typgpy.ENDC}")
@@ -65,7 +65,7 @@ def shard_cleanse():
         if key_shard != shard and key not in bls_keys:
             common.log(
                 f"{Typgpy.WARNING}Removing {key}, key for shard {key_shard}, node for shard {shard}{Typgpy.ENDC}")
-            response = cli.single_call(f"hmy --node={endpoint} staking edit-validator "
+            response = cli.single_call(f"hmy --node {endpoint} staking edit-validator "
                                        f"--validator-addr {validator_addr} "
                                        f"--remove-bls-key {key} --passphrase-file {common.saved_wallet_pass_path} ")
             common.log(f"{Typgpy.OKGREEN}Edit-validator transaction response: {response}{Typgpy.ENDC}")
@@ -98,7 +98,7 @@ def reward_cleanse():
             key = metric['key']['bls-public-key']
             if key not in bls_keys and key in keys_on_chain:
                 common.log(f"{Typgpy.WARNING}Removing {key}, key earned 0 rewards.{Typgpy.ENDC}")
-                response = cli.single_call(f"hmy --node={endpoint} staking edit-validator "
+                response = cli.single_call(f"hmy --node {endpoint} staking edit-validator "
                                            f"--validator-addr {validator_addr} "
                                            f"--remove-bls-key {key} --passphrase-file {common.saved_wallet_pass_path} ")
                 common.log(f"{Typgpy.OKGREEN}Edit-validator transaction response: {response}{Typgpy.ENDC}")
@@ -107,7 +107,7 @@ def reward_cleanse():
 
 if __name__ == "__main__":
     args = parse_args()
-    all_val = json_load(cli.single_call(f"hmy --node={endpoint} blockchain validator all"))["result"]
+    all_val = json_load(cli.single_call(f"hmy --node {endpoint} blockchain validator all"))["result"]
     old_logging_handlers = common.logging.getLogger('AutoNode').handlers.copy()
     common.logging.getLogger('AutoNode').addHandler(util.get_simple_rotating_log_handler(node.log_path))
     if validator_addr not in all_val:

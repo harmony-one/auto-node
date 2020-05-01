@@ -12,6 +12,7 @@ import logging
 import subprocess
 import traceback
 import requests
+from decimal import Decimal
 
 from pyhmy import cli
 from pyhmy import (
@@ -84,7 +85,7 @@ def _send_edit_validator_tx(bls_key_to_add):
     while True:
         count += 1
         try:
-            response = cli.single_call(f"hmy --node={node_config['endpoint']} staking edit-validator "
+            response = cli.single_call(f"hmy --node {node_config['endpoint']} staking edit-validator "
                                        f"--validator-addr {validator_config['validator-addr']} "
                                        f"--add-bls-key {bls_key_to_add} --passphrase-file {saved_wallet_pass_path} "
                                        f"--bls-pubkeys-dir {bls_key_dir} --gas-price {validator_config['gas-price']} ")
@@ -202,7 +203,7 @@ def _send_create_validator_tx():
     while True:
         count += 1
         try:
-            response = cli.single_call(f'hmy --node={node_config["endpoint"]} staking create-validator '
+            response = cli.single_call(f'hmy --node {node_config["endpoint"]} staking create-validator '
                                        f'--validator-addr {validator_config["validator-addr"]} '
                                        f'--name "{validator_config["name"]}" '
                                        f'--identity "{validator_config["identity"]}" '
@@ -337,21 +338,16 @@ def setup(recover_interaction=False):
             log(f"{Typgpy.WARNING}{Typgpy.BOLD}Continuing...{Typgpy.ENDC}")
 
 
-def _get_validator_info_diff():
-    valid_diff_keys = {
-        "details", "identity", "max-total-delegation", "min-self-delegation",
-        "name", "rate", "security-contact", "website"
+def _get_edit_validator_options():
+    changeable_fields = {
+        "details", "identity", "name", "security-contact", "website",
+        "max-total-delegation", "min-self-delegation", "rate"
     }
-    diff = {}
-    chain_validator_info = get_validator_information(validator_config["validator-addr"],
-                                                     node_config["endpoint"])["validator"]
-    for key, value in chain_validator_info.items():
-        if key in valid_diff_keys and key in validator_config.keys():
-            if validator_config[key] != chain_validator_info[key]:
-                diff[key] = validator_config[key]
-            else:
-                log(f"{Typgpy.WARNING}Configured {key} is same on-chain, skipping...{Typgpy.ENDC}")
-    return diff
+    edit_validator_fields = {}
+    for key, value in validator_config.items():
+        if key in changeable_fields:
+            edit_validator_fields[key] = validator_config[key]
+    return edit_validator_fields
 
 
 def update_info(recover_interaction=False):
@@ -365,14 +361,14 @@ def update_info(recover_interaction=False):
             if recover_interaction:
                 return  # clean exit for recover interaction.
             raise SystemExit("Validator does not exist")
-        info_to_update = _get_validator_info_diff()
-        if info_to_update:
+        fields = _get_edit_validator_options()
+        if fields:
             log(f"{Typgpy.OKBLUE}Updating the following validator information for {address}: "
-                f"{Typgpy.OKGREEN}{json.dumps(info_to_update, indent=2)}{Typgpy.ENDC}")
-            cmd = f"hmy --node={node_config['endpoint']} staking edit-validator "
+                f"{Typgpy.OKGREEN}{json.dumps(fields, indent=2)}{Typgpy.ENDC}")
+            cmd = f"hmy --node {node_config['endpoint']} staking edit-validator "
             cmd += f"--validator-addr {address} --passphrase-file {saved_wallet_pass_path} "
-            for key, value in info_to_update.items():
-                cmd += f'--{key}="{value}" '
+            for key, value in fields.items():
+                cmd += f'--{key} "{value}" '
             response = cli.single_call(cmd)
             log(f"{Typgpy.OKBLUE}Edit-validator transaction response: {Typgpy.OKGREEN}{response}{Typgpy.ENDC}")
         logging.getLogger('AutoNode').handlers = old_logging_handlers
