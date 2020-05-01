@@ -53,7 +53,7 @@ def input_with_print(prompt_str, auto_interaction=None):
 
 
 def check_min_bal_on_s0(address, amount, endpoint=node_config['endpoint'], timeout=30):
-    balances = json_load(cli.single_call(f"hmy --node={endpoint} balances {address}", timeout=timeout))
+    balances = json_load(cli.single_call(f"hmy --node {endpoint} balances {address}", timeout=timeout))
     for bal in balances:
         if bal['shard'] == 0:
             return bal['amount'] >= amount

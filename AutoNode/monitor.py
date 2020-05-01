@@ -19,12 +19,15 @@ from .common import (
     validator_config,
     node_config,
     save_node_config,
+    check_interval,
     user
+)
+from .validator import (
+    check_and_activate
 )
 from .node import (
     wait_for_node_response,
     assert_no_bad_blocks,
-    check_and_activate
 )
 from .blockchain import (
     get_latest_header,
@@ -40,7 +43,6 @@ from .util import (
 )
 
 log_path = f"{harmony_dir}/autonode_monitor.log"
-check_interval = 8  # Estimated block time
 progress_check_interval = 300  # Must account for view-change
 node_epoch_slack = 500  # Account for recovery time
 
@@ -152,7 +154,7 @@ def _run_monitor(shard_endpoint):
             log(f"{Typgpy.HEADER}Current epoch performance: {Typgpy.OKGREEN}"
                 f"{json.dumps(val_chain_info['current-epoch-performance'], indent=4)}{Typgpy.ENDC}")
             if node_config["auto-active"]:
-                if check_and_activate(val_chain_info['epos-status']):
+                if check_and_activate():
                     count += 1
                 log(f"{Typgpy.HEADER}Auto activation count: {Typgpy.OKGREEN}{count}{Typgpy.ENDC}")
         elif not node_config["no-validator"]:

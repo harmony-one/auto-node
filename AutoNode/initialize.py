@@ -25,7 +25,10 @@ from .common import (
     protect_file,
     save_protected_file,
     reset_node_config,
-    user
+    user,
+    harmony_dir,
+    node_dir,
+    node_sh_log_dir
 )
 from .node import (
     log_path as n_log_path
@@ -178,7 +181,7 @@ def _import_bls(passphrase):
         while True:
             key = json_load(cli.single_call(f"hmy keys generate-bls-key --passphrase-file {tmp_bls_pass_path}"))
             public_bls_key, bls_file_path = key['public-key'], key['encrypted-private-key-path']
-            shard_id = json_load(cli.single_call(f"hmy --node={node_config['endpoint']} utility "
+            shard_id = json_load(cli.single_call(f"hmy --node {node_config['endpoint']} utility "
                                                  f"shard-for-bls {public_bls_key}"))["shard-id"]
             if int(shard_id) != node_config['shard']:
                 os.remove(bls_file_path)
@@ -194,7 +197,7 @@ def _import_bls(passphrase):
         key = json_load(cli.single_call(f"hmy keys generate-bls-key --passphrase-file {tmp_bls_pass_path}"))
         public_bls_key = key['public-key']
         bls_file_path = key['encrypted-private-key-path']
-        shard_id = json_load(cli.single_call(f"hmy --node={node_config['endpoint']} utility "
+        shard_id = json_load(cli.single_call(f"hmy --node {node_config['endpoint']} utility "
                                              f"shard-for-bls {public_bls_key}"))["shard-id"]
         log(f"{Typgpy.OKGREEN}Generated BLS key for shard {shard_id}: {Typgpy.OKBLUE}{public_bls_key}{Typgpy.ENDC}")
         shutil.move(bls_file_path, bls_key_dir)
@@ -206,7 +209,7 @@ def _import_bls(passphrase):
 def _assert_same_shard_bls_keys(public_keys):
     ref_shard = None
     for key in public_keys:
-        shard = json_load(cli.single_call(f"hmy --node={node_config['endpoint']} utility "
+        shard = json_load(cli.single_call(f"hmy --node {node_config['endpoint']} utility "
                                           f"shard-for-bls {key}"))["shard-id"]
         if ref_shard is None:
             ref_shard = shard
@@ -229,7 +232,16 @@ def reset():
         raise SystemExit(e)
 
 
+def make_directories():
+    os.makedirs(harmony_dir, exist_ok=True)
+    os.makedirs(node_dir, exist_ok=True)
+    os.makedirs(node_sh_log_dir, exist_ok=True)
+    os.makedirs(bls_key_dir, exist_ok=True)
+    os.makedirs(imported_wallet_pass_file_dir, exist_ok=True)
+
+
 def config(update_cli=False):
+    make_directories()
     cli.download(cli_bin_path, replace=update_cli)
 
     if not node_config['no-validator']:
@@ -240,7 +252,7 @@ def config(update_cli=False):
     public_bls_keys = _import_bls(bls_passphrase)
     _assert_same_shard_bls_keys(public_bls_keys)
     node_config['public-bls-keys'] = public_bls_keys
-    shard_id = json_load(cli.single_call(f"hmy --node={node_config['endpoint']} utility "
+    shard_id = json_load(cli.single_call(f"hmy --node {node_config['endpoint']} utility "
                                          f"shard-for-bls {public_bls_keys[0]}"))["shard-id"]
 
     log("~" * 110)

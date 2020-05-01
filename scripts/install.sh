@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -e
 
-stable_auto_node_version="0.3.9"
+stable_auto_node_version="0.4.0"
 
 
 function check_min_dependencies(){
@@ -99,6 +99,7 @@ function install_python_lib(){
   python3 -m pip install AutoNode=="$stable_auto_node_version" --no-cache-dir --user || sudo python3 -m pip install AutoNode=="$stable_auto_node_version" --no-cache-dir
   echo "[AutoNode] Initilizing python3 library"
   python3 -c "from AutoNode import common; common.save_validator_config()" > /dev/null
+  python3 -c "from AutoNode import initialize; initialize.make_directories()" > /dev/null
 }
 
 function install_cli(){

@@ -98,6 +98,14 @@ case "${1}" in
     ;;
   "edit-config")
     nano "$(python3 -c "from AutoNode import common; print(common.saved_validator_path)")"
+    echo "[AutoNode] Would you like to update your validator information on-chain (y/n)?"
+    yes_or_exit
+    python3 -u -c "from AutoNode import validator; validator.update_info(recover_interaction=False)"
+    ;;
+  "update-config")
+    echo "[AutoNode] Would you like to update your validator information on-chain (y/n)?"
+    yes_or_exit
+    python3 -u -c "from AutoNode import validator; validator.update_info(recover_interaction=False)"
     ;;
   "cleanse-bls")
     harmony_dir=$(python3 -c "from AutoNode import common; print(common.harmony_dir)")
@@ -156,6 +164,16 @@ case "${1}" in
     echo "[AutoNode] removing directory: $bls_key_dir"
     rm -rf "$bls_key_dir"
     ;;
+  "hmy")
+    cli_bin=$(python3 -c "from AutoNode import common; print(common.cli_bin_path)")
+    node_config=$(python3 -c "from AutoNode import common; import json; print(json.dumps(common.node_config))")
+    endpoint=$(echo "$node_config" | jq -r ".endpoint")
+    $cli_bin -n "$endpoint" "${@:2}"
+    ;;
+  "hmy-update")
+    cli_bin=$(python3 -c "from AutoNode import common; print(common.cli_bin_path)")
+    python3 -u -c "from pyhmy import cli; cli.download($cli_bin, replace=True, verbose=True)"
+    ;;
   "kill")
     daemon_name=$(python3 -c "from AutoNode.daemon import Daemon; print(Daemon.name)")
     sudo systemctl stop "$daemon_name"* || true
@@ -175,11 +193,12 @@ case "${1}" in
                            for other params, this needs to be ran. Use '-h' param for run param msg
       init                Initlize AutoNode config. First fallback if any errors
       config              View the validator_config.json file used by AutoNode
-      edit-config         Edit the validator_config.json file used by AutoNode
+      edit-config         Edit the validator_config.json file used by AutoNode and change validator info on-chain
+      update-config       Update validator info on-chain with given validator_config.json
       monitor <cmd>       View/Command Harmony Node Monitor. Use '-h' cmd for node monitor cmd help msg
       node <cmd>          View/Command Harmony Node. Use '-h' cmd for node cmd help msg
       tui <cmd>           Start the text-based user interface to monitor your node and validator.
-                           User '-h' command to view all commands
+                           Use '-h' command to view all commands
       create-validator    Run through the steps to setup your validator
       activate            Make validator associated with node elegable for election in next epoch
       deactivate          Make validator associated with node NOT elegable for election in next epoch.
@@ -192,6 +211,9 @@ case "${1}" in
       header              Fetch the latest header (shard chain) for the node
       headers             Fetch the latest headers (beacon and shard chain) for the node
       clear-node-bls      Remove the BLS key directory used by the node.
+      hmy <command>       Execute the Harmony CLI with the given command on the configed becaon endpoint.
+                           Use '-h' command to view all commands
+      hmy-update          Update the Harmony CLI used AutoNode
       kill                Safely kill AutoNode & its monitor (if alive)
     "
     exit

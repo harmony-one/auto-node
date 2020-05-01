@@ -25,6 +25,7 @@ tui_source = "http://pub.harmony.one.s3.amazonaws.com/release/linux-x86_64/panga
 default_cli_passphrase = ""
 bls_key_len = 96
 b32_addr_len = 42
+check_interval = 8  # Estimated block time
 
 msg_tag = "[AutoNode]"
 
