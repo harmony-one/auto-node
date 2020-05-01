@@ -98,6 +98,7 @@ case "${1}" in
     ;;
   "edit-config")
     nano "$(python3 -c "from AutoNode import common; print(common.saved_validator_path)")"
+    python3 -c "from AutoNode import validator; update_validator_info(recover_interaction=False)"
     ;;
   "cleanse-bls")
     harmony_dir=$(python3 -c "from AutoNode import common; print(common.harmony_dir)")

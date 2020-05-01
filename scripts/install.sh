@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -e
 
-stable_auto_node_version="0.3.9"
+stable_auto_node_version="0.4.0"
 
 
 function check_min_dependencies(){
