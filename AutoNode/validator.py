@@ -12,7 +12,6 @@ import logging
 import subprocess
 import traceback
 import requests
-from decimal import Decimal
 
 from pyhmy import cli
 from pyhmy import (
@@ -363,7 +362,7 @@ def update_info(recover_interaction=False):
             raise SystemExit("Validator does not exist")
         fields = _get_edit_validator_options()
         if fields:
-            log(f"{Typgpy.OKBLUE}Updating the following validator information for {address}: "
+            log(f"{Typgpy.OKBLUE}Updating validator information for {address}: "
                 f"{Typgpy.OKGREEN}{json.dumps(fields, indent=2)}{Typgpy.ENDC}")
             cmd = f"hmy --node {node_config['endpoint']} staking edit-validator "
             cmd += f"--validator-addr {address} --passphrase-file {saved_wallet_pass_path} "
