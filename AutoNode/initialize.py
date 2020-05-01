@@ -25,7 +25,10 @@ from .common import (
     protect_file,
     save_protected_file,
     reset_node_config,
-    user
+    user,
+    harmony_dir,
+    node_dir,
+    node_sh_log_dir
 )
 from .node import (
     log_path as n_log_path
@@ -229,7 +232,16 @@ def reset():
         raise SystemExit(e)
 
 
+def make_directories():
+    os.makedirs(harmony_dir, exist_ok=True)
+    os.makedirs(node_dir, exist_ok=True)
+    os.makedirs(node_sh_log_dir, exist_ok=True)
+    os.makedirs(bls_key_dir, exist_ok=True)
+    os.makedirs(imported_wallet_pass_file_dir, exist_ok=True)
+
+
 def config(update_cli=False):
+    make_directories()
     cli.download(cli_bin_path, replace=update_cli)
 
     if not node_config['no-validator']:

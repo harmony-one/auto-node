@@ -56,12 +56,6 @@ if sys.platform.startswith('darwin'):
 
 
 def _init():
-    os.makedirs(harmony_dir, exist_ok=True)
-    os.makedirs(node_dir, exist_ok=True)
-    os.makedirs(node_sh_log_dir, exist_ok=True)
-    os.makedirs(bls_key_dir, exist_ok=True)
-    os.makedirs(imported_wallet_pass_file_dir, exist_ok=True)
-
     log_handler = logging.StreamHandler(sys.stdout)
     formatter = logging.Formatter(f'{msg_tag} %(message)s')
     log_handler.setFormatter(formatter)
