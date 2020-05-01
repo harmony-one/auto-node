@@ -98,7 +98,12 @@ case "${1}" in
     ;;
   "edit-config")
     nano "$(python3 -c "from AutoNode import common; print(common.saved_validator_path)")"
-    echo "[AutoNode] Would you like to update your validator on-chain (y/n)?"
+    echo "[AutoNode] Would you like to update your validator information on-chain (y/n)?"
+    yes_or_exit
+    python3 -u -c "from AutoNode import validator; validator.update_info(recover_interaction=False)"
+    ;;
+  "update-config")
+    echo "[AutoNode] Would you like to update your validator information on-chain (y/n)?"
     yes_or_exit
     python3 -u -c "from AutoNode import validator; validator.update_info(recover_interaction=False)"
     ;;
@@ -189,6 +194,7 @@ case "${1}" in
       init                Initlize AutoNode config. First fallback if any errors
       config              View the validator_config.json file used by AutoNode
       edit-config         Edit the validator_config.json file used by AutoNode and change validator info on-chain
+      update-config       Update validator info on-chain with given validator_config.json
       monitor <cmd>       View/Command Harmony Node Monitor. Use '-h' cmd for node monitor cmd help msg
       node <cmd>          View/Command Harmony Node. Use '-h' cmd for node cmd help msg
       tui <cmd>           Start the text-based user interface to monitor your node and validator.
