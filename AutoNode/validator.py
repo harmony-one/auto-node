@@ -230,10 +230,15 @@ def setup(recover_interaction=False):
         all_val_address = get_all_validator_addresses(node_config['endpoint'])
         if validator_config['validator-addr'] in all_val_address:
             log(f"{Typgpy.WARNING}{validator_config['validator-addr']} already in list of validators!{Typgpy.ENDC}")
-            prompt = "Add BLS key(s) to existing validator? [Y]/n \n> "
-            if input_with_print(prompt, 'Y' if recover_interaction else None) in {'Y', 'y', 'yes', 'Yes'}:
-                log(f"{Typgpy.HEADER}{Typgpy.BOLD}Editing validator...{Typgpy.ENDC}")
-                _add_bls_key_to_validator()
+            keys_on_chain = set(get_validator_information(validator_config['validator-addr'],
+                                                          node_config['endpoint'])['validator']['bls-public-keys'])
+            if all(k.replace('0x', '') in keys_on_chain for k in node_config["public-bls-keys"]):
+                log(f"{Typgpy.OKBLUE}{Typgpy.BOLD}No BLS key(s) to add to validator!{Typgpy.ENDC}")
+            else:
+                prompt = "Add BLS key(s) to existing validator? [Y]/n \n> "
+                if input_with_print(prompt, 'Y' if recover_interaction else None) in {'Y', 'y', 'yes', 'Yes'}:
+                    log(f"{Typgpy.HEADER}{Typgpy.BOLD}Editing validator...{Typgpy.ENDC}")
+                    _add_bls_key_to_validator()
         elif validator_config['validator-addr'] not in all_val_address:
             prompt = "Create validator? [Y]/n \n> "
             if input_with_print(prompt, 'Y' if recover_interaction else None) in {'Y', 'y', 'yes', 'Yes'}:
