@@ -276,7 +276,7 @@ def _get_validator_info_diff():
     return diff
 
 
-def update_validator_info(recover_interaction=False):
+def update_info(recover_interaction=False):
     old_logging_handlers = _interaction_preprocessor(recover_interaction)
     address = validator_config['validator-addr']
     try:

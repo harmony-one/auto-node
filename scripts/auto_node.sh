@@ -98,7 +98,7 @@ case "${1}" in
     ;;
   "edit-config")
     nano "$(python3 -c "from AutoNode import common; print(common.saved_validator_path)")"
-    python3 -u -c "from AutoNode import validator; update_validator_info(recover_interaction=False)"
+    python3 -u -c "from AutoNode import validator; validator.update_info(recover_interaction=False)"
     ;;
   "cleanse-bls")
     harmony_dir=$(python3 -c "from AutoNode import common; print(common.harmony_dir)")
@@ -186,7 +186,7 @@ case "${1}" in
                            for other params, this needs to be ran. Use '-h' param for run param msg
       init                Initlize AutoNode config. First fallback if any errors
       config              View the validator_config.json file used by AutoNode
-      edit-config         Edit the validator_config.json file used by AutoNode
+      edit-config         Edit the validator_config.json file used by AutoNode and change validator info on-chain
       monitor <cmd>       View/Command Harmony Node Monitor. Use '-h' cmd for node monitor cmd help msg
       node <cmd>          View/Command Harmony Node. Use '-h' cmd for node cmd help msg
       tui <cmd>           Start the text-based user interface to monitor your node and validator.

@@ -89,7 +89,7 @@ run <run params>    Main execution to run a node. If errors are given
                    for other params, this needs to be ran. Use '-h' param for run param msg
 init                Initlize AutoNode config. First fallback if any errors
 config              View the validator_config.json file used by AutoNode
-edit-config         Edit the validator_config.json file used by AutoNode
+edit-config         Edit the validator_config.json file used by AutoNode and change validator info on-chain
 monitor <cmd>       View/Command Harmony Node Monitor. Use '-h' cmd for node monitor cmd help msg
 node <cmd>          View/Command Harmony Node. Use '-h' cmd for node cmd help msg
 tui <cmd>           Start the text-based user interface to monitor your node and validator.
