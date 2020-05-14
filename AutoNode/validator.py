@@ -57,8 +57,8 @@ def _interaction_preprocessor(recover_interaction):
     _recover_interaction = recover_interaction
     old_logging_handlers = logging.getLogger('AutoNode').handlers.copy()
     logging.getLogger('AutoNode').addHandler(get_simple_rotating_log_handler(log_path))
-    if recover_interaction and node_config['no-validator']:
-        print(f"{Typgpy.WARNING}Config specifies not validator automation, exiting...{Typgpy.ENDC}")
+    if node_config['no-validator']:
+        print(f"{Typgpy.WARNING}Config specifies no validator automation, exiting...{Typgpy.ENDC}")
         exit(0)
     return old_logging_handlers
 
