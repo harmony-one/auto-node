@@ -30,6 +30,7 @@ from .blockchain import (
     get_latest_header,
     get_latest_headers,
     get_staking_epoch,
+    get_prestaking_epoch,
     get_current_epoch,
     get_all_validator_addresses,
     get_validator_information
@@ -100,7 +101,7 @@ def _send_edit_validator_tx(bls_key_to_add):
 
 
 def _create_new_validator():
-    _verify_staking_epoch()
+    _verify_prestaking_epoch()
     _verify_account_balance(validator_config['amount'] + 50)
     _send_create_validator_tx()
 
@@ -118,6 +119,21 @@ def _verify_staking_epoch():
         time.sleep(check_interval)
         curr_epoch = get_current_epoch(node_config['endpoint'])
     log(f"{Typgpy.OKGREEN}Network is at or past staking epoch{Typgpy.ENDC}")
+
+
+def _verify_prestaking_epoch():
+    """
+    Invariant: All staking transactions are done AFTER staking epoch.
+    """
+    log(f"{Typgpy.OKBLUE}Verifying Pre Staking Epoch...{Typgpy.ENDC}")
+    prestaking_epoch = get_prestaking_epoch(node_config['endpoint'])
+    curr_epoch = get_current_epoch(node_config['endpoint'])
+    while curr_epoch < prestaking_epoch:
+        sys.stdout.write(f"\rWaiting for pre staking epoch ({prestaking_epoch}) -- current epoch: {curr_epoch}")
+        sys.stdout.flush()
+        time.sleep(check_interval)
+        curr_epoch = get_current_epoch(node_config['endpoint'])
+    log(f"{Typgpy.OKGREEN}Network is at or past pre staking epoch{Typgpy.ENDC}")
 
 
 def _verify_account_balance(amount):

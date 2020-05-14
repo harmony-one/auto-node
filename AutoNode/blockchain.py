@@ -69,6 +69,13 @@ def get_staking_epoch(endpoint=node_config['endpoint'], timeout=60):
     return int(body["result"]["chain-config"]["staking-epoch"])
 
 
+def get_prestaking_epoch(endpoint=node_config['endpoint'], timeout=60):
+    body = rpc_request("hmy_getNodeMetadata", endpoint=endpoint, timeout=timeout)
+    if 'error' in body:
+        raise RpcError(str(body['error']))
+    return int(body["result"]["chain-config"]["prestaking-epoch"])
+
+
 def get_validator_information(address, endpoint=node_config['endpoint'], timeout=60):
     body = rpc_request("hmy_getValidatorInformation", params=[address], endpoint=endpoint, timeout=timeout)
     if 'error' in body:
