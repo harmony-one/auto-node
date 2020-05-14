@@ -18,14 +18,11 @@ def parse_args():
                         help='Show this help message and exit')
     parser.add_argument("--auto-active", action="store_true",
                         help="Always try to set active when EPOS status is inactive.")
-    parser.add_argument("--auto-reset", action="store_true",
-                        help="Automatically reset node during hard resets.")
-    parser.add_argument("--no-validator", action="store_true",
-                        help="Disable validator automation.")
-    parser.add_argument("--archival", action="store_true",
-                        help="Run node with archival mode.")
-    parser.add_argument("--update-cli", action="store_true",
-                        help="Toggle upgrading the Harmony CLI used by AutoNode")
+    parser.add_argument("--auto-reset", action="store_true", help="Automatically reset node during hard resets.")
+    parser.add_argument("--no-validator", action="store_true", help="Disable validator automation.")
+    parser.add_argument("--archival", action="store_true", help="Run node with archival mode.")
+    parser.add_argument("--no-download", action="store_true", help="Run node with existing binary.")
+    parser.add_argument("--update-cli", action="store_true", help="Toggle upgrading the Harmony CLI used by AutoNode")
     parser.add_argument("--clean", action="store_true", help="Clean shared node directory before starting node.")
     parser.add_argument("--shard", default=None,
                         help="Specify shard of generated bls key.\n  "
@@ -66,6 +63,7 @@ if __name__ == "__main__":
         "auto-reset": args.auto_reset,
         "auto-active": args.auto_active,
         "no-validator": args.no_validator,
+        "no-download": args.no_download,
         "archival": args.archival
     })
     AutoNode.initialize.config(update_cli=args.update_cli)

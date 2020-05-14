@@ -108,13 +108,27 @@ def start(auto=False, verbose=True):
     node_args = ["./node.sh", "-N", node_config["network"], "-z", "-f", bls_key_dir, "-M", "-S"]
     if node_config['clean'] and node_config['network'] != 'mainnet':
         if verbose:
-            log(f"{Typgpy.WARNING}[!] Starting node with clean mode.{Typgpy.ENDC}")
+            log(f"{Typgpy.WARNING}[!] Starting node in clean mode.{Typgpy.ENDC}")
         _node_clean(verbose=verbose)
         _rclone_s0(verbose=verbose)
     if node_config['archival']:
         if verbose:
-            log(f"{Typgpy.WARNING}[!] Starting in archival mode.{Typgpy.ENDC}")
+            log(f"{Typgpy.WARNING}[!] Starting node in archival mode.{Typgpy.ENDC}")
         node_args.append("-A")
+    if node_config['no-download']:
+        harmony_binary = os.path.realpath(os.path.join(node_dir, 'harmony'))
+        if os.path.exists(harmony_binary):
+            if 'static' in str(subprocess.check_output(['file', harmony_binary], env=os.environ)):
+                if verbose:
+                    log(f"{Typgpy.WARNING}[!] Starting node with existing harmony binary.{Typgpy.ENDC}")
+                node_args.append("-D")
+            else:
+                log(f"{Typgpy.WARNING}[!] Provided harmony binary is not statically linked. "
+                    f"Path: {harmony_binary}{Typgpy.ENDC}")
+                raise SystemExit(f"Harmony binary not statically linked. Path: {harmony_binary}")
+        else:
+            if verbose:
+                log(f"{Typgpy.WARNING}[!] Starting node with released harmony binary.{Typgpy.ENDC}")
     with open(node_sh_out_path, 'w') as fo:
         with open(node_sh_err_path, 'w') as fe:
             if verbose:
