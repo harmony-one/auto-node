@@ -1,6 +1,7 @@
 import os
 import stat
 import subprocess
+import glob
 import json
 import time
 import shutil
@@ -69,7 +70,7 @@ def _rclone(rclone_sync_dir, shard, verbose=True):
     try:
         rclone_path = f'hmy://pub.harmony.one/{rclone_sync_dir}/harmony_db_{shard}'
         if verbose:
-            log(f"{Typgpy.WARNING}[!] rclone harmony_db_{shard} from {rclone_path} in progress...{Typgpy.ENDC}")
+            log(f"{Typgpy.WARNING}rclone harmony_db_{shard} from {rclone_path} in progress...{Typgpy.ENDC}")
         with open(node_sh_rclone_out_path, 'w') as fo:
             with open(node_sh_rclone_err_path, 'w') as fe:
                 return subprocess.Popen(['rclone', 'sync', '-P', rclone_path, db_dir],
@@ -103,7 +104,7 @@ def _rclone_db(shard, verbose=True):
     if shard == 0:
         required_space = _rclone_space_required(rclone_sync_dir, shard, verbose=verbose)
         if required_space == 0:
-            log(f"{Typgpy.WARNING}[!] Fast-sync db not available.\n"
+            log(f"{Typgpy.WARNING}Fast-sync db not available.\n"
                 f"Skipping rclone shard {shard}...{Typgpy.ENDC}")
             return
         if required_space > free_space:
@@ -111,7 +112,7 @@ def _rclone_db(shard, verbose=True):
                 f"Skipping fast sync...{Typgpy.ENDC}")
             log(f"{Typgpy.WARNING}[!] Suggest increasing disk space before running node!{Typgpy.ENDC}")
             return
-        rclone_processes.append(_rclone(rclone_sync_dir, shard))
+        rclone_processes.append(_rclone(rclone_sync_dir, shard, verbose=verbose))
     else:
         required_beacon_space = _rclone_space_required(rclone_sync_dir, 0, verbose=verbose)
         required_shard_space = _rclone_space_required(rclone_sync_dir, shard, verbose=verbose)
@@ -122,24 +123,31 @@ def _rclone_db(shard, verbose=True):
             log(f"{Typgpy.WARNING}[!] Suggest increasing disk space before running node!{Typgpy.ENDC}")
             return
         if required_beacon_space == 0:
-            log(f"{Typgpy.WARNING}[!] Fast-sync db not available.\n"
+            log(f"{Typgpy.WARNING}Fast-sync db not available.\n"
                 f"Skipping rclone shard 0...{Typgpy.ENDC}")
         else:
-            rclone_processes.append(_rclone(rclone_sync_dir, 0))
+            rclone_processes.append(_rclone(rclone_sync_dir, 0, verbose=verbose))
         if required_shard_space == 0:
-            log(f"{Typgpy.WARNING}[!] Fast-sync db not available.\n"
+            log(f"{Typgpy.WARNING}Fast-sync db not available.\n"
                 f"Skipping rclone shard {shard}...{Typgpy.ENDC}")
         else:
-            rclone_processes.append(_rclone(rclone_sync_dir, shard))
+            rclone_processes.append(_rclone(rclone_sync_dir, shard, verbose=verbose))
 
     for p in rclone_processes:
         p.wait()
 
     if all(p.returncode == 0 for p in rclone_processes):
         if verbose:
-            log(f"{Typgpy.OKGREEN}[!] rclone done!{Typgpy.ENDC}")
+            log(f"{Typgpy.OKGREEN}rclone done!{Typgpy.ENDC}")
     else:
-        log(f'{Typgpy.WARNING}[!] rclone failed!{Typgpy.ENDC}')
+        failed_db_list = glob.glob(os.path.join(node_dir, 'harmony_db_*'))
+        for db in failed_db_list:
+            db_shard = os.path.basename(db).split('_')[-1]
+            log(f'{Typgpy.FAIL}[!] Failed to rclone shard {db_shard} db.{Typgpy.ENDC}')
+            log(f'{Typgpy.WARNING}Check {os.path.join(node_sh_log_dir, f"rclone_err_{db_shard}.log")}\n'
+                f'Removing {db}.{Typgpy.ENDC}')
+            shutil.rmtree(db)
+        raise SystemExit('Fast sync failed.')
 
 
 def _get_node_shard(verbose=True):
