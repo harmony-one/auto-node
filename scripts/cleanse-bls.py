@@ -5,10 +5,10 @@ import json
 from argparse import RawTextHelpFormatter
 
 from pyhmy import (
-    Typgpy,
-    json_load
+    cli,
+    json_load,
+    Typgpy
 )
-from pyhmy import cli
 from AutoNode import (
     blockchain,
     common,

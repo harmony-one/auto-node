@@ -23,7 +23,7 @@ case "${1}" in
     if [ "$2" == "-h" ] || [ "$2" == "--help" ]; then
       exit
     fi
-    echo "[AutoNode] Initilized service..."
+    echo "[AutoNode] Initialized service..."
     daemon_name=$(python3 -c "from AutoNode.daemon import Daemon; print(Daemon.name)")
     sudo systemctl start "$daemon_name"@node.service
     sudo systemctl start "$daemon_name"@monitor.service
@@ -65,7 +65,7 @@ case "${1}" in
       output=$("$HOME"/hmy staking edit-validator --validator-addr "$addr" --active true --passphrase-file "$pw_file" -n "$endpoint")
       echo "$output" | jq || echo "$output"
     else
-      echo "[AutoNode] Harmony CLI has been moved. Reinitlize AutoNode."
+      echo "[AutoNode] Harmony CLI has been moved. Reinitialize AutoNode."
     fi
     ;;
   "deactivate")
@@ -78,7 +78,7 @@ case "${1}" in
       output=$("$HOME"/hmy staking edit-validator --validator-addr "$addr" --active false --passphrase-file "$pw_file" -n "$endpoint")
       echo "$output" | jq || echo "$output"
     else
-      echo "[AutoNode] Harmony CLI has been moved. Reinitlize AutoNode."
+      echo "[AutoNode] Harmony CLI has been moved. Reinitialize AutoNode."
     fi
     ;;
   "info")
@@ -90,7 +90,7 @@ case "${1}" in
       output=$("$HOME"/hmy blockchain validator information "$addr" -n "$endpoint")
       echo "$output" | jq || echo "$output"
     else
-      echo "[AutoNode] Harmony CLI has been moved. Reinitlize AutoNode."
+      echo "[AutoNode] Harmony CLI has been moved. Reinitialize AutoNode."
     fi
     ;;
   "config")
@@ -120,7 +120,7 @@ case "${1}" in
       output=$("$HOME"/hmy balances "$addr" -n "$endpoint")
       echo "$output" | jq || echo "$output"
     else
-      echo "[AutoNode] Harmony CLI has been moved. Reinitlize AutoNode."
+      echo "[AutoNode] Harmony CLI has been moved. Reinitialize AutoNode."
     fi
     ;;
   "collect-rewards")
@@ -130,7 +130,7 @@ case "${1}" in
       output=$("$HOME"/hmy staking collect-rewards --delegator-addr "$addr" -n "$endpoint")
       echo "$output" | jq || echo "$output"
     else
-      echo "[AutoNode] Harmony CLI has been moved. Reinitlize AutoNode."
+      echo "[AutoNode] Harmony CLI has been moved. Reinitialize AutoNode."
     fi
     ;;
   "version")
@@ -143,7 +143,7 @@ case "${1}" in
       output=$("$HOME"/hmy blockchain latest-header)
       echo "$output" | jq || echo "$output"
     else
-      echo "[AutoNode] Harmony CLI has been moved. Reinitlize AutoNode."
+      echo "[AutoNode] Harmony CLI has been moved. Reinitialize AutoNode."
     fi
     ;;
   "headers")
@@ -151,13 +151,13 @@ case "${1}" in
       output=$("$HOME"/hmy blockchain latest-headers)
       echo "$output" | jq || echo "$output"
     else
-      echo "[AutoNode] Harmony CLI has been moved. Reinitlize AutoNode."
+      echo "[AutoNode] Harmony CLI has been moved. Reinitialize AutoNode."
     fi
     ;;
   "clear-node-bls")
     daemon_name=$(python3 -c "from AutoNode.daemon import Daemon; print(Daemon.name)")
     if systemctl --type=service --state=active | grep -e ^"$daemon_name"; then
-      echo "[AutoNode] AutoNode is still running. Kill with 'auto_node.sh kill' before clearning BLS keys."
+      echo "[AutoNode] AutoNode is still running. Kill with 'auto_node.sh kill' before cleaning BLS keys."
       exit 4
     fi
     bls_key_dir=$(python3 -c "from AutoNode import common; print(common.bls_key_dir)")
@@ -190,30 +190,30 @@ case "${1}" in
       Param:              Help:
 
       run <run params>    Main execution to run a node. If errors are given
-                           for other params, this needs to be ran. Use '-h' param for run param msg
-      init                Initlize AutoNode config. First fallback if any errors
+                           for other params, this needs to be ran. Use '-h' param to view help msg
+      init                Initialize AutoNode config. First fallback if any errors
       config              View the validator_config.json file used by AutoNode
       edit-config         Edit the validator_config.json file used by AutoNode and change validator info on-chain
       update-config       Update validator info on-chain with given validator_config.json
-      monitor <cmd>       View/Command Harmony Node Monitor. Use '-h' cmd for node monitor cmd help msg
-      node <cmd>          View/Command Harmony Node. Use '-h' cmd for node cmd help msg
+      monitor <cmd>       View/Command Harmony Node Monitor. Use '-h' param to view help msg
+      node <cmd>          View/Command Harmony Node. Use '-h' params to view help msg
       tui <cmd>           Start the text-based user interface to monitor your node and validator.
-                           Use '-h' command to view all commands
+                           Use '-h' param to view help msg
       create-validator    Run through the steps to setup your validator
-      activate            Make validator associated with node elegable for election in next epoch
-      deactivate          Make validator associated with node NOT elegable for election in next epoch.
+      activate            Make validator associated with node eligible for election in next epoch
+      deactivate          Make validator associated with node NOT eligible for election in next epoch.
                            Note that this may not work as intended if auto-active was enabled
       info                Fetch information for validator associated with node
-      cleanse-bls <opts>  Remove BLS keys from validaor that are not earning. Use '-h' opts for opts help msg
+      cleanse-bls <opts>  Remove BLS keys from validator that are not earning. Use '-h' param to view help msg
       balances            Fetch balances for validator associated with node
       collect-rewards     Collect rewards for the associated validator
       version             Fetch the version of the node
       header              Fetch the latest header (shard chain) for the node
       headers             Fetch the latest headers (beacon and shard chain) for the node
       clear-node-bls      Remove the BLS key directory used by the node.
-      hmy <command>       Execute the Harmony CLI with the given command on the configed becaon endpoint.
-                           Use '-h' command to view all commands
-      hmy-update          Update the Harmony CLI used AutoNode
+      hmy <command>       Execute the Harmony CLI with the given command on the given beacon endpoint.
+                           Use '-h' param to view help msg
+      hmy-update          Update the Harmony CLI used for AutoNode
       kill                Safely kill AutoNode & its monitor (if alive)
     "
     exit

@@ -8,6 +8,7 @@ from pyhmy import Typgpy
 import AutoNode
 from AutoNode import initialize
 from AutoNode.daemon import Daemon
+from AutoNode.common import log
 
 
 def parse_args():
@@ -56,6 +57,13 @@ if __name__ == "__main__":
             f"{Typgpy.FAIL}User {AutoNode.common.user} does not have sudo privileges without password.\n "
             f"For `--auto-reset` option, user must have said privilege.{Typgpy.ENDC}")
     AutoNode.initialize.reset()
+    if args.network == 'mainnet':
+        if args.auto_reset:
+            log(f'{Typgpy.WARNING}[!] Cannot use --auto-reset with Mainnet{Typgpy.ENDC}')
+            args.auto_reset = False
+        if args.clean:
+            log(f'{Typgpy.WARNING}[!] Cannot use --clean with Mainnet{Typgpy.ENDC}')
+            args.clean = False
     AutoNode.node_config.update({
         "endpoint": args.endpoint,
         "network": args.network,
