@@ -23,7 +23,9 @@ def parse_args():
     parser.add_argument("--archival", action="store_true", help="Run node with archival mode.")
     parser.add_argument("--no-download", action="store_true", help="Run node with existing binary.")
     parser.add_argument("--update-cli", action="store_true", help="Toggle upgrading the Harmony CLI used by AutoNode")
-    parser.add_argument("--clean", action="store_true", help="Clean shared node directory before starting node.")
+    parser.add_argument("--clean", action="store_true", help="Clean shared node directory before starting node.\n "
+                                                             "Only available with test networks.")
+    parser.add_argument("--fast-sync", action="store_true", help="Rclone existing db snapshot(s)")
     parser.add_argument("--shard", default=None,
                         help="Specify shard of generated bls key.\n  "
                              "Only used if no BLS keys are not provided.", type=int)
@@ -64,6 +66,7 @@ if __name__ == "__main__":
         "auto-active": args.auto_active,
         "no-validator": args.no_validator,
         "no-download": args.no_download,
+        "fast-sync": args.fast_sync,
         "archival": args.archival
     })
     AutoNode.initialize.config(update_cli=args.update_cli)

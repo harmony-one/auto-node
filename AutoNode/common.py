@@ -57,6 +57,7 @@ _node_config_default = {
     "no-validator": False,
     "archival": False,
     "no-download": False,
+    "fast-sync": False,
     "public-bls-keys": []
 }
 node_config = _node_config_default.copy()
