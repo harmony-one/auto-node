@@ -66,7 +66,7 @@ sync_dir_map = {
     "partner": "pstn",
     "stress": "stn",
     "devnet": "devnet",
-    "mainnet": "mainnet.min"
+    "mainnet": "mainnet"
 }
 
 

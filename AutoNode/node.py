@@ -32,8 +32,6 @@ from .util import (
 
 node_sh_out_path = f"{node_sh_log_dir}/out.log"
 node_sh_err_path = f"{node_sh_log_dir}/err.log"
-node_sh_rclone_err_path = f"{node_sh_log_dir}/rclone_err.log"
-node_sh_rclone_out_path = f"{node_sh_log_dir}/rclone_out.log"
 
 log_path = f"{harmony_dir}/autonode_node.log"
 
@@ -62,24 +60,43 @@ def _node_clean(verbose=True):
         raise SystemExit(e)
 
 
-def _rclone_s0(verbose=True):
-    db_0_dir = f"{node_dir}/harmony_db_0"
+def _rclone(rclone_sync_dir, shard, verbose=True):
+    db_dir = f"{node_dir}/harmony_db_{shard}"
+    node_sh_rclone_err_path = f"{node_sh_log_dir}/rclone_err_{shard}.log"
+    node_sh_rclone_out_path = f"{node_sh_log_dir}/rclone_out_{shard}.log"
+
     try:
         if verbose:
-            log(f"{Typgpy.WARNING}[!] rclone harmony_db_0 in progress...{Typgpy.ENDC}")
-        rclone_sync_dir = sync_dir_map[node_config['network']]
+            log(f"{Typgpy.WARNING}[!] rclone harmony_db_{shard} in progress...{Typgpy.ENDC}")
         with open(node_sh_rclone_out_path, 'w') as fo:
             with open(node_sh_rclone_err_path, 'w') as fe:
-                subprocess.check_call(f"rclone sync -P hmy://pub.harmony.one/{rclone_sync_dir}/harmony_db_0 {db_0_dir}",
-                                      shell=True, env=os.environ, stdout=fo, stderr=fe)
-        if verbose:
-            log(f"{Typgpy.OKGREEN}[!] rclone done!{Typgpy.ENDC}")
+                return subprocess.Popen(f"rclone sync -P hmy://pub.harmony.one/{rclone_sync_dir}/harmony_db_{shard} {db_dir}",
+                                        shell=True, env=os.environ, stdout=fo, stderr=fe)
     except (subprocess.CalledProcessError, KeyError) as e:
         if verbose:
-            log(f"{Typgpy.FAIL}Failed to rclone shard 0 db, error {e}{Typgpy.ENDC}")
-            log(f"{Typgpy.WARNING}Removing shard 0 db if it exists{Typgpy.ENDC}")
-            if os.path.isdir(db_0_dir):
-                shutil.rmtree(db_0_dir)
+            log(f"{Typgpy.FAIL}Failed to rclone shard {shard} db, error {e}{Typgpy.ENDC}")
+            log(f"{Typgpy.WARNING}Removing shard {shard} db if it exists{Typgpy.ENDC}")
+            if os.path.isdir(db_dir):
+                shutil.rmtree(db_dir)
+
+
+def _rclone_db(shard, verbose=True):
+    rclone_sync_dir = sync_dir_map[node_config['network']]
+    if node_config['network'] == 'mainnet' and not node_config['archival']:
+        rclone_sync_dir = rclone_sync_dir + '.min'
+
+    rclone_processes = []
+    if shard == 0:
+        rclone_processes.append(_rclone(rclone_sync_dir, shard))
+    else:
+        rclone_processes.append(_rclone(rclone_sync_dir, 0))
+        rclone_processes.append(_rclone(rclone_sync_dir, shard))
+
+    for p in rclone_processes:
+        p.wait()
+
+    if verbose:
+        log(f"{Typgpy.OKGREEN}[!] rclone done!{Typgpy.ENDC}")
 
 
 def start(auto=False, verbose=True):
