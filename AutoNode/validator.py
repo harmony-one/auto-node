@@ -13,9 +13,11 @@ import subprocess
 import traceback
 import requests
 
-from pyhmy import cli
 from pyhmy import (
-    Typgpy,
+    blockchain,
+    cli,
+    staking,
+    Typgpy
 )
 
 from .common import (
@@ -25,15 +27,6 @@ from .common import (
     validator_config,
     saved_wallet_pass_path,
     check_interval
-)
-from .blockchain import (
-    get_latest_header,
-    get_latest_headers,
-    get_staking_epoch,
-    get_prestaking_epoch,
-    get_current_epoch,
-    get_all_validator_addresses,
-    get_validator_information
 )
 from .node import (
     log_path,
@@ -68,7 +61,7 @@ def _add_bls_key_to_validator():
     Assumes past staking epoch by definition of adding keys to existing validator
     """
     _verify_account_balance(0.1 * len(node_config["public-bls-keys"]))  # Heuristic amount for balance
-    chain_val_info = get_validator_information(validator_config['validator-addr'], node_config['endpoint'])
+    chain_val_info = staking.get_validator_information(validator_config['validator-addr'], node_config['endpoint'])
     bls_keys = set(x.replace('0x', '') for x in chain_val_info["validator"]["bls-public-keys"])
     for k in (x.replace('0x', '') for x in node_config["public-bls-keys"]):
         if k not in bls_keys:  # Add imported BLS key to existing validator if needed
@@ -111,13 +104,13 @@ def _verify_staking_epoch():
     Invariant: All staking transactions are done AFTER staking epoch.
     """
     log(f"{Typgpy.OKBLUE}Verifying Staking Epoch...{Typgpy.ENDC}")
-    staking_epoch = get_staking_epoch(node_config['endpoint'])
-    curr_epoch = get_current_epoch(node_config['endpoint'])
+    staking_epoch = blockchain.get_staking_epoch(endpoint=node_config['endpoint'])
+    curr_epoch = blockchain.get_current_epoch(endpoint=node_config['endpoint'])
     while curr_epoch < staking_epoch:  # WARNING: using staking epoch for extra security of configs.
         sys.stdout.write(f"\rWaiting for staking epoch ({staking_epoch}) -- current epoch: {curr_epoch}")
         sys.stdout.flush()
         time.sleep(check_interval)
-        curr_epoch = get_current_epoch(node_config['endpoint'])
+        curr_epoch = blockchain.get_current_epoch(endpoint=node_config['endpoint'])
     log(f"{Typgpy.OKGREEN}Network is at or past staking epoch{Typgpy.ENDC}")
 
 
@@ -126,13 +119,13 @@ def _verify_prestaking_epoch():
     Invariant: All staking transactions are done AFTER staking epoch.
     """
     log(f"{Typgpy.OKBLUE}Verifying Pre Staking Epoch...{Typgpy.ENDC}")
-    prestaking_epoch = get_prestaking_epoch(node_config['endpoint'])
-    curr_epoch = get_current_epoch(node_config['endpoint'])
+    prestaking_epoch = blockchain.get_prestaking_epoch(endpoint=node_config['endpoint'])
+    curr_epoch = blockchain.get_current_epoch(endpoint=node_config['endpoint'])
     while curr_epoch < prestaking_epoch:
         sys.stdout.write(f"\rWaiting for pre staking epoch ({prestaking_epoch}) -- current epoch: {curr_epoch}")
         sys.stdout.flush()
         time.sleep(check_interval)
-        curr_epoch = get_current_epoch(node_config['endpoint'])
+        curr_epoch = blockchain.get_current_epoch(endpoint=node_config['endpoint'])
     log(f"{Typgpy.OKGREEN}Network is at or past pre staking epoch{Typgpy.ENDC}")
 
 
@@ -158,7 +151,7 @@ def is_active_validator():
     Default to false if exception to be defensive.
     """
     try:
-        val_chain_info = get_validator_information(validator_config["validator-addr"], node_config['endpoint'])
+        val_chain_info = staking.get_validator_information(validator_config["validator-addr"], endpoint=node_config['endpoint'])
         return "not eligible" in val_chain_info['epos-status']
     except (ConnectionError, requests.exceptions.RequestException, TimeoutError) as e:
         log(f"{Typgpy.WARNING}Could not fetch validator active status, error: {e}{Typgpy.ENDC}")
@@ -170,10 +163,10 @@ def verify_node_sync():
     log(f"{Typgpy.OKBLUE}Verifying Node Sync...{Typgpy.ENDC}")
     wait_for_node_response("http://localhost:9500/", sleep=1, verbose=True)
     wait_for_node_response(node_config['endpoint'], sleep=1, verbose=True)
-    curr_headers = get_latest_headers("http://localhost:9500/")
+    curr_headers = blockchain.get_latest_headers()
     curr_epoch_shard = curr_headers['shard-chain-header']['epoch']
     curr_epoch_beacon = curr_headers['beacon-chain-header']['epoch']
-    ref_epoch = get_latest_header(node_config['endpoint'])['epoch']
+    ref_epoch = blockchain.get_current_epoch(endpoint=node_config['endpoint'])
     has_looped = False
     if curr_epoch_shard < ref_epoch or curr_epoch_beacon < ref_epoch:
         log(f"{Typgpy.OKBLUE}Deactivating validator until node is synced.{Typgpy.ENDC}")
@@ -190,10 +183,10 @@ def verify_node_sync():
         has_looped = True
         time.sleep(check_interval)
         assert_no_bad_blocks()
-        curr_headers = get_latest_headers("http://localhost:9500/")
+        curr_headers = blockchain.get_latest_headers()
         curr_epoch_shard = curr_headers['shard-chain-header']['epoch']
         curr_epoch_beacon = curr_headers['beacon-chain-header']['epoch']
-        ref_epoch = get_latest_header(node_config['endpoint'])['epoch']
+        ref_epoch = blockchain.get_current_epoch(endpoint=node_config['endpoint'])
     if curr_epoch_shard > ref_epoch + 1 or curr_epoch_beacon > ref_epoch + 1:  # +1 for some slack on epoch change.
         log(f"{Typgpy.FAIL}Node epoch (shard: {curr_epoch_shard} beacon: {curr_epoch_beacon}) is greater than network "
             f"epoch ({ref_epoch}) which is not possible, is config correct?{Typgpy.ENDC}")
@@ -254,11 +247,11 @@ def check_and_activate():
     try:
         if not is_active_validator():
             log(f"{Typgpy.FAIL}Node not active, reactivating...{Typgpy.ENDC}")
-            curr_headers = get_latest_headers("http://localhost:9500/")
+            curr_headers = blockchain.get_latest_headers()
             curr_epoch_shard = curr_headers['shard-chain-header']['epoch']
             curr_epoch_beacon = curr_headers['beacon-chain-header']['epoch']
             wait_for_node_response(node_config['endpoint'], tries=900, sleep=1, verbose=False)  # Try for 15 min
-            ref_epoch = get_latest_header(node_config['endpoint'])['epoch']
+            ref_epoch = blockchain.get_current_epoch(endpoint=node_config['endpoint'])
             if curr_epoch_shard == ref_epoch and curr_epoch_beacon == ref_epoch:
                 activate_validator()
                 return True
@@ -276,7 +269,7 @@ def check_and_activate():
 
 def deactivate_validator():
     try:
-        all_val = get_all_validator_addresses(node_config['endpoint'])
+        all_val = staking.get_all_validator_addresses(endpoint=node_config['endpoint'])
         if validator_config["validator-addr"] in all_val:
             log(f"{Typgpy.OKBLUE}Deactivating validator{Typgpy.ENDC}")
             response = cli.single_call(
@@ -296,7 +289,7 @@ def deactivate_validator():
 
 def activate_validator():
     try:
-        all_val = get_all_validator_addresses(node_config['endpoint'])
+        all_val = staking.get_all_validator_addresses(endpoint=node_config['endpoint'])
         if validator_config["validator-addr"] in all_val:
             log(f"{Typgpy.OKBLUE}Activating validator{Typgpy.ENDC}")
             response = cli.single_call(
@@ -322,11 +315,12 @@ def setup(recover_interaction=False):
     log(f"{Typgpy.OKBLUE}Using BLS key(s): {Typgpy.OKGREEN}{node_config['public-bls-keys']}{Typgpy.ENDC}")
     try:
         wait_for_node_response(node_config['endpoint'], verbose=True, tries=120, sleep=1)  # Try for 2 min
-        all_val_address = get_all_validator_addresses(node_config['endpoint'])
+        all_val_address = staking.get_all_validator_addresses(endpoint=node_config['endpoint'])
         if validator_config['validator-addr'] in all_val_address:
             log(f"{Typgpy.WARNING}{validator_config['validator-addr']} already in list of validators!{Typgpy.ENDC}")
-            keys_on_chain = set(get_validator_information(validator_config['validator-addr'],
-                                                          node_config['endpoint'])['validator']['bls-public-keys'])
+            validator_info = staking.get_validator_information(validator_config['validator-addr'],
+                                                               endpoint=node_config['endpoint'])
+            keys_one_chain = set(validator_info['validator']['bls-public-keys'])
             if all(k.replace('0x', '') in keys_on_chain for k in node_config["public-bls-keys"]):
                 log(f"{Typgpy.OKBLUE}{Typgpy.BOLD}No BLS key(s) to add to validator!{Typgpy.ENDC}")
             else:
@@ -370,7 +364,7 @@ def update_info(recover_interaction=False):
     old_logging_handlers = _interaction_preprocessor(recover_interaction)
     address = validator_config['validator-addr']
     try:
-        all_val_address = get_all_validator_addresses(node_config['endpoint'])
+        all_val_address = staking.get_all_validator_addresses(endpoint=node_config['endpoint'])
         if address not in all_val_address:
             log(f"{Typgpy.WARNING}Cannot edit validator information, validator "
                 f"{Typgpy.OKGREEN}{address}{Typgpy.WARNING} is not a validator!{Typgpy.ENDC}")

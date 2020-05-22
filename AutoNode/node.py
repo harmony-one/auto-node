@@ -9,7 +9,9 @@ import logging
 
 import requests
 
+import pyhmy.rpc.exceptions as rpc_exception
 from pyhmy import (
+    blockchain,
     cli,
     json_load,
     Typgpy
@@ -25,9 +27,7 @@ from .common import (
     sync_dir_map,
     harmony_dir
 )
-from .blockchain import (
-    get_latest_header,
-)
+
 from .util import (
     input_with_print,
     get_simple_rotating_log_handler
@@ -232,10 +232,10 @@ def wait_for_node_response(endpoint, verbose=True, tries=float("inf"), sleep=0.5
     while True:
         count += 1
         try:
-            get_latest_header(endpoint)
+            blockchain.get_latest_header(endpoint=endpoint)
             break
-        except (json.decoder.JSONDecodeError, requests.exceptions.ConnectionError,
-                RuntimeError, KeyError, AttributeError):
+        except (rpc_exception.RequestsError, rpc_exception.RequestsTimeoutError,
+                rpc_exception.RPCError, rpc_exception.JSONDecodeError):
             if count > tries:
                 raise TimeoutError(f"{endpoint} did not respond in {count} attempts (~{sleep * count} seconds)")
             if verbose and count % 10 == 0:
