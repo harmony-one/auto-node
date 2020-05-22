@@ -235,7 +235,7 @@ def wait_for_node_response(endpoint, verbose=True, tries=float("inf"), sleep=0.5
             blockchain.get_latest_header(endpoint=endpoint)
             break
         except (rpc_exception.RequestsError, rpc_exception.RequestsTimeoutError,
-                rpc_exception.RPCError, rpc_exception.JSONDecodeError):
+                rpc_exception.RPCError):
             if count > tries:
                 raise TimeoutError(f"{endpoint} did not respond in {count} attempts (~{sleep * count} seconds)")
             if verbose and count % 10 == 0:
