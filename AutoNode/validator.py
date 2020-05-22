@@ -152,7 +152,7 @@ def is_active_validator():
     """
     try:
         val_chain_info = staking.get_validator_information(validator_config["validator-addr"], endpoint=node_config['endpoint'])
-        return "not eligible" in val_chain_info['epos-status']
+        return "active" not in val_chain_info['active-status']
     except (ConnectionError, requests.exceptions.RequestException, TimeoutError) as e:
         log(f"{Typgpy.WARNING}Could not fetch validator active status, error: {e}{Typgpy.ENDC}")
         return False
