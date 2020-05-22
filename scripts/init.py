@@ -30,13 +30,14 @@ def parse_args():
     parser.add_argument("--shard", default=None,
                         help="Specify shard of generated bls key.\n  "
                              "Only used if no BLS keys are not provided.", type=int)
-    parser.add_argument("--network", help="Network to connect to (staking, partner, stress).\n  "
-                                          "Default: 'staking'.", type=str, default='staking')
+    parser.add_argument("--network", help="Network to connect to (mainnet, testnet).\n  "
+                                          "Default: 'testnet'.", type=str, default='testnet',
+                        choices=['mainnet', 'testnet', 'partner', 'stress', 'staking'])
     parser.add_argument("--duration", type=int, help="Duration of how long the node is to run in seconds.\n  "
                                                      "Default is forever.", default=None)
-    parser.add_argument("--beacon-endpoint", dest="endpoint", type=str, default="https://api.s0.os.hmny.io/",
+    parser.add_argument("--beacon-endpoint", dest="endpoint", type=str, default="https://api.s0.b.hmny.io/",
                         help=f"Beacon chain (shard 0) endpoint for staking transactions.\n  "
-                             f"Default is https://api.s0.os.hmny.io/")
+                             f"Default is https://api.s0.b.hmny.io/")
     return parser.parse_args()
 
 

@@ -29,13 +29,14 @@ check_interval = 8  # Estimated block time
 
 msg_tag = "[AutoNode]"
 
+# TODO: Keybase integration for identity
 _validator_config_default = {
     "validator-addr": None,
     "name": "Harmony AutoNode Default Name",
     "website": "harmony.one",
-    "security-contact": "daniel@harmony.one",
+    "security-contact": "autonode@harmony.one",
     "identity": f"AutoNode-{hash(os.urandom(42))}",
-    "amount": 10100,
+    "amount": 10000,
     "min-self-delegation": 10000,
     "rate": 0.1,
     "max-rate": 0.75,
@@ -47,8 +48,8 @@ _validator_config_default = {
 validator_config = _validator_config_default.copy()
 
 _node_config_default = {
-    "endpoint": "https://api.s0.os.hmny.io/",
-    "network": "staking",
+    "endpoint": "https://api.s0.b.hmny.io/",
+    "network": "testnet",
     "clean": False,
     "duration": None,
     "shard": None,
@@ -66,7 +67,7 @@ sync_dir_map = {
     "staking": "ostn",
     "partner": "pstn",
     "stress": "stn",
-    "devnet": "devnet",
+    "testnet": "testnet",
     "mainnet": "mainnet"
 }
 
