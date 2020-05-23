@@ -32,17 +32,17 @@ msg_tag = "[AutoNode]"
 # TODO: Keybase integration for identity
 _validator_config_default = {
     "validator-addr": None,
-    "name": "Harmony AutoNode Default Name",
-    "website": "harmony.one",
-    "security-contact": "autonode@harmony.one",
+    "name": None,
+    "website": None,
+    "security-contact": None,
     "identity": f"AutoNode-{hash(os.urandom(42))}",
-    "amount": 10000,
-    "min-self-delegation": 10000,
-    "rate": 0.1,
-    "max-rate": 0.75,
-    "max-change-rate": 0.05,
-    "max-total-delegation": 100000000.0,
-    "details": "Harmony AutoNode default details",
+    "amount": None,
+    "min-self-delegation": None,
+    "rate": None,
+    "max-rate": None,
+    "max-change-rate": None,
+    "max-total-delegation": None,
+    "details": None,
     "gas-price": 1
 }
 validator_config = _validator_config_default.copy()

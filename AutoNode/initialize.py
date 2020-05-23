@@ -4,6 +4,8 @@ import shutil
 import time
 import json
 
+from decimal import Decimal
+
 from pyhmy import (
     cli,
     Typgpy,
@@ -43,28 +45,51 @@ from .util import (
 
 def _import_validator_address():
     if validator_config["validator-addr"] is None:
-        keys_list = list(sorted(cli.get_accounts_keystore().values()))
-        if not keys_list:
-            log(f"{Typgpy.FAIL}CLI keystore has no wallets.{Typgpy.ENDC}")
-            raise SystemExit("Bad wallet import.")
-        log(f"{Typgpy.HEADER}Keystore Wallet Addresses:{Typgpy.ENDC}")
-        for i, addr in enumerate(keys_list):
-            log(f"{Typgpy.BOLD}{Typgpy.OKBLUE}#{i}{Typgpy.ENDC}\t{Typgpy.OKGREEN}{addr}{Typgpy.ENDC}")
-        log("")
-        index = None
-        while True:
-            try:
-                index = input_with_print(f"{Typgpy.HEADER}Which wallet would you like to use? {Typgpy.ENDC}\n"
-                                         f"> {Typgpy.OKBLUE}#").strip()
-                validator_config["validator-addr"] = keys_list[int(index)]
-                log(f"{Typgpy.HEADER}Using validator {Typgpy.OKGREEN}{keys_list[int(index)]}{Typgpy.ENDC}")
-                break
-            except (IndexError, TypeError, ValueError) as e:
-                log(f"{Typgpy.FAIL}Input `{index}` is not valid, error: {e}{Typgpy.ENDC}")
+        _input_validator_address()
     if validator_config['validator-addr'] not in cli.get_accounts_keystore().values():
         log(f"{Typgpy.FAIL}Cannot create validator, {validator_config['validator-addr']} "
             f"not in shared CLI keystore.{Typgpy.ENDC}")
         raise SystemExit("Bad wallet import or validator config.")
+
+
+def _input_validator_address():
+    keys_list = list(sorted(cli.get_accounts_keystore().values()))
+    if not keys_list:
+        log(f"{Typgpy.FAIL}CLI keystore has no wallets.{Typgpy.ENDC}")
+        raise SystemExit("Bad wallet import.")
+    log(f"{Typgpy.HEADER}Keystore Wallet Addresses:{Typgpy.ENDC}")
+    for i, addr in enumerate(keys_list):
+        log(f"{Typgpy.BOLD}{Typgpy.OKBLUE}#{i}{Typgpy.ENDC}\t{Typgpy.OKGREEN}{addr}{Typgpy.ENDC}")
+    log("")
+    index = None
+    while True:
+        try:
+            index = input_with_print(f"{Typgpy.HEADER}Which wallet would you like to use? {Typgpy.ENDC}\n"
+                                     f"> {Typgpy.OKBLUE}#").strip()
+            validator_config["validator-addr"] = keys_list[int(index)]
+            log(f"{Typgpy.HEADER}Using validator {Typgpy.OKGREEN}{keys_list[int(index)]}{Typgpy.ENDC}")
+            break
+        except (IndexError, TypeError, ValueError) as e:
+            log(f"{Typgpy.FAIL}Input `{index}` is not valid, error: {e}{Typgpy.ENDC}")
+
+
+def _input_validator_field(field_name, check):
+    existing = validator_config[field_name]
+    prompt = (f"{Typgpy.HEADER}Enter {field_name}: {'' if not existing else f'({existing})'}{Typgpy.ENDC}\n"
+              f"> {Typgpy.OKBLUE}")
+    while True:
+        try:
+            raw_input = input_with_print(prompt.strip())
+            input = check(raw_input)
+            validator_config[field_name] = input
+            if validator_config[field_name]:
+                break
+        except (TypeError, ValueError) as e:
+            log(f"{Typgpy.FAIL}Input `{input}` is not valid, error: {e}{Typgpy.ENDC}")
+
+
+def __display_warning(field_name):
+    log(f'{Typgpy.WARNING}{field_name} can not be changed after creation!{Typgpy.ENDC}')
 
 
 def _bls_filter(file_name, suffix):
@@ -262,3 +287,51 @@ def config(update_cli=False):
     log(f"Saved Node Information: {json.dumps(node_config, indent=4)}")
     save_node_config()
     log("~" * 110)
+
+
+def interactive_setup_validator(skip=False):
+    """
+    Interactively take validator information
+
+    Params
+    ------
+    skip: bool, optional
+        True to skip prompt if field is already defined
+    """
+    if not validator_config['validator-addr']:
+        _input_validator_address()
+
+    if not validator_config['name'] or not skip:
+        _input_validator_field('name', lambda x: x if len(x) <= 140 and len(x) >= 1 else None)
+
+    if not validator_config['website'] or not skip:
+        _input_validator_field('website', lambda x: x if len(x) <= 140 and len(x) >= 1 else None)
+
+    if not validator_config['security-contact'] or not skip:
+        _input_validator_field('security-contact', lambda x: x if len(x) <= 140 and len(x) >= 1 else None)
+
+    if not validator_config['identity'] or not skip:
+        _input_validator_field('identity', lambda x: x if len(x) <= 140 and len(x) >= 1 else None)
+
+    if not validator_config['details'] or not skip:
+        _input_validator_field('details', lambda x: x if len(x) <= 280 and len(x) >= 1 else None)
+
+    if not validator_config['min-self-delegation'] or not skip:
+        _input_validator_field('min-self-delegation', lambda x: Decimal(x) if Decimal(x) >= 10000 else None)
+
+    if not validator_config['max-total-delegation'] or not skip:
+        _input_validator_field('max-total-delegation', lambda x: Decimal(x) if Decimal(x) >= validator_config['min-self-delegation'] else None)
+
+    if not validator_config['amount'] or not skip:
+        _input_validator_field('amount', lambda x: Decimal(x) if Decimal(x) >= validator_config['min-self-delegation'] and Decimal(x) <= validator_config['max-total-delegation'] else None)
+
+    if not validator_config['max-rate'] or not skip:
+        _display_warning('max-rate')
+        _input_validator_field('max-rate', lambda x: Decimal(x) if Decimal(x) >= 0 and Decimal(x) <= 1 else None)
+
+    if not validator_config['max-change-rate'] or not skip:
+        __display_warning('max-change-rate')
+        _input_validator_field('max-change-rate', lambda x: Decimal(x) if Decimal(x) >= 0 and Decimal(x) <= validator_config['max-rate'] else None)
+
+    if not validator_config['rate'] or not skip:
+        _input_validator_field('rate', lambda x: Decimal(x) if Decimal(x) >= 0 and Decimal(x) <= validator_config['max-rate'] else None)
