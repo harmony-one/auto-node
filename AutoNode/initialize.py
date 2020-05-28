@@ -321,6 +321,6 @@ def interactive_setup_validator():
 
     _input_validator_field('rate', v.set_rate)
 
-    verified_info = test_validator.export()
+    verified_info = v.export()
     for key, value in verified_info.items():
         validator_config[key] = value
