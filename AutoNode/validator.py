@@ -13,6 +13,8 @@ import subprocess
 import traceback
 import requests
 
+from decimal import Decimal
+
 from pyhmy import (
     blockchain,
     cli,
@@ -39,6 +41,7 @@ from .util import (
     get_simple_rotating_log_handler
 )
 
+_balance_buffer = Decimal(1)
 _recover_interaction = False
 
 
@@ -95,7 +98,7 @@ def _send_edit_validator_tx(bls_key_to_add):
 
 def _create_new_validator():
     _verify_prestaking_epoch()
-    _verify_account_balance(validator_config['amount'] + 50)
+    _verify_account_balance(Decimal(validator_config['amount']) + _balance_buffer)
     _send_create_validator_tx()
 
 

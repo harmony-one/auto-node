@@ -323,4 +323,4 @@ def interactive_setup_validator():
 
     verified_info = v.export()
     for key, value in verified_info.items():
-        validator_config[key] = value
+        validator_config[key] = str(value)

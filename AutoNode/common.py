@@ -4,6 +4,8 @@ import logging
 import os
 import getpass
 
+from decimal import Decimal
+
 from pyhmy import Typgpy
 
 user = getpass.getuser()
@@ -35,7 +37,7 @@ _validator_config_default = {
     "name": None,
     "website": None,
     "security-contact": None,
-    "identity": f"AutoNode-{hash(os.urandom(42))}",
+    "identity": None,
     "amount": None,
     "min-self-delegation": None,
     "rate": None,
@@ -43,7 +45,7 @@ _validator_config_default = {
     "max-change-rate": None,
     "max-total-delegation": None,
     "details": None,
-    "gas-price": 1
+    "gas-price": ""
 }
 validator_config = _validator_config_default.copy()
 
