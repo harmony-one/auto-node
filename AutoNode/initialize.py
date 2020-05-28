@@ -84,7 +84,12 @@ def _input_validator_field(field_name, set_func):
     while True:
         try:
             raw_input = input_with_print(prompt.strip())
-            set_func(raw_input)
+            if raw_input == '':
+                set_func(existing)
+                break
+            else:
+                set_func(raw_input)
+                break
         except exceptions.InvalidValidatorError as e:
             log(f"{Typgpy.FAIL}Input `{input}` is not valid, error: {e}{Typgpy.ENDC}")
 
