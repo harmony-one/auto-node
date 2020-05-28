@@ -91,7 +91,7 @@ def _input_validator_field(field_name, set_func):
                 set_func(raw_input)
                 break
         except exceptions.InvalidValidatorError as e:
-            log(f"{Typgpy.FAIL}Input `{input}` is not valid, error: {e}{Typgpy.ENDC}")
+            log(f"{Typgpy.FAIL}Input `{raw_input}` is not valid, error: {e}{Typgpy.ENDC}")
 
 
 def _display_warning(field_name):
@@ -276,7 +276,7 @@ def config(update_cli=False):
     cli.download(cli_bin_path, replace=update_cli)
 
     if not node_config['no-validator']:
-        _import_validator_address()
+        interactive_setup_validator()
         wallet_passphrase = _import_wallet_passphrase()
         _save_protected_file(wallet_passphrase, saved_wallet_pass_path)
     bls_passphrase = _import_bls_passphrase()
