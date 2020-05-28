@@ -34,20 +34,13 @@ from .node import (
 from .util import (
     get_simple_rotating_log_handler
 )
+from .exceptions import (
+    ResetNode
+)
 
 log_path = f"{harmony_dir}/autonode_monitor.log"
 progress_check_interval = 300  # Must account for view-change
 node_epoch_slack = 500  # Account for recovery time
-
-
-# TODO: move this to an exceptions library
-class ResetNode(Exception):
-    """The only exception that triggers a hard reset."""
-
-    def __init__(self, *args, clean=False):
-        node_config['clean'] = clean
-        save_node_config()
-        super(ResetNode, self).__init__(*args)
 
 
 def _check_for_hard_reset(shard_endpoint, error_ok=False):

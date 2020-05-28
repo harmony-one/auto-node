@@ -4,13 +4,14 @@ import shutil
 import time
 import json
 
-from decimal import Decimal
-
 from pyhmy import (
     cli,
+    exceptions,
+    json_load,
     Typgpy,
-    json_load
+    validator
 )
+
 from .common import (
     log,
     validator_config,
@@ -32,12 +33,15 @@ from .common import (
     node_dir,
     node_sh_log_dir
 )
+
 from .node import (
     log_path as n_log_path
 )
+
 from .monitor import (
     log_path as m_log_path
 )
+
 from .util import (
     input_with_print
 )
@@ -73,22 +77,19 @@ def _input_validator_address():
             log(f"{Typgpy.FAIL}Input `{index}` is not valid, error: {e}{Typgpy.ENDC}")
 
 
-def _input_validator_field(field_name, check):
+def _input_validator_field(field_name, set_func):
     existing = validator_config[field_name]
     prompt = (f"{Typgpy.HEADER}Enter {field_name}: {'' if not existing else f'({existing})'}{Typgpy.ENDC}\n"
               f"> {Typgpy.OKBLUE}")
     while True:
         try:
             raw_input = input_with_print(prompt.strip())
-            input = check(raw_input)
-            validator_config[field_name] = input
-            if validator_config[field_name]:
-                break
-        except (TypeError, ValueError) as e:
+            set_func(raw_input)
+        except exceptions.InvalidValidatorError as e:
             log(f"{Typgpy.FAIL}Input `{input}` is not valid, error: {e}{Typgpy.ENDC}")
 
 
-def __display_warning(field_name):
+def _display_warning(field_name):
     log(f'{Typgpy.WARNING}{field_name} can not be changed after creation!{Typgpy.ENDC}')
 
 
@@ -289,49 +290,32 @@ def config(update_cli=False):
     log("~" * 110)
 
 
-def interactive_setup_validator(skip=False):
+def interactive_setup_validator():
     """
-    Interactively take validator information
-
-    Params
-    ------
-    skip: bool, optional
-        True to skip prompt if field is already defined
+    Interactively take validator information, always ask for all fields
     """
     if not validator_config['validator-addr']:
         _input_validator_address()
 
-    if not validator_config['name'] or not skip:
-        _input_validator_field('name', lambda x: x if len(x) <= 140 and len(x) >= 1 else None)
+    v = validator.Validator(validator_config['validator-addr'])
 
-    if not validator_config['website'] or not skip:
-        _input_validator_field('website', lambda x: x if len(x) <= 140 and len(x) >= 1 else None)
+    _input_validator_field('name', v.set_name)
+    _input_validator_field('website', v.set_website)
+    _input_validator_field('security-contact', v.set_security_contact)
+    _input_validator_field('identity', v.set_identity)
+    _input_validator_field('details', v.set_details)
 
-    if not validator_config['security-contact'] or not skip:
-        _input_validator_field('security-contact', lambda x: x if len(x) <= 140 and len(x) >= 1 else None)
+    _input_validator_field('min-self-delegation', v.set_min_self_delegation)
+    _input_validator_field('max-total-delegation', v.set_max_total_delegation)
+    _input_validator_field('amount', v.set_amount)
 
-    if not validator_config['identity'] or not skip:
-        _input_validator_field('identity', lambda x: x if len(x) <= 140 and len(x) >= 1 else None)
+    _display_warning('max-rate')
+    _input_validator_field('max-rate', v.set_max_rate)
+    _display_warning('max-change-rate')
+    _input_validator_field('max-change-rate', v.set_max_change_rate)
 
-    if not validator_config['details'] or not skip:
-        _input_validator_field('details', lambda x: x if len(x) <= 280 and len(x) >= 1 else None)
+    _input_validator_field('rate', v.set_rate)
 
-    if not validator_config['min-self-delegation'] or not skip:
-        _input_validator_field('min-self-delegation', lambda x: Decimal(x) if Decimal(x) >= 10000 else None)
-
-    if not validator_config['max-total-delegation'] or not skip:
-        _input_validator_field('max-total-delegation', lambda x: Decimal(x) if Decimal(x) >= validator_config['min-self-delegation'] else None)
-
-    if not validator_config['amount'] or not skip:
-        _input_validator_field('amount', lambda x: Decimal(x) if Decimal(x) >= validator_config['min-self-delegation'] and Decimal(x) <= validator_config['max-total-delegation'] else None)
-
-    if not validator_config['max-rate'] or not skip:
-        _display_warning('max-rate')
-        _input_validator_field('max-rate', lambda x: Decimal(x) if Decimal(x) >= 0 and Decimal(x) <= 1 else None)
-
-    if not validator_config['max-change-rate'] or not skip:
-        __display_warning('max-change-rate')
-        _input_validator_field('max-change-rate', lambda x: Decimal(x) if Decimal(x) >= 0 and Decimal(x) <= validator_config['max-rate'] else None)
-
-    if not validator_config['rate'] or not skip:
-        _input_validator_field('rate', lambda x: Decimal(x) if Decimal(x) >= 0 and Decimal(x) <= validator_config['max-rate'] else None)
+    verified_info = test_validator.export()
+    for key, value in verified_info.items():
+        validator_config[key] = value
