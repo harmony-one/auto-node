@@ -22,7 +22,7 @@ saved_wallet_pass_path = f"{harmony_dir}/.wallet_pass"
 tui_path = f"{harmony_dir}/tui"
 
 node_script_source = "https://harmony.one/node.sh"
-tui_source = "http://pub.harmony.one.s3.amazonaws.com/release/linux-x86_64/pangaea/static/harmony-tui"
+tui_source = "http://pub.harmony.one.s3.amazonaws.com/release/linux-x86_64/mainnet/static/harmony-tui"
 
 default_cli_passphrase = ""
 bls_key_len = 96
