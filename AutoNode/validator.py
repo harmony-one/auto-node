@@ -325,8 +325,8 @@ def setup(recover_interaction=False):
             log(f"{Typgpy.WARNING}{validator_config['validator-addr']} already in list of validators!{Typgpy.ENDC}")
             validator_info = staking.get_validator_information(validator_config['validator-addr'],
                                                                endpoint=node_config['endpoint'])
-            keys_one_chain = set(validator_info['validator']['bls-public-keys'])
-            if all(k.replace('0x', '') in keys_on_chain for k in node_config["public-bls-keys"]):
+            keys_on_chain = set(validator_info['validator']['bls-public-keys'])
+            if all(k in keys_on_chain for k in node_config["public-bls-keys"]):
                 log(f"{Typgpy.OKBLUE}{Typgpy.BOLD}No BLS key(s) to add to validator!{Typgpy.ENDC}")
             else:
                 prompt = "Add BLS key(s) to existing validator? [Y]/n \n> "
