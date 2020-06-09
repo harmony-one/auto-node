@@ -184,8 +184,8 @@ def _import_bls(passphrase):
                 raise SystemExit(f"Unable to protect `{passphrase_file}`, check user ({user}) "
                                  f"permissions on file.")
             try:
-                cli.single_call(f"hmy keys recover-bls-key {bls_key_dir}/{k} "
-                                f"--passphrase-file {passphrase_file}")
+                cli.single_call(['hmy', 'keys', 'recover-bls-key', f'{bls_key_dir}/{k}',
+                                 '--passphrase-file', passphrase_file])
             except RuntimeError as e:
                 log(f"{Typgpy.FAIL}Passphrase file for {k} is not correct. Error: {e}{Typgpy.ENDC}")
                 raise SystemExit("Bad BLS import")
@@ -199,8 +199,8 @@ def _import_bls(passphrase):
             time.sleep(3)  # Sleep so user can read message
         for k in bls_keys:
             try:
-                cli.single_call(f"hmy keys recover-bls-key {bls_key_dir}/{k} "
-                                f"--passphrase-file {tmp_bls_pass_path}")
+                cli.single_call(['hmy', 'keys', 'recover-bls-key', f'{bls_key_dir}/{k}',
+                                 '--passphrase-file', tmp_bls_pass_path])
             except RuntimeError as e:
                 log(f"{Typgpy.FAIL}Passphrase for {k} is not correct. Error: {e}{Typgpy.ENDC}")
                 raise SystemExit("Bad BLS import")
@@ -210,10 +210,10 @@ def _import_bls(passphrase):
     elif node_config['shard'] is not None:
         assert isinstance(node_config['shard'], int), f"shard: {node_config['shard']} is not an integer."
         while True:
-            key = json_load(cli.single_call(f"hmy keys generate-bls-key --passphrase-file {tmp_bls_pass_path}"))
+            key = json_load(cli.single_call(['hmy', 'keys', 'generate-bls-key', '--passphrase-file', tmp_bls_pass_path]))
             public_bls_key, bls_file_path = key['public-key'], key['encrypted-private-key-path']
-            shard_id = json_load(cli.single_call(f"hmy --node {node_config['endpoint']} utility "
-                                                 f"shard-for-bls {public_bls_key}"))["shard-id"]
+            shard_id = json_load(cli.single_call(['hmy', '--node', f'{node_config["endpoint"]}', 'utility',
+                                                  'shard-for-bls', public_bls_key]))['shard-id']
             if int(shard_id) != node_config['shard']:
                 os.remove(bls_file_path)
             else:
@@ -225,11 +225,11 @@ def _import_bls(passphrase):
         os.remove(tmp_bls_pass_path)
         return [public_bls_key]
     else:
-        key = json_load(cli.single_call(f"hmy keys generate-bls-key --passphrase-file {tmp_bls_pass_path}"))
+        key = json_load(cli.single_call(['hmy', 'keys', 'generate-bls-key', '--passphrase-file', tmp_bls_pass_path]))
         public_bls_key = key['public-key']
         bls_file_path = key['encrypted-private-key-path']
-        shard_id = json_load(cli.single_call(f"hmy --node {node_config['endpoint']} utility "
-                                             f"shard-for-bls {public_bls_key}"))["shard-id"]
+        shard_id = json_load(cli.single_call(['hmy', '--node', f'{node_config["endpoint"]}', 'utility',
+                                              'shard-for-bls', public_bls_key]))['shard-id']
         log(f"{Typgpy.OKGREEN}Generated BLS key for shard {shard_id}: {Typgpy.OKBLUE}{public_bls_key}{Typgpy.ENDC}")
         shutil.move(bls_file_path, bls_key_dir)
         _save_protected_file(passphrase, f"{bls_key_dir}/{key['public-key'].replace('0x', '')}.pass")
@@ -240,8 +240,8 @@ def _import_bls(passphrase):
 def _assert_same_shard_bls_keys(public_keys):
     ref_shard = None
     for key in public_keys:
-        shard = json_load(cli.single_call(f"hmy --node {node_config['endpoint']} utility "
-                                          f"shard-for-bls {key}"))["shard-id"]
+        shard = json_load(cli.single_call(['hmy', '--node', f'{node_config["endpoint"]}', 'utility',
+                                           'shard-for-bls', key]))['shard-id']
         if ref_shard is None:
             ref_shard = shard
         assert shard == ref_shard, f"Bls keys {public_keys} are not for same shard, {shard} != {ref_shard}"
@@ -283,8 +283,8 @@ def config(update_cli=False):
     public_bls_keys = _import_bls(bls_passphrase)
     _assert_same_shard_bls_keys(public_bls_keys)
     node_config['public-bls-keys'] = public_bls_keys
-    shard_id = json_load(cli.single_call(f"hmy --node {node_config['endpoint']} utility "
-                                         f"shard-for-bls {public_bls_keys[0]}"))["shard-id"]
+    shard_id = json_load(cli.single_call(['hmy', '--node', f'{node_config["endpoint"]}', 'utility',
+                                          'shard-for-bls', public_bls_keys[0]]))['shard-id']
 
     log("~" * 110)
     log(f"Shard ID: {shard_id}")

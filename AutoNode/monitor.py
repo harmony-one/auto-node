@@ -155,9 +155,9 @@ def _run_monitor(shard_endpoint):
 def _init():
     wait_for_node_response(node_config['endpoint'], sleep=1)
     bls_keys = node_config['public-bls-keys']
-    shard = json_load(cli.single_call(f"hmy utility shard-for-bls {bls_keys[0].replace('0x', '')} "
-                                      f"-n {node_config['endpoint']}"))['shard-id']
-    shard_endpoint = blockchain.get_sharding_structure(endpoint=node_config['endpoint'])[shard]["http"]
+    shard = json_load(cli.single_call(['hmy', 'utility', 'shard-for-bls', bls_keys[0],
+                                       '--node', f'{node_config["endpoint"]}']))['shard-id']
+    shard_endpoint = blockchain.get_sharding_structure(endpoint=node_config['endpoint'])[shard]['http']
     wait_for_node_response(shard_endpoint, sleep=1)
     return shard_endpoint
 

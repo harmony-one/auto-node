@@ -154,8 +154,8 @@ def _get_node_shard(verbose=True):
     key_shards = []
     for bls_key in node_config['public-bls-keys']:
         try:
-            key_shards.append(json.loads(cli.single_call(f"hmy utility shard-for-bls {bls_key.replace('0x', '')} "
-                                                         f"-n {node_config['endpoint']}"))['shard-id'])
+            key_shards.append(json.loads(cli.single_call(['hmy', 'utility', 'shard-for-bls', bls_key,
+                                                          '--node', f'{node_config["endpoint"]}']))['shard-id'])
         except json.decoder.JSONDecodeError as e:
             log(f'{Typgpy.WARNING}[!] Failed to get shard for bls key {bls_key}!{Typgpy.ENDC}')
             key_shards.append(None)

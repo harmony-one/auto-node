@@ -46,9 +46,9 @@ def hard_cleanse():
     for key in keys_on_chain:
         if key not in bls_keys:
             common.log(f"{Typgpy.WARNING}Removing {key}, key not in node's list of BLS keys: {bls_keys}{Typgpy.ENDC}")
-            response = cli.single_call(f"hmy --node {endpoint} staking edit-validator "
-                                       f"--validator-addr {validator_addr} "
-                                       f"--remove-bls-key {key} --passphrase-file {common.saved_wallet_pass_path} ")
+            response = cli.single_call(['hmy', '--node', endpoint, 'staking', 'edit-validator',
+                                        '--validator-addr', validator_addr,
+                                        '--remove-bls-key', key, '--passphrase-file', common.saved_wallet_pass_path])
             common.log(f"{Typgpy.OKGREEN}Edit-validator transaction response: {response}{Typgpy.ENDC}")
             removed_keys.append(key)
 
@@ -58,17 +58,17 @@ def shard_cleanse():
     """
     # WARNING: Assumption that chain BLS keys are not 0x strings
     keys_on_chain = staking.get_validator_information(validator_addr, endpoint=endpoint)['validator']['bls-public-keys']
-    shard = json_load(cli.single_call(f"hmy utility shard-for-bls {list(bls_keys)[0].replace('0x', '')} "
-                                      f"-n {endpoint}"))['shard-id']
+    shard = json_load(cli.single_call(['hmy', 'utility', 'shard-for-bls', list(bls_keys)[0],
+                                       '--node', endpoint]))['shard-id']
     for key in keys_on_chain:
-        key_shard = json_load(cli.single_call(f"hmy utility shard-for-bls {key.replace('0x', '')} "
-                                              f"-n {endpoint}"))['shard-id']
+        key_shard = json_load(cli.single_call(['hmy', 'utility', 'shard-for-bls', key,
+                                               '--node', endpoint]))['shard-id']
         if key_shard != shard and key not in bls_keys:
             common.log(
                 f"{Typgpy.WARNING}Removing {key}, key for shard {key_shard}, node for shard {shard}{Typgpy.ENDC}")
-            response = cli.single_call(f"hmy --node {endpoint} staking edit-validator "
-                                       f"--validator-addr {validator_addr} "
-                                       f"--remove-bls-key {key} --passphrase-file {common.saved_wallet_pass_path} ")
+            response = cli.single_call(['hmy', '--node', endpoint, 'staking', 'edit-validator',
+                                        '--validator-addr', validator_addr,
+                                        '--remove-bls-key', key, '--passphrase-file', common.saved_wallet_pass_path])
             common.log(f"{Typgpy.OKGREEN}Edit-validator transaction response: {response}{Typgpy.ENDC}")
             removed_keys.append(key)
 
@@ -99,16 +99,16 @@ def reward_cleanse():
             key = metric['key']['bls-public-key']
             if key not in bls_keys and key in keys_on_chain:
                 common.log(f"{Typgpy.WARNING}Removing {key}, key earned 0 rewards.{Typgpy.ENDC}")
-                response = cli.single_call(f"hmy --node {endpoint} staking edit-validator "
-                                           f"--validator-addr {validator_addr} "
-                                           f"--remove-bls-key {key} --passphrase-file {common.saved_wallet_pass_path} ")
+                response = cli.single_call(['hmy', '--node', endpoint, 'staking', 'edit-validator',
+                                            '--validator-addr', validator_addr,
+                                            '--remove-bls-key', key, '--passphrase-file', common.saved_wallet_pass_path])
                 common.log(f"{Typgpy.OKGREEN}Edit-validator transaction response: {response}{Typgpy.ENDC}")
                 removed_keys.append(key)
 
 
 if __name__ == "__main__":
     args = parse_args()
-    all_val = json_load(cli.single_call(f"hmy --node {endpoint} blockchain validator all"))["result"]
+    all_val = json_load(cli.single_call(['hmy', 'blockchain', 'validator', 'all', '--node', endpoint]))['result']
     old_logging_handlers = common.logging.getLogger('AutoNode').handlers.copy()
     common.logging.getLogger('AutoNode').addHandler(util.get_simple_rotating_log_handler(node.log_path))
     if validator_addr not in all_val:
