@@ -172,14 +172,14 @@ def verify_node_sync():
     ref_epoch = blockchain.get_current_epoch(endpoint=node_config['endpoint'])
     has_looped = False
     if curr_epoch_shard < ref_epoch or curr_epoch_beacon < ref_epoch:
-        log(f"{Typgpy.OKBLUE}Deactivating validator until node is synced.{Typgpy.ENDC}")
-        try:
-            if is_active_validator():
-                prompt = "Waiting for node sync. Deactivate validator? [Y]/n \n> "
-                if input_with_print(prompt, 'Y' if recover_interaction else None) in {'Y', 'y', 'yes', 'Yes'}:
+        prompt = "Waiting for node to sync. Deactivate validator? [Y]/n \n> "
+        if input_with_print(prompt, 'Y' if _recover_interaction else None) in {'Y', 'y', 'yes', 'Yes'}:
+            log(f"{Typgpy.OKBLUE}Deactivating validator until node is synced.{Typgpy.ENDC}")
+            try:
+                if is_active_validator():
                     deactivate_validator()
-        except (TimeoutError, ConnectionError, RuntimeError, subprocess.CalledProcessError) as e:
-            log(f"{Typgpy.FAIL}Unable to deactivate validator {validator_config['validator-addr']}"
+            except (TimeoutError, ConnectionError, RuntimeError, subprocess.CalledProcessError) as e:
+                log(f"{Typgpy.FAIL}Unable to deactivate validator {validator_config['validator-addr']}"
                 f"error {e}. Continuing...{Typgpy.ENDC}")
     while curr_epoch_shard < ref_epoch or curr_epoch_beacon < ref_epoch:
         sys.stdout.write(f"\rWaiting for node to sync: shard epoch ({curr_epoch_shard}/{ref_epoch}) "
