@@ -175,7 +175,9 @@ def verify_node_sync():
         log(f"{Typgpy.OKBLUE}Deactivating validator until node is synced.{Typgpy.ENDC}")
         try:
             if is_active_validator():
-                deactivate_validator()
+                prompt = "Waiting for node sync. Deactivate validator? [Y]/n \n> "
+                if input_with_print(prompt, 'Y' if recover_interaction else None) in {'Y', 'y', 'yes', 'Yes'}:
+                    deactivate_validator()
         except (TimeoutError, ConnectionError, RuntimeError, subprocess.CalledProcessError) as e:
             log(f"{Typgpy.FAIL}Unable to deactivate validator {validator_config['validator-addr']}"
                 f"error {e}. Continuing...{Typgpy.ENDC}")
