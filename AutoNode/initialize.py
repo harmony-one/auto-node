@@ -6,9 +6,12 @@ import json
 
 from pyhmy import (
     cli,
+    exceptions,
+    json_load,
     Typgpy,
-    json_load
+    validator
 )
+
 from .common import (
     log,
     validator_config,
@@ -30,12 +33,15 @@ from .common import (
     node_dir,
     node_sh_log_dir
 )
+
 from .node import (
     log_path as n_log_path
 )
+
 from .monitor import (
     log_path as m_log_path
 )
+
 from .util import (
     input_with_print
 )
@@ -43,28 +49,53 @@ from .util import (
 
 def _import_validator_address():
     if validator_config["validator-addr"] is None:
-        keys_list = list(sorted(cli.get_accounts_keystore().values()))
-        if not keys_list:
-            log(f"{Typgpy.FAIL}CLI keystore has no wallets.{Typgpy.ENDC}")
-            raise SystemExit("Bad wallet import.")
-        log(f"{Typgpy.HEADER}Keystore Wallet Addresses:{Typgpy.ENDC}")
-        for i, addr in enumerate(keys_list):
-            log(f"{Typgpy.BOLD}{Typgpy.OKBLUE}#{i}{Typgpy.ENDC}\t{Typgpy.OKGREEN}{addr}{Typgpy.ENDC}")
-        log("")
-        index = None
-        while True:
-            try:
-                index = input_with_print(f"{Typgpy.HEADER}Which wallet would you like to use? {Typgpy.ENDC}\n"
-                                         f"> {Typgpy.OKBLUE}#").strip()
-                validator_config["validator-addr"] = keys_list[int(index)]
-                log(f"{Typgpy.HEADER}Using validator {Typgpy.OKGREEN}{keys_list[int(index)]}{Typgpy.ENDC}")
-                break
-            except (IndexError, TypeError, ValueError) as e:
-                log(f"{Typgpy.FAIL}Input `{index}` is not valid, error: {e}{Typgpy.ENDC}")
+        _input_validator_address()
     if validator_config['validator-addr'] not in cli.get_accounts_keystore().values():
         log(f"{Typgpy.FAIL}Cannot create validator, {validator_config['validator-addr']} "
             f"not in shared CLI keystore.{Typgpy.ENDC}")
         raise SystemExit("Bad wallet import or validator config.")
+
+
+def _input_validator_address():
+    keys_list = list(sorted(cli.get_accounts_keystore().values()))
+    if not keys_list:
+        log(f"{Typgpy.FAIL}CLI keystore has no wallets.{Typgpy.ENDC}")
+        raise SystemExit("Bad wallet import.")
+    log(f"{Typgpy.HEADER}Keystore Wallet Addresses:{Typgpy.ENDC}")
+    for i, addr in enumerate(keys_list):
+        log(f"{Typgpy.BOLD}{Typgpy.OKBLUE}#{i}{Typgpy.ENDC}\t{Typgpy.OKGREEN}{addr}{Typgpy.ENDC}")
+    log("")
+    index = None
+    while True:
+        try:
+            index = input_with_print(f"{Typgpy.HEADER}Which wallet would you like to use? {Typgpy.ENDC}\n"
+                                     f"> {Typgpy.OKBLUE}#").strip()
+            validator_config["validator-addr"] = keys_list[int(index)]
+            log(f"{Typgpy.HEADER}Using validator {Typgpy.OKGREEN}{keys_list[int(index)]}{Typgpy.ENDC}")
+            break
+        except (IndexError, TypeError, ValueError) as e:
+            log(f"{Typgpy.FAIL}Input `{index}` is not valid, error: {e}{Typgpy.ENDC}")
+
+
+def _input_validator_field(field_name, set_func):
+    existing = validator_config[field_name]
+    prompt = (f"{Typgpy.HEADER}Enter {field_name}: {'' if not existing else f'({existing})'}{Typgpy.ENDC}\n"
+              f"> {Typgpy.OKBLUE}")
+    while True:
+        try:
+            raw_input = input_with_print(prompt.strip())
+            if raw_input == '':
+                set_func(existing)
+                break
+            else:
+                set_func(raw_input)
+                break
+        except exceptions.InvalidValidatorError as e:
+            log(f"{Typgpy.FAIL}Input `{raw_input}` is not valid, error: {e}{Typgpy.ENDC}")
+
+
+def _display_warning(field_name):
+    log(f'{Typgpy.WARNING}{field_name} can not be changed after creation!{Typgpy.ENDC}')
 
 
 def _bls_filter(file_name, suffix):
@@ -153,8 +184,8 @@ def _import_bls(passphrase):
                 raise SystemExit(f"Unable to protect `{passphrase_file}`, check user ({user}) "
                                  f"permissions on file.")
             try:
-                cli.single_call(f"hmy keys recover-bls-key {bls_key_dir}/{k} "
-                                f"--passphrase-file {passphrase_file}")
+                cli.single_call(['hmy', 'keys', 'recover-bls-key', f'{bls_key_dir}/{k}',
+                                 '--passphrase-file', passphrase_file])
             except RuntimeError as e:
                 log(f"{Typgpy.FAIL}Passphrase file for {k} is not correct. Error: {e}{Typgpy.ENDC}")
                 raise SystemExit("Bad BLS import")
@@ -168,8 +199,8 @@ def _import_bls(passphrase):
             time.sleep(3)  # Sleep so user can read message
         for k in bls_keys:
             try:
-                cli.single_call(f"hmy keys recover-bls-key {bls_key_dir}/{k} "
-                                f"--passphrase-file {tmp_bls_pass_path}")
+                cli.single_call(['hmy', 'keys', 'recover-bls-key', f'{bls_key_dir}/{k}',
+                                 '--passphrase-file', tmp_bls_pass_path])
             except RuntimeError as e:
                 log(f"{Typgpy.FAIL}Passphrase for {k} is not correct. Error: {e}{Typgpy.ENDC}")
                 raise SystemExit("Bad BLS import")
@@ -179,10 +210,10 @@ def _import_bls(passphrase):
     elif node_config['shard'] is not None:
         assert isinstance(node_config['shard'], int), f"shard: {node_config['shard']} is not an integer."
         while True:
-            key = json_load(cli.single_call(f"hmy keys generate-bls-key --passphrase-file {tmp_bls_pass_path}"))
+            key = json_load(cli.single_call(['hmy', 'keys', 'generate-bls-key', '--passphrase-file', tmp_bls_pass_path]))
             public_bls_key, bls_file_path = key['public-key'], key['encrypted-private-key-path']
-            shard_id = json_load(cli.single_call(f"hmy --node {node_config['endpoint']} utility "
-                                                 f"shard-for-bls {public_bls_key}"))["shard-id"]
+            shard_id = json_load(cli.single_call(['hmy', '--node', f'{node_config["endpoint"]}', 'utility',
+                                                  'shard-for-bls', public_bls_key]))['shard-id']
             if int(shard_id) != node_config['shard']:
                 os.remove(bls_file_path)
             else:
@@ -194,11 +225,11 @@ def _import_bls(passphrase):
         os.remove(tmp_bls_pass_path)
         return [public_bls_key]
     else:
-        key = json_load(cli.single_call(f"hmy keys generate-bls-key --passphrase-file {tmp_bls_pass_path}"))
+        key = json_load(cli.single_call(['hmy', 'keys', 'generate-bls-key', '--passphrase-file', tmp_bls_pass_path]))
         public_bls_key = key['public-key']
         bls_file_path = key['encrypted-private-key-path']
-        shard_id = json_load(cli.single_call(f"hmy --node {node_config['endpoint']} utility "
-                                             f"shard-for-bls {public_bls_key}"))["shard-id"]
+        shard_id = json_load(cli.single_call(['hmy', '--node', f'{node_config["endpoint"]}', 'utility',
+                                              'shard-for-bls', public_bls_key]))['shard-id']
         log(f"{Typgpy.OKGREEN}Generated BLS key for shard {shard_id}: {Typgpy.OKBLUE}{public_bls_key}{Typgpy.ENDC}")
         shutil.move(bls_file_path, bls_key_dir)
         _save_protected_file(passphrase, f"{bls_key_dir}/{key['public-key'].replace('0x', '')}.pass")
@@ -209,8 +240,8 @@ def _import_bls(passphrase):
 def _assert_same_shard_bls_keys(public_keys):
     ref_shard = None
     for key in public_keys:
-        shard = json_load(cli.single_call(f"hmy --node {node_config['endpoint']} utility "
-                                          f"shard-for-bls {key}"))["shard-id"]
+        shard = json_load(cli.single_call(['hmy', '--node', f'{node_config["endpoint"]}', 'utility',
+                                           'shard-for-bls', key]))['shard-id']
         if ref_shard is None:
             ref_shard = shard
         assert shard == ref_shard, f"Bls keys {public_keys} are not for same shard, {shard} != {ref_shard}"
@@ -245,15 +276,15 @@ def config(update_cli=False):
     cli.download(cli_bin_path, replace=update_cli)
 
     if not node_config['no-validator']:
-        _import_validator_address()
+        interactive_setup_validator()
         wallet_passphrase = _import_wallet_passphrase()
         _save_protected_file(wallet_passphrase, saved_wallet_pass_path)
     bls_passphrase = _import_bls_passphrase()
     public_bls_keys = _import_bls(bls_passphrase)
     _assert_same_shard_bls_keys(public_bls_keys)
     node_config['public-bls-keys'] = public_bls_keys
-    shard_id = json_load(cli.single_call(f"hmy --node {node_config['endpoint']} utility "
-                                         f"shard-for-bls {public_bls_keys[0]}"))["shard-id"]
+    shard_id = json_load(cli.single_call(['hmy', '--node', f'{node_config["endpoint"]}', 'utility',
+                                          'shard-for-bls', public_bls_keys[0]]))['shard-id']
 
     log("~" * 110)
     log(f"Shard ID: {shard_id}")
@@ -262,3 +293,34 @@ def config(update_cli=False):
     log(f"Saved Node Information: {json.dumps(node_config, indent=4)}")
     save_node_config()
     log("~" * 110)
+
+
+def interactive_setup_validator():
+    """
+    Interactively take validator information, always ask for all fields
+    """
+    if not validator_config['validator-addr']:
+        _input_validator_address()
+
+    v = validator.Validator(validator_config['validator-addr'])
+
+    _input_validator_field('name', v.set_name)
+    _input_validator_field('website', v.set_website)
+    _input_validator_field('security-contact', v.set_security_contact)
+    _input_validator_field('identity', v.set_identity)
+    _input_validator_field('details', v.set_details)
+
+    _input_validator_field('min-self-delegation', v.set_min_self_delegation)
+    _input_validator_field('max-total-delegation', v.set_max_total_delegation)
+    _input_validator_field('amount', v.set_amount)
+
+    _display_warning('max-rate')
+    _input_validator_field('max-rate', v.set_max_rate)
+    _display_warning('max-change-rate')
+    _input_validator_field('max-change-rate', v.set_max_change_rate)
+
+    _input_validator_field('rate', v.set_rate)
+
+    verified_info = v.export()
+    for key, value in verified_info.items():
+        validator_config[key] = str(value)

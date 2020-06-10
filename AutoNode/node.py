@@ -1,6 +1,7 @@
 import os
 import stat
 import subprocess
+import glob
 import json
 import time
 import shutil
@@ -8,8 +9,12 @@ import logging
 
 import requests
 
+import pyhmy.rpc.exceptions as rpc_exception
 from pyhmy import (
-    Typgpy,
+    blockchain,
+    cli,
+    json_load,
+    Typgpy
 )
 
 from .common import (
@@ -20,11 +25,9 @@ from .common import (
     node_dir,
     bls_key_dir,
     sync_dir_map,
-    harmony_dir,
+    harmony_dir
 )
-from .blockchain import (
-    get_latest_header,
-)
+
 from .util import (
     input_with_print,
     get_simple_rotating_log_handler
@@ -32,13 +35,10 @@ from .util import (
 
 node_sh_out_path = f"{node_sh_log_dir}/out.log"
 node_sh_err_path = f"{node_sh_log_dir}/err.log"
-node_sh_rclone_err_path = f"{node_sh_log_dir}/rclone_err.log"
-node_sh_rclone_out_path = f"{node_sh_log_dir}/rclone_out.log"
 
 log_path = f"{harmony_dir}/autonode_node.log"
 
-
-# TODO: add logic to check for repeated node restarts and/or add logic for checking for latest version of binary.
+rclone_space_buffer = 5 * 2**30  # 5GB in bytes
 
 
 def _node_clean(verbose=True):
@@ -62,24 +62,105 @@ def _node_clean(verbose=True):
         raise SystemExit(e)
 
 
-def _rclone_s0(verbose=True):
-    db_0_dir = f"{node_dir}/harmony_db_0"
+def _rclone(rclone_sync_dir, shard, verbose=True):
+    db_dir = f"{node_dir}/harmony_db_{shard}"
+    node_sh_rclone_err_path = f"{node_sh_log_dir}/rclone_err_{shard}.log"
+    node_sh_rclone_out_path = f"{node_sh_log_dir}/rclone_out_{shard}.log"
+
     try:
+        rclone_path = f'hmy://pub.harmony.one/{rclone_sync_dir}/harmony_db_{shard}'
         if verbose:
-            log(f"{Typgpy.WARNING}[!] rclone harmony_db_0 in progress...{Typgpy.ENDC}")
-        rclone_sync_dir = sync_dir_map[node_config['network']]
+            log(f"{Typgpy.WARNING}rclone harmony_db_{shard} from {rclone_path} in progress...{Typgpy.ENDC}")
         with open(node_sh_rclone_out_path, 'w') as fo:
             with open(node_sh_rclone_err_path, 'w') as fe:
-                subprocess.check_call(f"rclone sync -P hmy://pub.harmony.one/{rclone_sync_dir}/harmony_db_0 {db_0_dir}",
-                                      shell=True, env=os.environ, stdout=fo, stderr=fe)
+                return subprocess.Popen(['rclone', 'sync', '-P', rclone_path, db_dir],
+                                        env=os.environ, stdout=fo, stderr=fe)
+    except OSError as e:
         if verbose:
-            log(f"{Typgpy.OKGREEN}[!] rclone done!{Typgpy.ENDC}")
-    except (subprocess.CalledProcessError, KeyError) as e:
+            log(f"{Typgpy.FAIL}Failed to rclone shard {shard} db, error {e}{Typgpy.ENDC}")
+            log(f"{Typgpy.WARNING}Removing shard {shard} db if it exists{Typgpy.ENDC}")
+            if os.path.isdir(db_dir):
+                shutil.rmtree(db_dir)
+
+
+def _rclone_space_required(rclone_sync_dir, shard, verbose=True):
+    rclone_path = f'hmy://pub.harmony.one/{rclone_sync_dir}/harmony_db_{shard}'
+    try:
+        space_output = subprocess.check_output(['rclone', 'size', rclone_path, '--json'], env=os.environ)
+        return int(json.loads(space_output.decode('utf8'))['bytes'])
+    except (subprocess.CalledProcessError, json.decoder.JSONDecodeError, KeyError) as e:
+        log(f"{Typgpy.WARNING}Failed to get rclone db size requirement, error {e}{Typgpy.ENDC}")
+        return 0
+
+def _rclone_db(shard, verbose=True):
+    rclone_sync_dir = sync_dir_map[node_config['network']]
+    if node_config['network'] == 'mainnet' and not node_config['archival']:
+        rclone_sync_dir = rclone_sync_dir + '.min'
+
+    _, _, free_space = shutil.disk_usage(os.environ['HOME'])
+    free_space = free_space + rclone_space_buffer
+
+    rclone_processes = []
+    if shard == 0:
+        required_space = _rclone_space_required(rclone_sync_dir, shard, verbose=verbose)
+        if required_space == 0:
+            log(f"{Typgpy.WARNING}Fast-sync db not available.\n"
+                f"Skipping rclone shard {shard}...{Typgpy.ENDC}")
+            return
+        if required_space > free_space:
+            log(f"{Typgpy.WARNING}[!] Insufficient disk space. Required: {required_space}, Free: {free_space} \n"
+                f"Skipping fast sync...{Typgpy.ENDC}")
+            log(f"{Typgpy.WARNING}[!] Suggest increasing disk space before running node!{Typgpy.ENDC}")
+            return
+        rclone_processes.append(_rclone(rclone_sync_dir, shard, verbose=verbose))
+    else:
+        required_beacon_space = _rclone_space_required(rclone_sync_dir, 0, verbose=verbose)
+        required_shard_space = _rclone_space_required(rclone_sync_dir, shard, verbose=verbose)
+        total_required_space = required_beacon_space + required_shard_space
+        if total_required_space > free_space:
+            log(f"{Typgpy.WARNING}[!] Insufficient disk space. Required: {total_required_space}, Free: {free_space} \n"
+                f"Skipping fast sync...{Typgpy.ENDC}")
+            log(f"{Typgpy.WARNING}[!] Suggest increasing disk space before running node!{Typgpy.ENDC}")
+            return
+        if required_beacon_space == 0:
+            log(f"{Typgpy.WARNING}Fast-sync db not available.\n"
+                f"Skipping rclone shard 0...{Typgpy.ENDC}")
+        else:
+            rclone_processes.append(_rclone(rclone_sync_dir, 0, verbose=verbose))
+        if required_shard_space == 0:
+            log(f"{Typgpy.WARNING}Fast-sync db not available.\n"
+                f"Skipping rclone shard {shard}...{Typgpy.ENDC}")
+        else:
+            rclone_processes.append(_rclone(rclone_sync_dir, shard, verbose=verbose))
+
+    for p in rclone_processes:
+        p.wait()
+
+    if all(p.returncode == 0 for p in rclone_processes):
         if verbose:
-            log(f"{Typgpy.FAIL}Failed to rclone shard 0 db, error {e}{Typgpy.ENDC}")
-            log(f"{Typgpy.WARNING}Removing shard 0 db if it exists{Typgpy.ENDC}")
-            if os.path.isdir(db_0_dir):
-                shutil.rmtree(db_0_dir)
+            log(f"{Typgpy.OKGREEN}rclone done!{Typgpy.ENDC}")
+    else:
+        failed_db_list = glob.glob(os.path.join(node_dir, 'harmony_db_*'))
+        for db in failed_db_list:
+            db_shard = os.path.basename(db).split('_')[-1]
+            log(f'{Typgpy.FAIL}[!] Failed to rclone shard {db_shard} db.{Typgpy.ENDC}')
+            log(f'{Typgpy.WARNING}Check {os.path.join(node_sh_log_dir, f"rclone_err_{db_shard}.log")}\n'
+                f'Removing {db}.{Typgpy.ENDC}')
+            shutil.rmtree(db)
+        raise SystemExit('Fast sync failed.')
+
+
+def _get_node_shard(verbose=True):
+    key_shards = []
+    for bls_key in node_config['public-bls-keys']:
+        try:
+            key_shards.append(json.loads(cli.single_call(['hmy', 'utility', 'shard-for-bls', bls_key,
+                                                          '--node', f'{node_config["endpoint"]}']))['shard-id'])
+        except json.decoder.JSONDecodeError as e:
+            log(f'{Typgpy.WARNING}[!] Failed to get shard for bls key {bls_key}!{Typgpy.ENDC}')
+            key_shards.append(None)
+    if len(set(key_shards)) == 1:
+        return key_shards[0]
 
 
 def start(auto=False, verbose=True):
@@ -108,13 +189,35 @@ def start(auto=False, verbose=True):
     node_args = ["./node.sh", "-N", node_config["network"], "-z", "-f", bls_key_dir, "-M", "-S"]
     if node_config['clean'] and node_config['network'] != 'mainnet':
         if verbose:
-            log(f"{Typgpy.WARNING}[!] Starting node with clean mode.{Typgpy.ENDC}")
+            log(f"{Typgpy.WARNING}[!] Cleaning up old files before starting node.{Typgpy.ENDC}")
         _node_clean(verbose=verbose)
-        _rclone_s0(verbose=verbose)
+    if node_config['fast-sync']:
+        if verbose:
+            log(f'{Typgpy.WARNING}[!] Fast syncing before starting node.{Typgpy.ENDC}')
+        shard = _get_node_shard(verbose=verbose)
+        if shard:
+            _rclone_db(shard, verbose=verbose)
+        else:
+            log(f'{Typgpy.WARNING}[!] Unable to determine node shard.\n'
+                f'Skipping fast sync...{Typgpy.ENDC}')
     if node_config['archival']:
         if verbose:
-            log(f"{Typgpy.WARNING}[!] Starting in archival mode.{Typgpy.ENDC}")
+            log(f"{Typgpy.WARNING}[!] Starting node in archival mode.{Typgpy.ENDC}")
         node_args.append("-A")
+    if node_config['no-download']:
+        harmony_binary = os.path.realpath(os.path.join(node_dir, 'harmony'))
+        if os.path.exists(harmony_binary):
+            if 'static' in subprocess.check_output(['file', harmony_binary], env=os.environ).decode('utf8'):
+                if verbose:
+                    log(f"{Typgpy.WARNING}[!] Starting node with existing harmony binary.{Typgpy.ENDC}")
+                node_args.append("-D")
+            else:
+                log(f"{Typgpy.WARNING}[!] Provided harmony binary is not statically linked. "
+                    f"Path: {harmony_binary}{Typgpy.ENDC}")
+                raise SystemExit(f"Harmony binary not statically linked. Path: {harmony_binary}")
+        else:
+            if verbose:
+                log(f"{Typgpy.WARNING}[!] Starting node with released harmony binary.{Typgpy.ENDC}")
     with open(node_sh_out_path, 'w') as fo:
         with open(node_sh_err_path, 'w') as fe:
             if verbose:
@@ -129,10 +232,10 @@ def wait_for_node_response(endpoint, verbose=True, tries=float("inf"), sleep=0.5
     while True:
         count += 1
         try:
-            get_latest_header(endpoint)
+            blockchain.get_latest_header(endpoint=endpoint)
             break
-        except (json.decoder.JSONDecodeError, requests.exceptions.ConnectionError,
-                RuntimeError, KeyError, AttributeError):
+        except (rpc_exception.RequestsError, rpc_exception.RequestsTimeoutError,
+                rpc_exception.RPCError):
             if count > tries:
                 raise TimeoutError(f"{endpoint} did not respond in {count} attempts (~{sleep * count} seconds)")
             if verbose and count % 10 == 0:

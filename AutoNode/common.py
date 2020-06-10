@@ -4,6 +4,8 @@ import logging
 import os
 import getpass
 
+from decimal import Decimal
+
 from pyhmy import Typgpy
 
 user = getpass.getuser()
@@ -19,8 +21,8 @@ saved_node_path = f"{harmony_dir}/.saved_config"
 saved_wallet_pass_path = f"{harmony_dir}/.wallet_pass"
 tui_path = f"{harmony_dir}/tui"
 
-node_script_source = "https://harmony.one/master/node.sh"
-tui_source = "http://pub.harmony.one.s3.amazonaws.com/release/linux-x86_64/pangaea/static/harmony-tui"
+node_script_source = "https://harmony.one/node.sh"
+tui_source = "http://pub.harmony.one.s3.amazonaws.com/release/linux-x86_64/mainnet/static/harmony-tui"
 
 default_cli_passphrase = ""
 bls_key_len = 96
@@ -29,26 +31,27 @@ check_interval = 8  # Estimated block time
 
 msg_tag = "[AutoNode]"
 
+# TODO: Keybase integration for identity
 _validator_config_default = {
     "validator-addr": None,
-    "name": "Harmony AutoNode Default Name",
-    "website": "harmony.one",
-    "security-contact": "daniel@harmony.one",
-    "identity": f"AutoNode-{hash(os.urandom(42))}",
-    "amount": 10100,
-    "min-self-delegation": 10000,
-    "rate": 0.1,
-    "max-rate": 0.75,
-    "max-change-rate": 0.05,
-    "max-total-delegation": 100000000.0,
-    "details": "Harmony AutoNode default details",
-    "gas-price": 1
+    "name": None,
+    "website": None,
+    "security-contact": None,
+    "identity": None,
+    "amount": None,
+    "min-self-delegation": None,
+    "rate": None,
+    "max-rate": None,
+    "max-change-rate": None,
+    "max-total-delegation": None,
+    "details": None,
+    "gas-price": ""
 }
 validator_config = _validator_config_default.copy()
 
 _node_config_default = {
-    "endpoint": "https://api.s0.os.hmny.io/",
-    "network": "staking",
+    "endpoint": "https://api.s0.b.hmny.io/",
+    "network": "testnet",
     "clean": False,
     "duration": None,
     "shard": None,
@@ -56,6 +59,8 @@ _node_config_default = {
     "auto-active": False,
     "no-validator": False,
     "archival": False,
+    "no-download": False,
+    "fast-sync": False,
     "public-bls-keys": []
 }
 node_config = _node_config_default.copy()
@@ -64,8 +69,8 @@ sync_dir_map = {
     "staking": "ostn",
     "partner": "pstn",
     "stress": "stn",
-    "devnet": "devnet",
-    "mainnet": "mainnet.min"
+    "testnet": "testnet",
+    "mainnet": "mainnet"
 }
 
 
