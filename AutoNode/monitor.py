@@ -112,12 +112,9 @@ def _run_monitor(shard_endpoint):
     3) Block 1 hashes dont match (on shard)
     4) Node unable to boot 5 mins after rclone (last resort clean)
     """
-    start_time = time.time()
     _wait_for_node_block_two()
-    curr_time = time.time()
-    duration = node_config['duration'] if node_config['duration'] else float("inf")
     count = 0
-    while curr_time - start_time < duration:
+    while True:
         if node_config["auto-reset"]:
             if subprocess.call("sudo -n true", shell=True, env=os.environ) != 0:
                 log(f"{Typgpy.WARNING}User {user} does not have sudo access without passphrase. "
@@ -149,7 +146,6 @@ def _run_monitor(shard_endpoint):
             f"{Typgpy.OKGREEN}{json.dumps(blockchain.get_latest_headers(), indent=4)}"
             f"{Typgpy.ENDC}")
         time.sleep(check_interval)
-        curr_time = time.time()
 
 
 def _init():

@@ -53,7 +53,6 @@ _node_config_default = {
     "endpoint": "https://api.s0.b.hmny.io/",
     "network": "testnet",
     "clean": False,
-    "duration": None,
     "shard": None,
     "auto-reset": False,
     "auto-active": False,

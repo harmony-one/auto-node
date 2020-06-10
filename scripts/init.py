@@ -33,8 +33,6 @@ def parse_args():
     parser.add_argument("--network", help="Network to connect to (mainnet, testnet).\n  "
                                           "Default: 'testnet'.", type=str, default='testnet',
                         choices=['mainnet', 'testnet', 'partner', 'stress', 'staking'])
-    parser.add_argument("--duration", type=int, help="Duration of how long the node is to run in seconds.\n  "
-                                                     "Default is forever.", default=None)
     parser.add_argument("--beacon-endpoint", dest="endpoint", type=str, default="https://api.s0.b.hmny.io/",
                         help=f"Beacon chain (shard 0) endpoint for staking transactions.\n  "
                              f"Default is https://api.s0.b.hmny.io/")
@@ -69,7 +67,6 @@ if __name__ == "__main__":
         "endpoint": args.endpoint,
         "network": args.network,
         "clean": args.clean,
-        "duration": args.duration,
         "shard": args.shard,
         "auto-reset": args.auto_reset,
         "auto-active": args.auto_active,

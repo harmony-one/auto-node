@@ -136,8 +136,6 @@ optional arguments:
                           Only used if no BLS keys are not provided.
   --network NETWORK     Network to connect to (staking, partner, stress).
                           Default: 'staking'.
-  --duration DURATION   Duration of how long the node is to run in seconds.
-                          Default is forever.
   --beacon-endpoint ENDPOINT
                         Beacon chain (shard 0) endpoint for staking transactions.
                           Default is https://api.s0.os.hmny.io/
