@@ -59,14 +59,16 @@ def check_min_bal_on_s0(address, amount, endpoint=node_config['endpoint'], timeo
             return bal['amount'] >= amount
 
 
-def get_simple_rotating_log_handler(log_file_path):
+def get_simple_rotating_log_handler(log_file_path, max_size=5*1024*1024):
     """
     A simple log handler with no level support.
     Used purely for the output rotation.
+
+    `max_size` of log file is in bytes.
     """
     log_formatter = logging.Formatter(f'{msg_tag} %(message)s')
-    handler = logging.handlers.TimedRotatingFileHandler(log_file_path, when='h', interval=1,
-                                                        backupCount=5, encoding='utf8')
+    handler = logging.handlers.RotatingFileHandler(log_file_path, mode='a', maxBytes=max_size,
+                                                   backupCount=5, encoding=None, delay=0)
     handler.setLevel(logging.DEBUG)
     handler.setFormatter(log_formatter)
     handler.rotator = _GZipRotator()
