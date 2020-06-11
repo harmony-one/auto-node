@@ -81,7 +81,7 @@ def reward_cleanse():
     if val_metrics is None:
         common.log(f"{Typgpy.WARNING}Can not get current BLS key performance, "
                    f"validator ({validator_addr}) is not elected.{Typgpy.ENDC}")
-        if args.yes or util.input_with_print(f"Wait for election? [Y]/n\n> ") in {'Y', 'y', 'yes', 'Yes'}:
+        if args.yes or util.input_with_print(f"Wait for election? [Y]/n\n> ").lower() in {'y', 'yes'}:
             while val_metrics is None:
                 time.sleep(8)
                 val_metrics = staking.get_validator_information(validator_addr, endpoint=endpoint)['metrics']

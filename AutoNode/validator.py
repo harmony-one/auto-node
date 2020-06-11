@@ -173,7 +173,7 @@ def verify_node_sync():
     has_looped = False
     if curr_epoch_shard < ref_epoch or curr_epoch_beacon < ref_epoch:
         prompt = "Waiting for node to sync. Deactivate validator? [Y]/n \n> "
-        if input_with_print(prompt, 'Y' if _hard_reset_recovery else None) in {'Y', 'y', 'yes', 'Yes'}:
+        if input_with_print(prompt, 'Y' if _hard_reset_recovery else None).lower() in {'y', 'yes'}:
             log(f"{Typgpy.OKBLUE}Deactivating validator until node is synced.{Typgpy.ENDC}")
             try:
                 if is_active_validator():
@@ -330,12 +330,12 @@ def setup(hard_reset_recovery=False):
                 log(f"{Typgpy.OKBLUE}{Typgpy.BOLD}No BLS key(s) to add to validator!{Typgpy.ENDC}")
             else:
                 prompt = "Add BLS key(s) to existing validator? [Y]/n \n> "
-                if input_with_print(prompt, 'Y' if hard_reset_recovery else None) in {'Y', 'y', 'yes', 'Yes'}:
+                if input_with_print(prompt, 'Y' if hard_reset_recovery else None).lower() in {'y', 'yes'}:
                     log(f"{Typgpy.HEADER}{Typgpy.BOLD}Editing validator...{Typgpy.ENDC}")
                     _add_bls_key_to_validator()
         elif validator_config['validator-addr'] not in all_val_address:
             prompt = "Create validator? [Y]/n \n> "
-            if input_with_print(prompt, 'Y' if hard_reset_recovery else None) in {'Y', 'y', 'yes', 'Yes'}:
+            if input_with_print(prompt, 'Y' if hard_reset_recovery else None).lower() in {'y', 'yes'}:
                 log(f"{Typgpy.HEADER}{Typgpy.BOLD}Creating new validator...{Typgpy.ENDC}")
                 _create_new_validator()
         else:

@@ -82,6 +82,7 @@ def _input_validator_field(field_name, set_func):
     prompt = (f"{Typgpy.HEADER}Enter {field_name}: {'' if not existing else f'({existing})'}{Typgpy.ENDC}\n"
               f"> {Typgpy.OKBLUE}")
     while True:
+        raw_input = None
         try:
             raw_input = input_with_print(prompt.strip())
             if raw_input == '':
@@ -91,7 +92,8 @@ def _input_validator_field(field_name, set_func):
                 set_func(raw_input)
                 break
         except exceptions.InvalidValidatorError as e:
-            log(f"{Typgpy.FAIL}Input `{raw_input}` is not valid, error: {e}{Typgpy.ENDC}")
+            if raw_input is not None:
+                log(f"{Typgpy.FAIL}Input `{raw_input}` is not valid, error: {e}{Typgpy.ENDC}")
 
 
 def _display_warning(field_name):
@@ -303,23 +305,27 @@ def interactive_setup_validator():
         _input_validator_address()
 
     v = validator.Validator(validator_config['validator-addr'])
+    update_validator = True
 
-    _input_validator_field('name', v.set_name)
-    _input_validator_field('website', v.set_website)
-    _input_validator_field('security-contact', v.set_security_contact)
-    _input_validator_field('identity', v.set_identity)
-    _input_validator_field('details', v.set_details)
+    if all(el is not None for el in validator_config.values()):
+        log(f"{Typgpy.HEADER}Validator Config:{Typgpy.ENDC} {json.dumps(validator_config, indent=2)}")
+        if input_with_print("Update validator? [Y]/n\n> ").lower() not in {'y', 'yes'}:
+            update_validator = False
 
-    _input_validator_field('min-self-delegation', v.set_min_self_delegation)
-    _input_validator_field('max-total-delegation', v.set_max_total_delegation)
-    _input_validator_field('amount', v.set_amount)
-
-    _display_warning('max-rate')
-    _input_validator_field('max-rate', v.set_max_rate)
-    _display_warning('max-change-rate')
-    _input_validator_field('max-change-rate', v.set_max_change_rate)
-
-    _input_validator_field('rate', v.set_rate)
+    if update_validator:
+        _input_validator_field('name', v.set_name)
+        _input_validator_field('website', v.set_website)
+        _input_validator_field('security-contact', v.set_security_contact)
+        _input_validator_field('identity', v.set_identity)
+        _input_validator_field('details', v.set_details)
+        _input_validator_field('min-self-delegation', v.set_min_self_delegation)
+        _input_validator_field('max-total-delegation', v.set_max_total_delegation)
+        _input_validator_field('amount', v.set_amount)
+        _display_warning('max-rate')
+        _input_validator_field('max-rate', v.set_max_rate)
+        _display_warning('max-change-rate')
+        _input_validator_field('max-change-rate', v.set_max_change_rate)
+        _input_validator_field('rate', v.set_rate)
 
     verified_info = v.export()
     for key, value in verified_info.items():
