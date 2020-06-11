@@ -11,7 +11,6 @@ import json
 import logging
 import subprocess
 import traceback
-import requests
 
 from decimal import Decimal
 
@@ -19,7 +18,8 @@ from pyhmy import (
     blockchain,
     cli,
     staking,
-    Typgpy
+    Typgpy,
+    exceptions
 )
 
 from .common import (
@@ -158,7 +158,7 @@ def is_active_validator():
         val_chain_info = staking.get_validator_information(validator_config["validator-addr"],
                                                            endpoint=node_config['endpoint'])
         return val_chain_info['active-status'] == 'active'
-    except (ConnectionError, requests.exceptions.RequestException, TimeoutError) as e:
+    except (exceptions.RPCError, exceptions.RequestsError, exceptions.RequestsTimeoutError) as e:
         log(f"{Typgpy.WARNING}Could not fetch validator active status, error: {e}{Typgpy.ENDC}")
         return False
 

@@ -12,6 +12,7 @@ from pyhmy import (
     json_load,
     staking,
     Typgpy,
+    exceptions
 )
 
 from .common import (
@@ -90,38 +91,43 @@ def _run_monitor(shard_endpoint, duration=50):
     """
     activate_count, start_time = 0, time.time()
     while time.time() - start_time < duration:
-        if node_config["auto-reset"]:
-            if subprocess.call("sudo -n true", shell=True, env=os.environ) != 0:
-                log(f"{Typgpy.WARNING}User {user} does not have sudo access without passphrase. "
-                    f"Cannot trigger auto-reset if there is a hard reset (on testnet).{Typgpy.ENDC}")
-            _check_for_hard_reset(shard_endpoint)
-        log(f"{Typgpy.HEADER}Validator address: {Typgpy.OKGREEN}{validator_config['validator-addr']}{Typgpy.ENDC}")
-        meta_data = blockchain.get_node_metadata('http://localhost:9500')
-        log(f"{Typgpy.HEADER}Node BLS keys: {Typgpy.OKGREEN}{meta_data['blskey']}{Typgpy.ENDC}")
-        log(f"{Typgpy.HEADER}Node version: {Typgpy.OKGREEN}{meta_data['version']}{Typgpy.ENDC}")
-        log(f"{Typgpy.HEADER}Node network: {Typgpy.OKGREEN}{meta_data['network']}{Typgpy.ENDC}")
-        log(f"{Typgpy.HEADER}Node is leader: {Typgpy.OKGREEN}{meta_data['is-leader']}{Typgpy.ENDC}")
-        log(f"{Typgpy.HEADER}Node is archival: {Typgpy.OKGREEN}{meta_data['is-archival']}{Typgpy.ENDC}")
-        log(f"{Typgpy.HEADER}Node shard: {Typgpy.OKGREEN}{meta_data['shard-id']}{Typgpy.ENDC}")
-        log(f"{Typgpy.HEADER}Node role: {Typgpy.OKGREEN}{meta_data['role']}{Typgpy.ENDC}")
-        all_val = staking.get_all_validator_addresses(endpoint=node_config['endpoint'])
-        if validator_config["validator-addr"] in all_val:
-            val_chain_info = staking.get_validator_information(validator_config["validator-addr"],
-                                                               endpoint=node_config['endpoint'])
-            log(f"{Typgpy.HEADER}EPOS status: {Typgpy.OKGREEN}{val_chain_info['epos-status']}{Typgpy.ENDC}")
-            log(f"{Typgpy.HEADER}Booted status: {Typgpy.OKGREEN}{val_chain_info['booted-status']}{Typgpy.ENDC}")
-            log(f"{Typgpy.HEADER}Current epoch performance: {Typgpy.OKGREEN}"
-                f"{json.dumps(val_chain_info['current-epoch-performance'], indent=4)}{Typgpy.ENDC}")
-            if node_config["auto-active"]:
-                if check_and_activate():
-                    activate_count += 1
-                log(f"{Typgpy.HEADER}Auto activation count: {Typgpy.OKGREEN}{activate_count}{Typgpy.ENDC}")
-        elif not node_config["no-validator"]:
-            log(f"{Typgpy.WARNING}{validator_config['validator-addr']} is not a validator.{Typgpy.ENDC}")
-        log(f"{Typgpy.HEADER}This node's latest header at {datetime.datetime.utcnow()}: "
-            f"{Typgpy.OKGREEN}{json.dumps(blockchain.get_latest_headers(), indent=4)}"
-            f"{Typgpy.ENDC}")
-        time.sleep(check_interval)
+        try:
+            if node_config["auto-reset"]:
+                if subprocess.call("sudo -n true", shell=True, env=os.environ) != 0:
+                    log(f"{Typgpy.WARNING}User {user} does not have sudo access without passphrase. "
+                        f"Cannot trigger auto-reset if there is a hard reset (on testnet).{Typgpy.ENDC}")
+                _check_for_hard_reset(shard_endpoint)
+            log(f"{Typgpy.HEADER}Validator address: {Typgpy.OKGREEN}{validator_config['validator-addr']}{Typgpy.ENDC}")
+            meta_data = blockchain.get_node_metadata('http://localhost:9500/')
+            log(f"{Typgpy.HEADER}Node BLS keys: {Typgpy.OKGREEN}{meta_data['blskey']}{Typgpy.ENDC}")
+            log(f"{Typgpy.HEADER}Node version: {Typgpy.OKGREEN}{meta_data['version']}{Typgpy.ENDC}")
+            log(f"{Typgpy.HEADER}Node network: {Typgpy.OKGREEN}{meta_data['network']}{Typgpy.ENDC}")
+            log(f"{Typgpy.HEADER}Node is leader: {Typgpy.OKGREEN}{meta_data['is-leader']}{Typgpy.ENDC}")
+            log(f"{Typgpy.HEADER}Node is archival: {Typgpy.OKGREEN}{meta_data['is-archival']}{Typgpy.ENDC}")
+            log(f"{Typgpy.HEADER}Node shard: {Typgpy.OKGREEN}{meta_data['shard-id']}{Typgpy.ENDC}")
+            log(f"{Typgpy.HEADER}Node role: {Typgpy.OKGREEN}{meta_data['role']}{Typgpy.ENDC}")
+            all_val = staking.get_all_validator_addresses(endpoint=node_config['endpoint'])
+            if validator_config["validator-addr"] in all_val:
+                val_chain_info = staking.get_validator_information(validator_config["validator-addr"],
+                                                                   endpoint=node_config['endpoint'])
+                log(f"{Typgpy.HEADER}EPOS status: {Typgpy.OKGREEN}{val_chain_info['epos-status']}{Typgpy.ENDC}")
+                log(f"{Typgpy.HEADER}Booted status: {Typgpy.OKGREEN}{val_chain_info['booted-status']}{Typgpy.ENDC}")
+                log(f"{Typgpy.HEADER}Current epoch performance: {Typgpy.OKGREEN}"
+                    f"{json.dumps(val_chain_info['current-epoch-performance'], indent=4)}{Typgpy.ENDC}")
+                if node_config["auto-active"]:
+                    if check_and_activate():
+                        activate_count += 1
+                    log(f"{Typgpy.HEADER}Auto activation count: {Typgpy.OKGREEN}{activate_count}{Typgpy.ENDC}")
+            elif not node_config["no-validator"]:
+                log(f"{Typgpy.WARNING}{validator_config['validator-addr']} is not a validator.{Typgpy.ENDC}")
+            log(f"{Typgpy.HEADER}This node's latest header at {datetime.datetime.utcnow()}: "
+                f"{Typgpy.OKGREEN}{json.dumps(blockchain.get_latest_headers(), indent=4)}"
+                f"{Typgpy.ENDC}")
+        except (exceptions.RPCError, exceptions.RequestsError, exceptions.RequestsTimeoutError) as e:
+            log(f"{Typgpy.WARNING}RPC exception {e}{Typgpy.ENDC}")
+            log(f"{Typgpy.WARNING}Continuing...{Typgpy.ENDC}")
+        finally:
+            time.sleep(check_interval)
 
 
 def start(duration=float('inf')):
