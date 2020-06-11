@@ -81,11 +81,13 @@ def _send_edit_validator_tx(bls_key_to_add):
     while True:
         count += 1
         try:
-            response = cli.single_call(['hmy', '--node', f'{node_config["endpoint"]}', 'staking', 'edit-validator',
-                                        '--validator-addr', f'{validator_config["validator-addr"]}',
-                                        '--add-bls-key', bls_key_to_add, '--passphrase-file', saved_wallet_pass_path,
-                                        '--bls-pubkeys-dir', bls_key_dir, '--gas-price',
-                                        f'{validator_config["gas-price"]}'])
+            cmd = ['hmy', '--node', f'{node_config["endpoint"]}', 'staking', 'edit-validator',
+                   '--validator-addr', f'{validator_config["validator-addr"]}',
+                   '--add-bls-key', bls_key_to_add, '--passphrase-file', saved_wallet_pass_path,
+                   '--bls-pubkeys-dir', bls_key_dir]
+            if validator_config["gas-price"]:
+                cmd.extend(['--gas-price', f'{validator_config["gas-price"]}'])
+            response = cli.single_call(cmd)
             log(f"{Typgpy.OKBLUE}Edit-validator transaction response: "
                 f"{Typgpy.OKGREEN}{response}{Typgpy.ENDC}")
             return
@@ -219,23 +221,25 @@ def _send_create_validator_tx():
     while True:
         count += 1
         try:
-            response = cli.single_call(['hmy', '--node', f'{node_config["endpoint"]}', 'staking', 'create-validator',
-                                        '--validator-addr', f'{validator_config["validator-addr"]}',
-                                        '--name', f'{validator_config["name"]}',
-                                        '--identity', f'{validator_config["identity"]}',
-                                        '--website', f'{validator_config["website"]}',
-                                        '--security-contact', f'{validator_config["security-contact"]}',
-                                        '--details', f'{validator_config["details"]}',
-                                        '--rate', f'{validator_config["rate"]}',
-                                        '--max-rate', f'{validator_config["max-rate"]}',
-                                        '--max-change-rate', f'{validator_config["max-change-rate"]}',
-                                        '--min-self-delegation', f'{validator_config["min-self-delegation"]}',
-                                        '--max-total-delegation', f'{validator_config["max-total-delegation"]}',
-                                        '--amount', f'{validator_config["amount"]}',
-                                        '--bls-pubkeys', f'{",".join(node_config["public-bls-keys"])}',
-                                        '--passphrase-file', saved_wallet_pass_path,
-                                        '--bls-pubkeys-dir', bls_key_dir,
-                                        '--gas-price', f'{validator_config["gas-price"]}'])
+            cmd = ['hmy', '--node', f'{node_config["endpoint"]}', 'staking', 'create-validator',
+                   '--validator-addr', f'{validator_config["validator-addr"]}',
+                   '--name', f'{validator_config["name"]}',
+                   '--identity', f'{validator_config["identity"]}',
+                   '--website', f'{validator_config["website"]}',
+                   '--security-contact', f'{validator_config["security-contact"]}',
+                   '--details', f'{validator_config["details"]}',
+                   '--rate', f'{validator_config["rate"]}',
+                   '--max-rate', f'{validator_config["max-rate"]}',
+                   '--max-change-rate', f'{validator_config["max-change-rate"]}',
+                   '--min-self-delegation', f'{validator_config["min-self-delegation"]}',
+                   '--max-total-delegation', f'{validator_config["max-total-delegation"]}',
+                   '--amount', f'{validator_config["amount"]}',
+                   '--bls-pubkeys', f'{",".join(node_config["public-bls-keys"])}',
+                   '--passphrase-file', saved_wallet_pass_path,
+                   '--bls-pubkeys-dir', bls_key_dir]
+            if validator_config["gas-price"]:
+                cmd.extend(['--gas-price', f'{validator_config["gas-price"]}'])
+            response = cli.single_call(cmd)
             log(f"{Typgpy.OKBLUE}Create-validator transaction response: "
                 f"{Typgpy.OKGREEN}{response}{Typgpy.ENDC}")
             return
@@ -279,10 +283,13 @@ def deactivate_validator():
         all_val = staking.get_all_validator_addresses(endpoint=node_config['endpoint'])
         if validator_config["validator-addr"] in all_val:
             log(f"{Typgpy.OKBLUE}Deactivating validator{Typgpy.ENDC}")
-            response = cli.single_call(
-                ['hmy', 'staking', 'edit-validator', '--validator-addr', f'{validator_config["validator-addr"]}',
-                 '--active', 'false', '--node', f'{node_config["endpoint"]}',
-                 '--passphrase-file', saved_wallet_pass_path, '--gas-price', f'{validator_config["gas-price"]}'])
+            cmd = ['hmy', 'staking', 'edit-validator',
+                   '--validator-addr', f'{validator_config["validator-addr"]}',
+                   '--active', 'false', '--node', f'{node_config["endpoint"]}',
+                   '--passphrase-file', saved_wallet_pass_path]
+            if validator_config["gas-price"]:
+                cmd.extend(['--gas-price', f'{validator_config["gas-price"]}'])
+            response = cli.single_call(cmd)
             log(f"{Typgpy.OKGREEN}Edit-validator response: {response}{Typgpy.ENDC}")
         else:
             log(f"{Typgpy.FAIL}Address {validator_config['validator-addr']} is not a validator!{Typgpy.ENDC}")
@@ -299,10 +306,12 @@ def activate_validator():
         all_val = staking.get_all_validator_addresses(endpoint=node_config['endpoint'])
         if validator_config["validator-addr"] in all_val:
             log(f"{Typgpy.OKBLUE}Activating validator{Typgpy.ENDC}")
-            response = cli.single_call(
-                ['hmy', 'staking', 'edit-validator', '--validator-addr', f'{validator_config["validator-addr"]}',
-                 '--active', 'true', '--node', f'{node_config["endpoint"]}',
-                 '--passphrase-file', saved_wallet_pass_path, '--gas-price', f'{validator_config["gas-price"]}'])
+            cmd = ['hmy', 'staking', 'edit-validator', '--validator-addr', f'{validator_config["validator-addr"]}',
+                   '--active', 'true', '--node', f'{node_config["endpoint"]}',
+                   '--passphrase-file', saved_wallet_pass_path]
+            if validator_config["gas-price"]:
+                cmd.extend(['--gas-price', f'{validator_config["gas-price"]}'])
+            response = cli.single_call(cmd)
             log(f"{Typgpy.OKGREEN}Edit-validator response: {response}{Typgpy.ENDC}")
         else:
             log(f"{Typgpy.FAIL}Address {validator_config['validator-addr']} is not a validator!{Typgpy.ENDC}")
