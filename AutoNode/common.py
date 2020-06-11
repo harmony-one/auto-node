@@ -76,26 +76,22 @@ sync_dir_map = {
 
 
 def save_validator_config():
-    for key in _validator_config_default.keys():
-        if key not in validator_config.keys():
-            raise KeyError(f"{key} not present in validator config to save: {validator_config}. "
-                           f"Remove `{saved_validator_path}` or edit validator config and follow template: "
-                           f"{json.dumps(_validator_config_default, indent=4)}")
-    # Load validator to check fields before saving.
+    """
+    Do not save invalid validator.
+    In worst case, new validator information will be re-prompted on re-init of node.
+    """
     try:
+        for key in _validator_config_default.keys():
+            if key not in validator_config.keys():
+                raise KeyError(f"{key} not present in validator config to save.")
         validator.Validator(validator_config['validator-addr']).load(validator_config)
-    except exceptions.InvalidValidatorError as e:
-        log(f"{Typgpy.FAIL}Invalid validator information to save: {e}{Typgpy.ENDC}")
-        log(f"{Typgpy.WARNING}NOT saving invalid validator, continuing...{Typgpy.ENDC}")
-        # Do not save invalid validator. In worst case, new validator information will be
-        # re-prompted on re-init of node.
-        return
-    try:
         config_string = json.dumps(validator_config, indent=4)
-    except json.decoder.JSONDecodeError as e:
-        raise ValueError(f"Validator config cannot be parsed into JSON.\n"
-                         f"Error: {e}.\n"
-                         f"Config: {validator_config}")
+    except (exceptions.InvalidValidatorError, json.decoder.JSONDecodeError, KeyError) as e:
+        log(f"{Typgpy.FAIL}Invalid validator information to save.{Typgpy.ENDC}\n"
+            f"Error: {e}.\n"
+            f"Validator Config: {json.dumps(validator_config, indent=2)}")
+        log(f"{Typgpy.WARNING}NOT saving validator config, continuing...{Typgpy.ENDC}")
+        return
     save_protected_file(config_string, saved_validator_path, verbose=False)
     # Make validator config file easily writeable
     subprocess.check_call(f"chmod 600 {saved_validator_path}", shell=True, env=os.environ)
