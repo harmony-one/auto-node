@@ -13,7 +13,6 @@ import pyhmy.rpc.exceptions as rpc_exception
 from pyhmy import (
     blockchain,
     cli,
-    json_load,
     Typgpy
 )
 
@@ -68,7 +67,8 @@ def _rclone(rclone_sync_dir, shard, verbose=True):
     node_sh_rclone_out_path = f"{node_sh_log_dir}/rclone_out_{shard}.log"
 
     try:
-        rclone_path = f'hmy://pub.harmony.one/{rclone_sync_dir}/harmony_db_{shard}'
+        # Assumption made on installed rclone config.
+        rclone_path = f'harmony://pub.harmony.one/{rclone_sync_dir}/harmony_db_{shard}'
         if verbose:
             log(f"{Typgpy.WARNING}rclone harmony_db_{shard} from {rclone_path} in progress...{Typgpy.ENDC}")
         with open(node_sh_rclone_out_path, 'w') as fo:
@@ -91,6 +91,7 @@ def _rclone_space_required(rclone_sync_dir, shard, verbose=True):
     except (subprocess.CalledProcessError, json.decoder.JSONDecodeError, KeyError) as e:
         log(f"{Typgpy.WARNING}Failed to get rclone db size requirement, error {e}{Typgpy.ENDC}")
         return 0
+
 
 def _rclone_db(shard, verbose=True):
     rclone_sync_dir = sync_dir_map[node_config['network']]
@@ -150,13 +151,17 @@ def _rclone_db(shard, verbose=True):
         raise SystemExit('Fast sync failed.')
 
 
-def _get_node_shard(verbose=True):
+def _get_node_shard():
+    """
+    Returns node shard based on config.
+    Returns None if 0 or > 1 shards are derived from the node's BLS keys.
+    """
     key_shards = []
     for bls_key in node_config['public-bls-keys']:
         try:
             key_shards.append(json.loads(cli.single_call(['hmy', 'utility', 'shard-for-bls', bls_key,
                                                           '--node', f'{node_config["endpoint"]}']))['shard-id'])
-        except json.decoder.JSONDecodeError as e:
+        except json.decoder.JSONDecodeError:
             log(f'{Typgpy.WARNING}[!] Failed to get shard for bls key {bls_key}!{Typgpy.ENDC}')
             key_shards.append(None)
     if len(set(key_shards)) == 1:
@@ -164,6 +169,11 @@ def _get_node_shard(verbose=True):
 
 
 def start(auto=False, verbose=True):
+    """
+    Start the harmony process and return the PID.
+
+    Note that process is running after function return.
+    """
     old_logging_handlers = logging.getLogger('AutoNode').handlers.copy()
     logging.getLogger('AutoNode').addHandler(get_simple_rotating_log_handler(log_path))
     log(f"{Typgpy.HEADER}Starting node...{Typgpy.ENDC}")
@@ -194,7 +204,7 @@ def start(auto=False, verbose=True):
     if node_config['fast-sync']:
         if verbose:
             log(f'{Typgpy.WARNING}[!] Fast syncing before starting node.{Typgpy.ENDC}')
-        shard = _get_node_shard(verbose=verbose)
+        shard = _get_node_shard()
         if shard:
             _rclone_db(shard, verbose=verbose)
         else:

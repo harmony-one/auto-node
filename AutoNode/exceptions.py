@@ -3,6 +3,7 @@ from .common import (
     save_node_config
 )
 
+
 class ResetNode(Exception):
     """
     The only exception that triggers a hard reset.

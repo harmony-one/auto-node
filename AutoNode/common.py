@@ -17,7 +17,7 @@ imported_wallet_pass_file_dir = f"{os.environ['HOME']}/wallet_pass"
 cli_bin_dir = f"{harmony_dir}/bin"
 cli_bin_path = f"{cli_bin_dir}/hmy"
 saved_validator_path = f"{os.environ['HOME']}/validator_config.json"
-saved_node_path = f"{harmony_dir}/.saved_config"
+saved_node_path = f"{harmony_dir}/node_config.json"
 saved_wallet_pass_path = f"{harmony_dir}/.wallet_pass"
 tui_path = f"{harmony_dir}/tui"
 

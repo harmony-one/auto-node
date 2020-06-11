@@ -61,16 +61,14 @@ function check_and_install_dependencies(){
     curl https://rclone.org/install.sh | sudo bash
     mkdir -p ~/.config/rclone
   fi
-  if ! grep -q 'hmy' ~/.config/rclone/rclone.conf 2> /dev/null; then
-    echo "[AutoNode] Adding [hmy] profile to rclone.conf"
-    cat<<-EOT>>~/.config/rclone/rclone.conf
-[hmy]
+  if ! grep -q 'harmony' ~/.config/rclone/rclone.conf 2> /dev/null; then
+    echo "[AutoNode] Adding [harmony] profile to rclone.conf"
+    echo "[harmony]
 type = s3
 provider = AWS
 env_auth = false
 region = us-west-1
-acl = public-read
-EOT
+acl = public-read" >> "$HOME/.config/rclone/rclone.conf"
   fi
 
   python_version=$(python3 -V | cut -d ' ' -f2 | cut -d '.' -f1-2)

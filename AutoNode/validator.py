@@ -1,7 +1,7 @@
 """
 This package takes care of all validator related commands.
 
-Note that if `_recover_interaction` is set (True) then a function MUST exit
+Note that if `_hard_reset_recovery` is set (True) then a function MUST exit
 gracefully (including RPC timeouts etc...), otherwise, it is free to throw errors.
 """
 
@@ -42,15 +42,15 @@ from .util import (
 )
 
 _balance_buffer = Decimal(1)
-_recover_interaction = False
+_hard_reset_recovery = False
 
 
-def _interaction_preprocessor(recover_interaction):
+def _interaction_preprocessor(hard_reset_recovery):
     """
     All user calls (i.e: validator setup) must be processed by this
     """
-    global _recover_interaction
-    _recover_interaction = recover_interaction
+    global _hard_reset_recovery
+    _hard_reset_recovery = hard_reset_recovery
     old_logging_handlers = logging.getLogger('AutoNode').handlers.copy()
     logging.getLogger('AutoNode').addHandler(get_simple_rotating_log_handler(log_path))
     if node_config['no-validator']:
@@ -90,7 +90,7 @@ def _send_edit_validator_tx(bls_key_to_add):
             return
         except (RuntimeError, TimeoutError, ConnectionError, subprocess.CalledProcessError) as e:
             log(f"{Typgpy.FAIL}Edit-validator transaction failure (attempt {count}). Error: {e}{Typgpy.ENDC}")
-            if not _recover_interaction:
+            if not _hard_reset_recovery:
                 raise e
             log(f"{Typgpy.WARNING}Trying again in {check_interval} seconds.{Typgpy.ENDC}")
             time.sleep(check_interval)
@@ -140,7 +140,7 @@ def _verify_account_balance(amount):
         if not check_min_bal_on_s0(validator_config['validator-addr'], amount, node_config['endpoint']):
             log(f"{Typgpy.FAIL}Cannot create validator, {validator_config['validator-addr']} "
                 f"does not have sufficient funds (need {amount} ONE). Checked {count} time(s).{Typgpy.ENDC}")
-            if not _recover_interaction:
+            if not _hard_reset_recovery:
                 raise SystemExit("Create Validator Error")
             log(f"{Typgpy.WARNING}Checking again in {check_interval} seconds.{Typgpy.ENDC}")
             time.sleep(check_interval)
@@ -173,7 +173,7 @@ def verify_node_sync():
     has_looped = False
     if curr_epoch_shard < ref_epoch or curr_epoch_beacon < ref_epoch:
         prompt = "Waiting for node to sync. Deactivate validator? [Y]/n \n> "
-        if input_with_print(prompt, 'Y' if _recover_interaction else None) in {'Y', 'y', 'yes', 'Yes'}:
+        if input_with_print(prompt, 'Y' if _hard_reset_recovery else None) in {'Y', 'y', 'yes', 'Yes'}:
             log(f"{Typgpy.OKBLUE}Deactivating validator until node is synced.{Typgpy.ENDC}")
             try:
                 if is_active_validator():
@@ -195,7 +195,7 @@ def verify_node_sync():
     if curr_epoch_shard > ref_epoch + 1 or curr_epoch_beacon > ref_epoch + 1:  # +1 for some slack on epoch change.
         log(f"{Typgpy.FAIL}Node epoch (shard: {curr_epoch_shard} beacon: {curr_epoch_beacon}) is greater than network "
             f"epoch ({ref_epoch}) which is not possible, is config correct?{Typgpy.ENDC}")
-        if not _recover_interaction:
+        if not _hard_reset_recovery:
             raise SystemExit("Invalid node sync")
     if has_looped:
         log("")
@@ -239,7 +239,7 @@ def _send_create_validator_tx():
             return
         except (RuntimeError, TimeoutError, ConnectionError, subprocess.CalledProcessError) as e:
             log(f"{Typgpy.FAIL}Create-validator transaction failure (attempt {count}). Error: {e}{Typgpy.ENDC}")
-            if not _recover_interaction:
+            if not _hard_reset_recovery:
                 raise e
             log(f"{Typgpy.WARNING}Trying again in {check_interval} seconds.{Typgpy.ENDC}")
             time.sleep(check_interval)
@@ -267,7 +267,7 @@ def check_and_activate():
         log(traceback.format_exc())
         log(f"{Typgpy.FAIL}Unable to activate validator {validator_config['validator-addr']}"
             f"error {e}. Continuing...{Typgpy.ENDC}")
-        if not _recover_interaction:
+        if not _hard_reset_recovery:  # Do not throw error on hard resets.
             raise e
     return False
 
@@ -287,7 +287,7 @@ def deactivate_validator():
     except (TimeoutError, ConnectionError, RuntimeError, subprocess.CalledProcessError) as e:
         log(traceback.format_exc())
         log(f"{Typgpy.FAIL}{Typgpy.BOLD}Edit-validator error: {e}{Typgpy.ENDC}")
-        if not _recover_interaction:
+        if not _hard_reset_recovery:
             raise e
         log(f"{Typgpy.WARNING}{Typgpy.BOLD}Continuing...{Typgpy.ENDC}")
 
@@ -307,14 +307,14 @@ def activate_validator():
     except (TimeoutError, ConnectionError, RuntimeError, subprocess.CalledProcessError) as e:
         log(traceback.format_exc())
         log(f"{Typgpy.FAIL}{Typgpy.BOLD}Edit-validator error: {e}{Typgpy.ENDC}")
-        if not _recover_interaction:
+        if not _hard_reset_recovery:
             raise e
         log(f"{Typgpy.WARNING}{Typgpy.BOLD}Continuing...{Typgpy.ENDC}")
 
 
-def setup(recover_interaction=False):
+def setup(hard_reset_recovery=False):
     log(f"{Typgpy.HEADER}Starting validator setup...{Typgpy.ENDC}")
-    old_logging_handlers = _interaction_preprocessor(recover_interaction)
+    old_logging_handlers = _interaction_preprocessor(hard_reset_recovery)
     log(f"{Typgpy.OKBLUE}Create validator config: {Typgpy.OKGREEN}"
         f"{json.dumps(validator_config, indent=4)}{Typgpy.ENDC}")
     log(f"{Typgpy.OKBLUE}Using BLS key(s): {Typgpy.OKGREEN}{node_config['public-bls-keys']}{Typgpy.ENDC}")
@@ -330,12 +330,12 @@ def setup(recover_interaction=False):
                 log(f"{Typgpy.OKBLUE}{Typgpy.BOLD}No BLS key(s) to add to validator!{Typgpy.ENDC}")
             else:
                 prompt = "Add BLS key(s) to existing validator? [Y]/n \n> "
-                if input_with_print(prompt, 'Y' if recover_interaction else None) in {'Y', 'y', 'yes', 'Yes'}:
+                if input_with_print(prompt, 'Y' if hard_reset_recovery else None) in {'Y', 'y', 'yes', 'Yes'}:
                     log(f"{Typgpy.HEADER}{Typgpy.BOLD}Editing validator...{Typgpy.ENDC}")
                     _add_bls_key_to_validator()
         elif validator_config['validator-addr'] not in all_val_address:
             prompt = "Create validator? [Y]/n \n> "
-            if input_with_print(prompt, 'Y' if recover_interaction else None) in {'Y', 'y', 'yes', 'Yes'}:
+            if input_with_print(prompt, 'Y' if hard_reset_recovery else None) in {'Y', 'y', 'yes', 'Yes'}:
                 log(f"{Typgpy.HEADER}{Typgpy.BOLD}Creating new validator...{Typgpy.ENDC}")
                 _create_new_validator()
         else:
@@ -346,7 +346,7 @@ def setup(recover_interaction=False):
     except Exception as e:
         log(traceback.format_exc())
         logging.getLogger('AutoNode').handlers = old_logging_handlers
-        if not _recover_interaction:
+        if not _hard_reset_recovery:
             raise SystemExit(e)
         else:
             log(f"{Typgpy.FAIL}{Typgpy.BOLD}Validator creation error: {e}{Typgpy.ENDC}")
@@ -365,16 +365,16 @@ def _get_edit_validator_options():
     return edit_validator_fields
 
 
-def update_info(recover_interaction=False):
-    old_logging_handlers = _interaction_preprocessor(recover_interaction)
+def update_info(hard_reset_recovery=False):
+    old_logging_handlers = _interaction_preprocessor(hard_reset_recovery)
     address = validator_config['validator-addr']
     try:
         all_val_address = staking.get_all_validator_addresses(endpoint=node_config['endpoint'])
         if address not in all_val_address:
             log(f"{Typgpy.WARNING}Cannot edit validator information, validator "
                 f"{Typgpy.OKGREEN}{address}{Typgpy.WARNING} is not a validator!{Typgpy.ENDC}")
-            if recover_interaction:
-                return  # clean exit for recover interaction.
+            if hard_reset_recovery:
+                return  # clean exit for hard resets
             raise SystemExit("Validator does not exist")
         fields = _get_edit_validator_options()
         if fields:
@@ -390,7 +390,7 @@ def update_info(recover_interaction=False):
     except Exception as e:
         log(traceback.format_exc())
         logging.getLogger('AutoNode').handlers = old_logging_handlers
-        if not _recover_interaction:
+        if not _hard_reset_recovery:
             raise SystemExit(e)
         else:
             log(f"{Typgpy.FAIL}{Typgpy.BOLD}Edit-validator error: {e}{Typgpy.ENDC}")
