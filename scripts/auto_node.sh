@@ -27,7 +27,7 @@ case "${1}" in
     daemon_name=$(python3 -c "from AutoNode import daemon; print(daemon.name)")
     sudo systemctl start "$daemon_name"@node.service
     sudo systemctl start "$daemon_name"@monitor.service
-    python3 -u -c "from AutoNode import validator; validator.setup(recover_interaction=False)" || true
+    python3 -u -c "from AutoNode import validator; validator.setup(hard_reset_recovery=False)" || true
     monitor_log_path=$(python3 -c "from AutoNode import monitor; print(monitor.log_path)")
     if [ -f "$monitor_log_path" ]; then
       tail -f "$monitor_log_path"
@@ -53,7 +53,7 @@ case "${1}" in
     bash "$harmony_dir"/tui.sh "${@:2}"
     ;;
   "create-validator")
-    python3 -u -c "from AutoNode import validator; validator.setup(recover_interaction=False)"
+    python3 -u -c "from AutoNode import validator; validator.setup(hard_reset_recovery=False)"
     ;;
   "activate")
     val_config=$(python3 -c "from AutoNode import common; import json; print(json.dumps(common.validator_config))")
@@ -100,12 +100,12 @@ case "${1}" in
     nano "$(python3 -c "from AutoNode import common; print(common.saved_validator_path)")"
     echo "[AutoNode] Would you like to update your validator information on-chain (y/n)?"
     yes_or_exit
-    python3 -u -c "from AutoNode import validator; validator.update_info(recover_interaction=False)"
+    python3 -u -c "from AutoNode import validator; validator.update_info(hard_reset_recovery=False)"
     ;;
   "update-config")
     echo "[AutoNode] Would you like to update your validator information on-chain (y/n)?"
     yes_or_exit
-    python3 -u -c "from AutoNode import validator; validator.update_info(recover_interaction=False)"
+    python3 -u -c "from AutoNode import validator; validator.update_info(hard_reset_recovery=False)"
     ;;
   "cleanse-bls")
     harmony_dir=$(python3 -c "from AutoNode import common; print(common.harmony_dir)")
