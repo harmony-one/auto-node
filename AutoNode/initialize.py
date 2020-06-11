@@ -308,7 +308,7 @@ def interactive_setup_validator():
     update_validator = True
 
     if all(el is not None for el in validator_config.values()):
-        log(f"{Typgpy.HEADER}Validator Config:{Typgpy.ENDC} {json.dumps(validator_config, indent=2)}")
+        log(f"{Typgpy.HEADER}Validator Config:{Typgpy.OKGREEN}{json.dumps(validator_config, indent=2)}{Typgpy.ENDC}")
         if input_with_print("Update validator? [Y]/n\n> ").lower() not in {'y', 'yes'}:
             update_validator = False
 
