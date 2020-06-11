@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-daemon_name=$(python3 -c "from AutoNode.daemon import Daemon; print(Daemon.name)")
+daemon_name=$(python3 -c "from AutoNode import daemon; print(daemon.name)")
 if systemctl --type=service --state=active | grep -e ^"$daemon_name"@node.service; then
   node_daemon="$daemon_name"@node.service
 else

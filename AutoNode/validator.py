@@ -84,7 +84,8 @@ def _send_edit_validator_tx(bls_key_to_add):
             response = cli.single_call(['hmy', '--node', f'{node_config["endpoint"]}', 'staking', 'edit-validator',
                                         '--validator-addr', f'{validator_config["validator-addr"]}',
                                         '--add-bls-key', bls_key_to_add, '--passphrase-file', saved_wallet_pass_path,
-                                        '--bls-pubkeys-dir', bls_key_dir, '--gas-price', f'{validator_config["gas-price"]}'])
+                                        '--bls-pubkeys-dir', bls_key_dir, '--gas-price',
+                                        f'{validator_config["gas-price"]}'])
             log(f"{Typgpy.OKBLUE}Edit-validator transaction response: "
                 f"{Typgpy.OKGREEN}{response}{Typgpy.ENDC}")
             return
@@ -154,7 +155,8 @@ def is_active_validator():
     Default to false if exception to be defensive.
     """
     try:
-        val_chain_info = staking.get_validator_information(validator_config["validator-addr"], endpoint=node_config['endpoint'])
+        val_chain_info = staking.get_validator_information(validator_config["validator-addr"],
+                                                           endpoint=node_config['endpoint'])
         return val_chain_info['active-status'] == 'active'
     except (ConnectionError, requests.exceptions.RequestException, TimeoutError) as e:
         log(f"{Typgpy.WARNING}Could not fetch validator active status, error: {e}{Typgpy.ENDC}")
@@ -173,14 +175,14 @@ def verify_node_sync():
     has_looped = False
     if curr_epoch_shard < ref_epoch or curr_epoch_beacon < ref_epoch:
         prompt = "Waiting for node to sync. Deactivate validator? [Y]/n \n> "
-        if input_with_print(prompt, 'Y' if _hard_reset_recovery else None).lower() in {'y', 'yes'}:
-            log(f"{Typgpy.OKBLUE}Deactivating validator until node is synced.{Typgpy.ENDC}")
+        auto_interaction = 'Y' if _hard_reset_recovery else None
+        if is_active_validator() and input_with_print(prompt, auto_interaction).lower() in {'y', 'yes'}:
             try:
-                if is_active_validator():
-                    deactivate_validator()
+                log(f"{Typgpy.OKBLUE}Deactivating validator until node is synced.{Typgpy.ENDC}")
+                deactivate_validator()
             except (TimeoutError, ConnectionError, RuntimeError, subprocess.CalledProcessError) as e:
                 log(f"{Typgpy.FAIL}Unable to deactivate validator {validator_config['validator-addr']}"
-                f"error {e}. Continuing...{Typgpy.ENDC}")
+                    f"error {e}. Continuing...{Typgpy.ENDC}")
     while curr_epoch_shard < ref_epoch or curr_epoch_beacon < ref_epoch:
         sys.stdout.write(f"\rWaiting for node to sync: shard epoch ({curr_epoch_shard}/{ref_epoch}) "
                          f"& beacon epoch ({curr_epoch_beacon}/{ref_epoch})")
