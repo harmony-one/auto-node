@@ -6,8 +6,10 @@ import subprocess
 
 from pyhmy import Typgpy
 import AutoNode
-from AutoNode import initialize
-from AutoNode.daemon import Daemon
+from AutoNode import (
+    initialize,
+    daemon
+)
 from AutoNode.common import log
 
 
@@ -40,8 +42,8 @@ def parse_args():
 
 
 def assert_dead_daemons():
-    check_monitor_cmd = f"systemctl --type=service --state=active | grep -e ^{Daemon.name}@monitor"
-    check_node_cmd = f"systemctl --type=service --state=active | grep -e ^{Daemon.name}@node"
+    check_monitor_cmd = f"systemctl --type=service --state=active | grep -e ^{daemon.name}@monitor"
+    check_node_cmd = f"systemctl --type=service --state=active | grep -e ^{daemon.name}@node"
     if subprocess.call(f"{check_monitor_cmd} > /dev/null", shell=True, env=os.environ) == 0:
         raise SystemExit("AutoNode monitor daemon is still active, stop with `auto_node.sh kill`")
     if subprocess.call(f"{check_node_cmd} > /dev/null", shell=True, env=os.environ) == 0:

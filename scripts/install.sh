@@ -117,7 +117,7 @@ User=$USER
 [Install]
 WantedBy=multi-user.target
 "
-  daemon_name=$(python3 -c "from AutoNode.daemon import Daemon; print(Daemon.name)")
+  daemon_name=$(python3 -c "from AutoNode import daemon; print(daemon.name)")
   harmony_dir=$(python3 -c "from AutoNode import common; print(common.harmony_dir)")
 
   if systemctl --type=service --state=active | grep -e ^"$daemon_name"; then

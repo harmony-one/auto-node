@@ -24,7 +24,7 @@ case "${1}" in
       exit
     fi
     echo "[AutoNode] Initialized service..."
-    daemon_name=$(python3 -c "from AutoNode.daemon import Daemon; print(Daemon.name)")
+    daemon_name=$(python3 -c "from AutoNode import daemon; print(daemon.name)")
     sudo systemctl start "$daemon_name"@node.service
     sudo systemctl start "$daemon_name"@monitor.service
     python3 -u -c "from AutoNode import validator; validator.setup(recover_interaction=False)" || true
@@ -155,7 +155,7 @@ case "${1}" in
     fi
     ;;
   "clear-node-bls")
-    daemon_name=$(python3 -c "from AutoNode.daemon import Daemon; print(Daemon.name)")
+    daemon_name=$(python3 -c "from AutoNode import daemon; print(daemon.name)")
     if systemctl --type=service --state=active | grep -e ^"$daemon_name"; then
       echo "[AutoNode] AutoNode is still running. Kill with 'auto_node.sh kill' before cleaning BLS keys."
       exit 4
@@ -175,7 +175,7 @@ case "${1}" in
     python3 -u -c "from pyhmy import cli; cli.download(\"$cli_bin\", replace=True, verbose=True)"
     ;;
   "kill")
-    daemon_name=$(python3 -c "from AutoNode.daemon import Daemon; print(Daemon.name)")
+    daemon_name=$(python3 -c "from AutoNode import daemon; print(daemon.name)")
     sudo systemctl stop "$daemon_name"* || true
     ;;
   *)
