@@ -7,6 +7,7 @@ import getpass
 from pyhmy import (
     Typgpy,
     validator,
+    exceptions
 )
 
 user = getpass.getuser()
@@ -81,7 +82,14 @@ def save_validator_config():
                            f"Remove `{saved_validator_path}` or edit validator config and follow template: "
                            f"{json.dumps(_validator_config_default, indent=4)}")
     # Load validator to check fields before saving.
-    validator.Validator(validator_config['validator-addr']).load(validator_config)
+    try:
+        validator.Validator(validator_config['validator-addr']).load(validator_config)
+    except exceptions.InvalidValidatorError as e:
+        log(f"{Typgpy.FAIL}Invalid validator information to save: {e}{Typgpy.ENDC}")
+        log(f"{Typgpy.WARNING}NOT saving invalid validator, continuing...{Typgpy.ENDC}")
+        # Do not save invalid validator. In worst case, new validator information will be
+        # re-prompted on re-init of node.
+        return
     try:
         config_string = json.dumps(validator_config, indent=4)
     except json.decoder.JSONDecodeError as e:
