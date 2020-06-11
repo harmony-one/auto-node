@@ -20,7 +20,7 @@ imported_wallet_pass_file_dir = f"{os.environ['HOME']}/wallet_pass"
 cli_bin_dir = f"{harmony_dir}/bin"
 cli_bin_path = f"{cli_bin_dir}/hmy"
 saved_validator_path = f"{os.environ['HOME']}/validator_config.json"
-saved_node_path = f"{harmony_dir}/.node_config.pickle"
+saved_node_path = f"{harmony_dir}/.node_config.p"
 saved_wallet_pass_path = f"{harmony_dir}/.wallet_pass"
 tui_path = f"{harmony_dir}/tui"
 
@@ -134,20 +134,25 @@ def load_node_config():
 
     Raises pickle.PickleError, IOError, PermissionError
     """
-    with open(saved_node_path, 'r', encoding='utf8') as f:
+    with open(saved_node_path, 'rb') as f:
         imported_node_config = pickle.load(f)
         node_config.update(imported_node_config)
 
 
-def save_protected_file(string_content, file_path, verbose=True):
+def save_protected_file(content, file_path, verbose=True):
     if os.path.isfile(file_path):
         if os.access(file_path, os.R_OK):  # check for min needed perms.
             os.remove(file_path)
         else:
             raise PermissionError(f"Cannot save protected file to {file_path} for user {user}")
-    with open(file_path, 'w', encoding='utf8') as f:
-        f.write(string_content)
-        protect_file(file_path, verbose=verbose)
+    if isinstance(content, bytes):
+        with open(file_path, 'wb') as f:
+            f.write(content)
+            protect_file(file_path, verbose=verbose)
+    else:
+        with open(file_path, 'w', encoding='utf8') as f:
+            f.write(content)
+            protect_file(file_path, verbose=verbose)
 
 
 def reset_validator_config():
