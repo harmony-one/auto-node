@@ -4,9 +4,10 @@ import logging
 import os
 import getpass
 
-from decimal import Decimal
-
-from pyhmy import Typgpy
+from pyhmy import (
+    Typgpy,
+    validator,
+)
 
 user = getpass.getuser()
 harmony_dir = f"{os.environ['HOME']}/.hmy"
@@ -79,6 +80,8 @@ def save_validator_config():
             raise KeyError(f"{key} not present in validator config to save: {validator_config}. "
                            f"Remove `{saved_validator_path}` or edit validator config and follow template: "
                            f"{json.dumps(_validator_config_default, indent=4)}")
+    # Load validator to check fields before saving.
+    validator.Validator(validator_config['validator-addr']).load(validator_config)
     try:
         config_string = json.dumps(validator_config, indent=4)
     except json.decoder.JSONDecodeError as e:

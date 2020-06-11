@@ -310,7 +310,13 @@ def interactive_setup_validator():
     if all(el is not None for el in validator_config.values()):
         log(f"{Typgpy.HEADER}Validator Config:{Typgpy.OKGREEN}{json.dumps(validator_config, indent=2)}{Typgpy.ENDC}")
         if input_with_print("Update validator? [Y]/n\n> ").lower() not in {'y', 'yes'}:
-            update_validator = False
+            try:
+                v.load(validator_config)  # The act of loading will check params
+                update_validator = False
+            except exceptions.InvalidValidatorError as e:
+                log(f"{Typgpy.FAIL}Failed to load validator information, error {e}{Typgpy.ENDC}")
+                log(f"{Typgpy.WARNING}Re-enter validator info:{Typgpy.ENDC}")
+                update_validator = True
 
     if update_validator:
         _input_validator_field('name', v.set_name)
@@ -326,7 +332,7 @@ def interactive_setup_validator():
         _display_warning('max-change-rate')
         _input_validator_field('max-change-rate', v.set_max_change_rate)
         _input_validator_field('rate', v.set_rate)
-
-    verified_info = v.export()
-    for key, value in verified_info.items():
-        validator_config[key] = str(value)
+        verified_info = v.export()
+        for key, value in verified_info.items():
+            assert value is not None, f"sanity check: validated config ({value}) should not be None"
+            validator_config[key] = str(value)
