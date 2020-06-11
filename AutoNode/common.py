@@ -3,6 +3,7 @@ import subprocess
 import logging
 import os
 import getpass
+import pickle
 
 from pyhmy import (
     Typgpy,
@@ -19,7 +20,7 @@ imported_wallet_pass_file_dir = f"{os.environ['HOME']}/wallet_pass"
 cli_bin_dir = f"{harmony_dir}/bin"
 cli_bin_path = f"{cli_bin_dir}/hmy"
 saved_validator_path = f"{os.environ['HOME']}/validator_config.json"
-saved_node_path = f"{harmony_dir}/node_config.json"
+saved_node_path = f"{harmony_dir}/.node_config.pickle"
 saved_wallet_pass_path = f"{harmony_dir}/.wallet_pass"
 tui_path = f"{harmony_dir}/tui"
 
@@ -62,7 +63,8 @@ _node_config_default = {
     "archival": False,
     "no-download": False,
     "fast-sync": False,
-    "public-bls-keys": []
+    "public-bls-keys": [],
+    "encrypted-wallet-passphrase": ""
 }
 node_config = _node_config_default.copy()
 
@@ -78,7 +80,7 @@ sync_dir_map = {
 def save_validator_config():
     """
     Do not save invalid validator.
-    In worst case, new validator information will be re-prompted on re-init of node.
+    In worst case, new validator information will be re-prompted on re-init of AutoNode.
     """
     try:
         for key in _validator_config_default.keys():
@@ -97,17 +99,44 @@ def save_validator_config():
     subprocess.check_call(f"chmod 600 {saved_validator_path}", shell=True, env=os.environ)
 
 
+def load_validator_config():
+    """
+    Load the saved validator config.
+
+    Raises json.decoder.JSONDecodeError, IOError, PermissionError
+    """
+    with open(saved_validator_path, 'r', encoding='utf8') as f:
+        imported_val_config = json.load(f)
+        validator_config.update(imported_val_config)
+
+
 def save_node_config():
-    for key in _node_config_default.keys():
-        if key not in node_config.keys():
-            raise KeyError(f"{key} not present in node config to save: {node_config}")
+    """
+    Do not save invalid node config.
+    In worst case, node config will be refreshed with valid info on re-init of AutoNode.
+    """
     try:
-        config_string = json.dumps(node_config, indent=4)
-    except json.decoder.JSONDecodeError as e:
-        raise ValueError(f"Node config cannot be parsed into JSON.\n"
-                         f"Error: {e}.\n"
-                         f"Config: {node_config}")
-    save_protected_file(config_string, saved_node_path, verbose=False)
+        for key in _node_config_default.keys():
+            if key not in node_config.keys():
+                raise KeyError(f"{key} not present in node config to save: {json.dumps(node_config, indent=2)}")
+        node_config_string = pickle.dumps(node_config)
+    except (pickle.PickleError, KeyError) as e:
+        log(f"{Typgpy.FAIL}Invalid metadata to save.{Typgpy.ENDC}\n"
+            f"Error: {e}.")
+        log(f"{Typgpy.WARNING}NOT saving node metadata, continuing...{Typgpy.ENDC}")
+        return
+    save_protected_file(node_config_string, saved_node_path, verbose=False)
+
+
+def load_node_config():
+    """
+    Load the saved node config.
+
+    Raises pickle.PickleError, IOError, PermissionError
+    """
+    with open(saved_node_path, 'r', encoding='utf8') as f:
+        imported_node_config = pickle.load(f)
+        node_config.update(imported_node_config)
 
 
 def save_protected_file(string_content, file_path, verbose=True):
