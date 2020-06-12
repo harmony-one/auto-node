@@ -4,6 +4,7 @@ import base64
 
 import pexpect
 from cryptography.fernet import Fernet
+from cryptography.fernet import InvalidToken
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import hashes, hmac
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
@@ -16,6 +17,9 @@ from .common import (
     log,
     validator_config,
     node_config
+)
+from .exceptions import (
+    InvalidWalletPassphrase
 )
 
 
@@ -77,7 +81,10 @@ def decrypt_wallet_passphrase(encrypted_wallet_passphrase):
     Decrypt the given encrypted passphrase.
     """
     assert isinstance(encrypted_wallet_passphrase, bytes)
-    return Fernet(_derive_wallet_encryption_key()).decrypt(encrypted_wallet_passphrase).decode()
+    try:
+        return Fernet(_derive_wallet_encryption_key()).decrypt(encrypted_wallet_passphrase).decode()
+    except InvalidToken:
+        raise InvalidWalletPassphrase()
 
 
 def is_valid_passphrase(passphrase, validator_address):
