@@ -48,6 +48,7 @@ def get_wallet_passphrase():
     passphrase = decrypt_wallet_passphrase(node_config["encrypted-wallet-passphrase"])
     if not is_valid_passphrase(passphrase, validator_config["validator-addr"]):
         raise InvalidWalletPassphrase()
+    return passphrase
 
 
 def interact_wallet_passphrase(proc, passphrase, prompt="Enter wallet keystore passphrase:\r\n"):

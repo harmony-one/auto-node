@@ -289,6 +289,6 @@ def assert_started(timeout=60):
         if subprocess.call("pgrep rclone", shell=True, env=os.environ) == 0:
             timeout += 1
         elif subprocess.call("pgrep harmony", shell=True, env=os.environ) == 0:
-            break
+            return
         time.sleep(1)
     raise AssertionError("Node failed to start")

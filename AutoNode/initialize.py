@@ -257,7 +257,7 @@ def setup_validator_config():
     """
     Setup configs needed to handle a validator.
     """
-    if not node_config['no-validator']:
+    if node_config['no-validator']:
         log(f"{Typgpy.WARNING}Node config specify no validator automation, skipping setup...{Typgpy.ENDC}")
         return
     assert node_config['public-bls-keys'], f"sanity check: node config is not setup."
@@ -277,7 +277,7 @@ def setup_wallet_passphrase():
     """
     Setup wallet passphrase (encrypted).
     """
-    if not node_config['no-validator']:
+    if node_config['no-validator']:
         log(f"{Typgpy.WARNING}Node config specify no validator automation, skipping wallet setup...{Typgpy.ENDC}")
         return
     passphrase = get_wallet_passphrase()
@@ -351,5 +351,6 @@ def save_wallet_passphrase(passphrase):
     addr = validator_config["validator-addr"]
     assert addr, "Validator was not setup, cannot save passphrase"
     assert is_valid_passphrase(passphrase, addr), f"Invalid passphrase for {addr}"
+    log(f"{Typgpy.HEADER}Encrypting and saving wallet passphrase.{Typgpy.ENDC}")
     node_config["encrypted-wallet-passphrase"] = encrypt_wallet_passphrase(passphrase)
     save_node_config()

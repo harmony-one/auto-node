@@ -353,7 +353,7 @@ def _first_setup():
             return
         except AssertionError as e:
             log(f"{Typgpy.WARNING}Assertion error: {e}{Typgpy.ENDC}")
-            if input_with_print("Try again?\n> ").lower() not in {'y', 'yes'}:
+            if input_with_print("Try again? [Y/n]\n> ").lower() not in {'y', 'yes'}:
                 raise e
 
 
