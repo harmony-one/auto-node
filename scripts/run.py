@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import argparse
 import os
+import time
 from argparse import RawTextHelpFormatter
 import subprocess
 
@@ -114,6 +115,12 @@ if __name__ == "__main__":
     initialize.setup_node()
     start_node()
     initialize.setup_validator()
-    validator.setup(hard_reset_recovery=False)
-    start_monitor()
-    tail_monitor_log()
+    try:
+        validator.setup(hard_reset_recovery=False)
+    finally:
+        start_monitor()
+        start_time = time.time()
+        while time.time() - start_time < 5:
+            if os.path.exists(monitor.log_path):
+                break
+        tail_monitor_log()
