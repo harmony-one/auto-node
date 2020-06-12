@@ -17,11 +17,14 @@ fi
 sudo -l > /dev/null  # To trigger sudo first
 
 # TODO: make sure all CLI calls use the AutoNode cli bin...
-# TODO: add passphrase re-enter...
 case "${1}" in
   "run")
     harmony_dir=$(python3 -c "from AutoNode import common; print(common.harmony_dir)")
     python3 -u "$harmony_dir"/run.py "${@:2}"
+    ;;
+  "auth-wallet")
+    if [ ! "$(pgrep harmony)" ]; then echo "[AutoNode] Node must be running..." && exit 1; fi
+    python3 -u -c "from AutoNode import initialize; initialize.setup_wallet_passphrase()"
     ;;
   "node")
     harmony_dir=$(python3 -c "from AutoNode import common; print(common.harmony_dir)")
@@ -39,44 +42,14 @@ case "${1}" in
     python3 -u -c "from AutoNode import validator; validator.setup(hard_reset_recovery=False)"
     ;;
   "activate")
-    # TODO: use python lib to actiavte
-    val_config=$(python3 -c "from AutoNode import common; import json; print(json.dumps(common.validator_config))")
-    node_config=$(python3 -c "from AutoNode import common; import json; print(json.dumps(common.node_config))")
-    addr=$(echo "$val_config" | jq -r '.["validator-addr"]')
-    endpoint=$(echo "$node_config" | jq -r ".endpoint")
-    pw_file=$(python3 -c "from AutoNode import common; print(common.saved_wallet_pass_path)")
-    if [ -f "$HOME"/hmy ]; then
-      output=$("$HOME"/hmy staking edit-validator --validator-addr "$addr" --active true --passphrase-file "$pw_file" -n "$endpoint")
-      echo "$output" | jq || echo "$output"
-    else
-      echo "[AutoNode] Harmony CLI has been moved. Reinitialize AutoNode."
-    fi
+    python3 -u -c "from AutoNode import validator; validator.activate_validator()"
     ;;
   "deactivate")
-    # TODO: use python lib to deactivate
-    val_config=$(python3 -c "from AutoNode import common; import json; print(json.dumps(common.validator_config))")
-    node_config=$(python3 -c "from AutoNode import common; import json; print(json.dumps(common.node_config))")
-    addr=$(echo "$val_config" | jq -r '.["validator-addr"]')
-    endpoint=$(echo "$node_config" | jq -r ".endpoint")
-    pw_file=$(python3 -c "from AutoNode import common; print(common.saved_wallet_pass_path)")
-    if [ -f "$HOME"/hmy ]; then
-      output=$("$HOME"/hmy staking edit-validator --validator-addr "$addr" --active false --passphrase-file "$pw_file" -n "$endpoint")
-      echo "$output" | jq || echo "$output"
-    else
-      echo "[AutoNode] Harmony CLI has been moved. Reinitialize AutoNode."
-    fi
+    python3 -u -c "from AutoNode import validator; validator.deactivate_validator()"
     ;;
   "info")
-    val_config=$(python3 -c "from AutoNode import common; import json; print(json.dumps(common.validator_config))")
-    node_config=$(python3 -c "from AutoNode import common; import json; print(json.dumps(common.node_config))")
-    addr=$(echo "$val_config" | jq -r '.["validator-addr"]')
-    endpoint=$(echo "$node_config" | jq -r ".endpoint")
-    if [ -f "$HOME"/hmy ]; then
-      output=$("$HOME"/hmy blockchain validator information "$addr" -n "$endpoint")
-      echo "$output" | jq || echo "$output"
-    else
-      echo "[AutoNode] Harmony CLI has been moved. Reinitialize AutoNode."
-    fi
+    output=$(python3 -u -c "from AutoNode import validator; import json; print(json.dumps(validator.get_validator_information()))")
+    echo "$output" | jq || echo "$output"
     ;;
   "config")
     python3 -c "from AutoNode import common; import json; print(json.dumps(common.validator_config))" | jq
@@ -97,26 +70,11 @@ case "${1}" in
     python3 -u "$harmony_dir"/cleanse-bls.py "${@:2}"
     ;;
   "balances")
-    val_config=$(python3 -c "from AutoNode import common; import json; print(json.dumps(common.validator_config))")
-    node_config=$(python3 -c "from AutoNode import common; import json; print(json.dumps(common.node_config))")
-    addr=$(echo "$val_config" | jq -r '.["validator-addr"]')
-    endpoint=$(echo "$node_config" | jq -r ".endpoint")
-    if [ -f "$HOME"/hmy ]; then
-      output=$("$HOME"/hmy balances "$addr" -n "$endpoint")
-      echo "$output" | jq || echo "$output"
-    else
-      echo "[AutoNode] Harmony CLI has been moved. Reinitialize AutoNode."
-    fi
+    output=$(python3 -c "from AutoNode import validator; import json; print(json.dumps(validator.get_balances()))")
+    echo "$output" | jq || echo "$output"
     ;;
   "collect-rewards")
-    val_config=$(python3 -c "from AutoNode import common; import json; print(json.dumps(common.validator_config))")
-    addr=$(echo "$val_config" | jq -r '.["validator-addr"]')
-    if [ -f "$HOME"/hmy ]; then
-      output=$("$HOME"/hmy staking collect-rewards --delegator-addr "$addr" -n "$endpoint")
-      echo "$output" | jq || echo "$output"
-    else
-      echo "[AutoNode] Harmony CLI has been moved. Reinitialize AutoNode."
-    fi
+    python3 -u -c "from AutoNode import validator; validator.collect_reward()"
     ;;
   "version")
     node_dir=$(python3 -c "from AutoNode import common; print(common.node_dir)")
@@ -124,20 +82,12 @@ case "${1}" in
     cd "$node_dir" && ./node.sh -V && ./node.sh -v && cd "$owd" || echo "[AutoNode] Node files not found..."
     ;;
   "header")
-    if [ -f "$HOME"/hmy ]; then
-      output=$("$HOME"/hmy blockchain latest-header)
-      echo "$output" | jq || echo "$output"
-    else
-      echo "[AutoNode] Harmony CLI has been moved. Reinitialize AutoNode."
-    fi
+     output=$(python3 -c "from pyhmy import blockchain; import json; print(json.dumps(blockchain.get_latest_header()))")
+     echo "$output" | jq || echo "$output"
     ;;
   "headers")
-    if [ -f "$HOME"/hmy ]; then
-      output=$("$HOME"/hmy blockchain latest-headers)
-      echo "$output" | jq || echo "$output"
-    else
-      echo "[AutoNode] Harmony CLI has been moved. Reinitialize AutoNode."
-    fi
+    output=$(python3 -c "from pyhmy import blockchain; import json; print(json.dumps(blockchain.get_latest_headers()))")
+    echo "$output" | jq || echo "$output"
     ;;
   "clear-node-bls")
     daemon_name=$(python3 -c "from AutoNode import daemon; print(daemon.name)")
@@ -176,6 +126,7 @@ case "${1}" in
 
       run <run params>    Main execution to run a node. If errors are given
                            for other params, this needs to be ran. Use '-h' param to view help msg
+      auth-wallet         Re-auth wallet passphrase if AutoNode expires/invalidates stored passphrase.
       config              View the validator_config.json file used by AutoNode
       edit-config         Edit the validator_config.json file used by AutoNode and change validator info on-chain
       update-config       Update validator info on-chain with given validator_config.json

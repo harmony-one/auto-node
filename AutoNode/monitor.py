@@ -24,7 +24,8 @@ from .common import (
     user
 )
 from .validator import (
-    check_and_activate
+    check_and_activate,
+    get_validator_information
 )
 from .node import (
     wait_for_node_response,
@@ -108,8 +109,7 @@ def _run_monitor(shard_endpoint, duration=50):
             log(f"{Typgpy.HEADER}Node role: {Typgpy.OKGREEN}{meta_data['role']}{Typgpy.ENDC}")
             all_val = staking.get_all_validator_addresses(endpoint=node_config['endpoint'])
             if validator_config["validator-addr"] in all_val:
-                val_chain_info = staking.get_validator_information(validator_config["validator-addr"],
-                                                                   endpoint=node_config['endpoint'])
+                val_chain_info = get_validator_information()
                 log(f"{Typgpy.HEADER}EPOS status: {Typgpy.OKGREEN}{val_chain_info['epos-status']}{Typgpy.ENDC}")
                 log(f"{Typgpy.HEADER}Booted status: {Typgpy.OKGREEN}{val_chain_info['booted-status']}{Typgpy.ENDC}")
                 log(f"{Typgpy.HEADER}Current epoch performance: {Typgpy.OKGREEN}"

@@ -16,6 +16,8 @@ from pyhmy import (
     blockchain,
     cli,
     staking,
+    account,
+    numbers,
     Typgpy,
     exceptions
 )
@@ -68,7 +70,7 @@ def _add_bls_key_to_validator():
     Assumes past staking epoch by definition of adding keys to existing validator
     """
     _verify_account_balance(0.1 * len(node_config["public-bls-keys"]))  # Heuristic amount for balance
-    chain_val_info = staking.get_validator_information(validator_config['validator-addr'], node_config['endpoint'])
+    chain_val_info = get_validator_information()
     bls_keys = set(x.replace('0x', '') for x in chain_val_info["validator"]["bls-public-keys"])
     for k in (x.replace('0x', '') for x in node_config["public-bls-keys"]):
         if k not in bls_keys:  # Add imported BLS key to existing validator if needed
@@ -104,12 +106,6 @@ def _send_edit_validator_tx(bls_key_to_add):
                 raise e
             log(f"{Typgpy.WARNING}Trying again in {check_interval} seconds.{Typgpy.ENDC}")
             time.sleep(check_interval)
-
-
-def _create_new_validator():
-    _verify_prestaking_epoch()
-    _verify_account_balance(Decimal(validator_config['amount']) + _balance_buffer)
-    _send_create_validator_tx()
 
 
 def _verify_staking_epoch():
@@ -159,13 +155,102 @@ def _verify_account_balance(amount):
             return
 
 
+def _send_create_validator_tx():
+    log(f"{Typgpy.OKBLUE}Sending create validator transaction...{Typgpy.ENDC}")
+    passphrase = get_wallet_passphrase()
+    count = 0
+    while True:
+        count += 1
+        try:
+            cmd = ['hmy', '--node', f'{node_config["endpoint"]}', 'staking', 'create-validator',
+                   '--validator-addr', f'{validator_config["validator-addr"]}',
+                   '--name', f'{validator_config["name"]}',
+                   '--identity', f'{validator_config["identity"]}',
+                   '--website', f'{validator_config["website"]}',
+                   '--security-contact', f'{validator_config["security-contact"]}',
+                   '--details', f'{validator_config["details"]}',
+                   '--rate', f'{validator_config["rate"]}',
+                   '--max-rate', f'{validator_config["max-rate"]}',
+                   '--max-change-rate', f'{validator_config["max-change-rate"]}',
+                   '--min-self-delegation', f'{validator_config["min-self-delegation"]}',
+                   '--max-total-delegation', f'{validator_config["max-total-delegation"]}',
+                   '--amount', f'{validator_config["amount"]}',
+                   '--bls-pubkeys', f'{",".join(node_config["public-bls-keys"])}',
+                   '--bls-pubkeys-dir', bls_key_dir, "--passphrase"]
+            if validator_config["gas-price"]:
+                cmd.extend(['--gas-price', f'{validator_config["gas-price"]}'])
+            proc = cli.expect_call(cmd)
+            interact_wallet_passphrase(proc, passphrase)
+            proc.expect(pexpect.EOF)
+            response = proc.before.decode()
+            log(f"{Typgpy.OKBLUE}Create-validator transaction response: "
+                f"{Typgpy.OKGREEN}{response}{Typgpy.ENDC}")
+            return
+        except (RuntimeError, TimeoutError, ConnectionError, subprocess.CalledProcessError) as e:
+            log(f"{Typgpy.FAIL}Create-validator transaction failure (attempt {count}). Error: {e}{Typgpy.ENDC}")
+            if not _hard_reset_recovery:
+                raise e
+            log(f"{Typgpy.WARNING}Trying again in {check_interval} seconds.{Typgpy.ENDC}")
+            time.sleep(check_interval)
+
+
+def _create_new_validator():
+    _verify_prestaking_epoch()
+    _verify_account_balance(Decimal(validator_config['amount']) + _balance_buffer)
+    _send_create_validator_tx()
+
+
+def _get_edit_validator_options():
+    changeable_fields = {
+        "details", "identity", "name", "security-contact", "website",
+        "max-total-delegation", "min-self-delegation", "rate"
+    }
+    edit_validator_fields = {}
+    for key, value in validator_config.items():
+        if key in changeable_fields:
+            edit_validator_fields[key] = validator_config[key]
+    return edit_validator_fields
+
+
+def _first_setup():
+    """
+    Initial setup done on first run of validator setup.
+    """
+    while True:
+        try:
+            setup_validator_config()
+            assert_node_started()
+            setup_wallet_passphrase()
+            return
+        except AssertionError as e:
+            log(f"{Typgpy.WARNING}Assertion error: {e}{Typgpy.ENDC}")
+            if input_with_print("Try again? [Y/n]\n> ").lower() not in {'y', 'yes'}:
+                raise e
+
+
+def get_validator_information():
+    """
+    Get the current validator information from the configured endpoint.
+    """
+    return staking.get_validator_information(validator_config['validator-addr'], endpoint=node_config['endpoint'])
+
+
+def get_balances():
+    """
+    Get the balances of the configured validator (if possible)
+    """
+    balances = account.get_balance_on_all_shards(validator_config['validator-addr'], endpoint=node_config['endpoint'])
+    for bal in balances:
+        bal['balance'] = float(numbers.convert_atto_to_one(bal['balance']))
+    return balances
+
+
 def is_active_validator():
     """
     Default to false if exception to be defensive.
     """
     try:
-        val_chain_info = staking.get_validator_information(validator_config["validator-addr"],
-                                                           endpoint=node_config['endpoint'])
+        val_chain_info = get_validator_information()
         return val_chain_info['active-status'] == 'active'
     except (exceptions.RPCError, exceptions.RequestsError, exceptions.RequestsTimeoutError) as e:
         log(f"{Typgpy.WARNING}Could not fetch validator active status, error: {e}{Typgpy.ENDC}")
@@ -222,72 +307,6 @@ def verify_node_sync():
             f"error {e}. Continuing...{Typgpy.ENDC}")
 
 
-def _send_create_validator_tx():
-    log(f"{Typgpy.OKBLUE}Sending create validator transaction...{Typgpy.ENDC}")
-    passphrase = get_wallet_passphrase()
-    count = 0
-    while True:
-        count += 1
-        try:
-            cmd = ['hmy', '--node', f'{node_config["endpoint"]}', 'staking', 'create-validator',
-                   '--validator-addr', f'{validator_config["validator-addr"]}',
-                   '--name', f'{validator_config["name"]}',
-                   '--identity', f'{validator_config["identity"]}',
-                   '--website', f'{validator_config["website"]}',
-                   '--security-contact', f'{validator_config["security-contact"]}',
-                   '--details', f'{validator_config["details"]}',
-                   '--rate', f'{validator_config["rate"]}',
-                   '--max-rate', f'{validator_config["max-rate"]}',
-                   '--max-change-rate', f'{validator_config["max-change-rate"]}',
-                   '--min-self-delegation', f'{validator_config["min-self-delegation"]}',
-                   '--max-total-delegation', f'{validator_config["max-total-delegation"]}',
-                   '--amount', f'{validator_config["amount"]}',
-                   '--bls-pubkeys', f'{",".join(node_config["public-bls-keys"])}',
-                   '--bls-pubkeys-dir', bls_key_dir, "--passphrase"]
-            if validator_config["gas-price"]:
-                cmd.extend(['--gas-price', f'{validator_config["gas-price"]}'])
-            proc = cli.expect_call(cmd)
-            interact_wallet_passphrase(proc, passphrase)
-            proc.expect(pexpect.EOF)
-            response = proc.before.decode()
-            log(f"{Typgpy.OKBLUE}Create-validator transaction response: "
-                f"{Typgpy.OKGREEN}{response}{Typgpy.ENDC}")
-            return
-        except (RuntimeError, TimeoutError, ConnectionError, subprocess.CalledProcessError) as e:
-            log(f"{Typgpy.FAIL}Create-validator transaction failure (attempt {count}). Error: {e}{Typgpy.ENDC}")
-            if not _hard_reset_recovery:
-                raise e
-            log(f"{Typgpy.WARNING}Trying again in {check_interval} seconds.{Typgpy.ENDC}")
-            time.sleep(check_interval)
-
-
-def check_and_activate():
-    """
-    Return True when attempted to activate, otherwise return False.
-    """
-    try:
-        if not is_active_validator():
-            log(f"{Typgpy.FAIL}Node not active, reactivating...{Typgpy.ENDC}")
-            curr_headers = blockchain.get_latest_headers()
-            curr_epoch_shard = curr_headers['shard-chain-header']['epoch']
-            curr_epoch_beacon = curr_headers['beacon-chain-header']['epoch']
-            wait_for_node_response(node_config['endpoint'], tries=900, sleep=1, verbose=False)  # Try for 15 min
-            ref_epoch = blockchain.get_current_epoch(endpoint=node_config['endpoint'])
-            if curr_epoch_shard == ref_epoch and curr_epoch_beacon == ref_epoch:
-                activate_validator()
-                return True
-            else:
-                log(f"{Typgpy.WARNING}Node not synced, did NOT activate node.{Typgpy.ENDC}")
-                return False
-    except (TimeoutError, ConnectionError, RuntimeError, subprocess.CalledProcessError) as e:
-        log(traceback.format_exc())
-        log(f"{Typgpy.FAIL}Unable to activate validator {validator_config['validator-addr']}"
-            f"error {e}. Continuing...{Typgpy.ENDC}")
-        if not _hard_reset_recovery:  # Do not throw error on hard resets.
-            raise e
-    return False
-
-
 def deactivate_validator():
     try:
         all_val = staking.get_all_validator_addresses(endpoint=node_config['endpoint'])
@@ -341,20 +360,56 @@ def activate_validator():
         log(f"{Typgpy.WARNING}{Typgpy.BOLD}Continuing...{Typgpy.ENDC}")
 
 
-def _first_setup():
+def collect_reward():
+    try:
+        all_val = staking.get_all_validator_addresses(endpoint=node_config['endpoint'])
+        if validator_config["validator-addr"] in all_val:
+            log(f"{Typgpy.OKBLUE}Collecting rewards{Typgpy.ENDC}")
+            passphrase = get_wallet_passphrase()
+            cmd = ['hmy', 'staking', 'collect-rewards', '--delegator-addr', validator_config['validator-addr'],
+                   '--node', f'{node_config["endpoint"]}', '--passphrase']
+            if validator_config["gas-price"]:
+                cmd.extend(['--gas-price', f'{validator_config["gas-price"]}'])
+            proc = cli.expect_call(cmd)
+            interact_wallet_passphrase(proc, passphrase)
+            proc.expect(pexpect.EOF)
+            response = proc.before.decode()
+            log(f"{Typgpy.OKGREEN}Collect rewards response: {response}{Typgpy.ENDC}")
+        else:
+            log(f"{Typgpy.FAIL}Address {validator_config['validator-addr']} is not a validator!{Typgpy.ENDC}")
+    except (TimeoutError, ConnectionError, RuntimeError, subprocess.CalledProcessError) as e:
+        log(traceback.format_exc())
+        log(f"{Typgpy.FAIL}{Typgpy.BOLD}Edit-validator error: {e}{Typgpy.ENDC}")
+        if not _hard_reset_recovery:
+            raise e
+        log(f"{Typgpy.WARNING}{Typgpy.BOLD}Continuing...{Typgpy.ENDC}")
+
+
+def check_and_activate():
     """
-    Initial setup done on first run of validator setup.
+    Return True when attempted to activate, otherwise return False.
     """
-    while True:
-        try:
-            setup_validator_config()
-            assert_node_started()
-            setup_wallet_passphrase()
-            return
-        except AssertionError as e:
-            log(f"{Typgpy.WARNING}Assertion error: {e}{Typgpy.ENDC}")
-            if input_with_print("Try again? [Y/n]\n> ").lower() not in {'y', 'yes'}:
-                raise e
+    try:
+        if not is_active_validator():
+            log(f"{Typgpy.FAIL}Node not active, reactivating...{Typgpy.ENDC}")
+            curr_headers = blockchain.get_latest_headers()
+            curr_epoch_shard = curr_headers['shard-chain-header']['epoch']
+            curr_epoch_beacon = curr_headers['beacon-chain-header']['epoch']
+            wait_for_node_response(node_config['endpoint'], tries=900, sleep=1, verbose=False)  # Try for 15 min
+            ref_epoch = blockchain.get_current_epoch(endpoint=node_config['endpoint'])
+            if curr_epoch_shard == ref_epoch and curr_epoch_beacon == ref_epoch:
+                activate_validator()
+                return True
+            else:
+                log(f"{Typgpy.WARNING}Node not synced, did NOT activate node.{Typgpy.ENDC}")
+                return False
+    except (TimeoutError, ConnectionError, RuntimeError, subprocess.CalledProcessError) as e:
+        log(traceback.format_exc())
+        log(f"{Typgpy.FAIL}Unable to activate validator {validator_config['validator-addr']}"
+            f"error {e}. Continuing...{Typgpy.ENDC}")
+        if not _hard_reset_recovery:  # Do not throw error on hard resets.
+            raise e
+    return False
 
 
 def setup(hard_reset_recovery=False):
@@ -368,8 +423,7 @@ def setup(hard_reset_recovery=False):
         all_val_address = staking.get_all_validator_addresses(endpoint=node_config['endpoint'])
         if validator_config['validator-addr'] in all_val_address:
             log(f"{Typgpy.WARNING}{validator_config['validator-addr']} already in list of validators!{Typgpy.ENDC}")
-            validator_info = staking.get_validator_information(validator_config['validator-addr'],
-                                                               endpoint=node_config['endpoint'])
+            validator_info = get_validator_information()
             keys_on_chain = set(validator_info['validator']['bls-public-keys'])
             if all(k in keys_on_chain for k in node_config["public-bls-keys"]):
                 log(f"{Typgpy.OKBLUE}{Typgpy.BOLD}No BLS key(s) to add to validator!{Typgpy.ENDC}")
@@ -396,18 +450,6 @@ def setup(hard_reset_recovery=False):
         else:
             log(f"{Typgpy.FAIL}{Typgpy.BOLD}Validator creation error: {e}{Typgpy.ENDC}")
             log(f"{Typgpy.WARNING}{Typgpy.BOLD}Continuing...{Typgpy.ENDC}")
-
-
-def _get_edit_validator_options():
-    changeable_fields = {
-        "details", "identity", "name", "security-contact", "website",
-        "max-total-delegation", "min-self-delegation", "rate"
-    }
-    edit_validator_fields = {}
-    for key, value in validator_config.items():
-        if key in changeable_fields:
-            edit_validator_fields[key] = validator_config[key]
-    return edit_validator_fields
 
 
 def update_info(hard_reset_recovery=False):

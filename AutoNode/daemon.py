@@ -79,6 +79,7 @@ def run_node(hard_reset_recovery=False, duration=float('inf')):
             subprocess.check_call(f"kill -2 {pid}", shell=True, env=os.environ)
 
 
+# TODO: handle passphrase transfer & re-auth during reset...
 def _reset_node(recover_service_name, error):
     """
     Internal function to reset a node during hard reset.

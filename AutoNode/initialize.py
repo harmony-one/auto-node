@@ -295,7 +295,7 @@ def interactive_setup_validator():
         _input_validator_address()
 
     v = validator.Validator(validator_config['validator-addr'])
-    if validator_config['validator-addr'] in staking.get_all_validator_addresses(node_config['endpoint']):
+    if validator_config['validator-addr'] in staking.get_all_validator_addresses(endpoint=node_config['endpoint']):
         v.load_from_blockchain(node_config['endpoint'])
         # Can immediately load validator config since information is from on-chain data.
         for key, value in v.export().items():
