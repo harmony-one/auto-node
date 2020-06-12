@@ -2,6 +2,7 @@
 import argparse
 import time
 import json
+import pexpect
 from argparse import RawTextHelpFormatter
 
 from pyhmy import (
@@ -43,12 +44,16 @@ def hard_cleanse():
     """
     # WARNING: Assumption that chain BLS keys are not 0x strings
     keys_on_chain = staking.get_validator_information(validator_addr, endpoint=endpoint)['validator']['bls-public-keys']
+    passphrase = util.get_wallet_passphrase()
     for key in keys_on_chain:
         if key not in bls_keys:
             common.log(f"{Typgpy.WARNING}Removing {key}, key not in node's list of BLS keys: {bls_keys}{Typgpy.ENDC}")
-            response = cli.single_call(['hmy', '--node', endpoint, 'staking', 'edit-validator',
-                                        '--validator-addr', validator_addr,
-                                        '--remove-bls-key', key, '--passphrase-file', common.saved_wallet_pass_path])
+            proc = cli.expect_call(['hmy', '--node', endpoint, 'staking', 'edit-validator',
+                                    '--validator-addr', validator_addr,
+                                    '--remove-bls-key', key, '--passphrase'])
+            util.interact_wallet_passphrase(proc, passphrase)
+            proc.expect(pexpect.EOF)
+            response = proc.before.decode()
             common.log(f"{Typgpy.OKGREEN}Edit-validator transaction response: {response}{Typgpy.ENDC}")
             removed_keys.append(key)
 
@@ -60,15 +65,19 @@ def shard_cleanse():
     keys_on_chain = staking.get_validator_information(validator_addr, endpoint=endpoint)['validator']['bls-public-keys']
     shard = json_load(cli.single_call(['hmy', 'utility', 'shard-for-bls', list(bls_keys)[0],
                                        '--node', endpoint]))['shard-id']
+    passphrase = util.get_wallet_passphrase()
     for key in keys_on_chain:
         key_shard = json_load(cli.single_call(['hmy', 'utility', 'shard-for-bls', key,
                                                '--node', endpoint]))['shard-id']
         if key_shard != shard and key not in bls_keys:
             common.log(
                 f"{Typgpy.WARNING}Removing {key}, key for shard {key_shard}, node for shard {shard}{Typgpy.ENDC}")
-            response = cli.single_call(['hmy', '--node', endpoint, 'staking', 'edit-validator',
-                                        '--validator-addr', validator_addr,
-                                        '--remove-bls-key', key, '--passphrase-file', common.saved_wallet_pass_path])
+            proc = cli.expect_call(['hmy', '--node', endpoint, 'staking', 'edit-validator',
+                                    '--validator-addr', validator_addr,
+                                    '--remove-bls-key', key, '--passphrase'])
+            util.interact_wallet_passphrase(proc, passphrase)
+            proc.expect(pexpect.EOF)
+            response = proc.before.decode()
             common.log(f"{Typgpy.OKGREEN}Edit-validator transaction response: {response}{Typgpy.ENDC}")
             removed_keys.append(key)
 
@@ -94,14 +103,18 @@ def reward_cleanse():
     bls_metrics = staking.get_validator_information(validator_addr, endpoint=endpoint)['metrics']['by-bls-key']
     common.log(f"{Typgpy.OKBLUE}BLS key metrics: {Typgpy.OKGREEN}{json.dumps(bls_metrics, indent=2)}{Typgpy.ENDC}")
     keys_on_chain = staking.get_validator_information(validator_addr, endpoint=endpoint)['validator']['bls-public-keys']
+    passphrase = util.get_wallet_passphrase()
     for metric in bls_metrics:
         if metric['earned-reward'] == 0:
             key = metric['key']['bls-public-key']
             if key not in bls_keys and key in keys_on_chain:
                 common.log(f"{Typgpy.WARNING}Removing {key}, key earned 0 rewards.{Typgpy.ENDC}")
-                response = cli.single_call(['hmy', '--node', endpoint, 'staking', 'edit-validator',
-                                            '--validator-addr', validator_addr,
-                                            '--remove-bls-key', key, '--passphrase-file', common.saved_wallet_pass_path])
+                proc = cli.expect_call(['hmy', '--node', endpoint, 'staking', 'edit-validator',
+                                        '--validator-addr', validator_addr,
+                                        '--remove-bls-key', key, '--passphrase'])
+                util.interact_wallet_passphrase(proc, passphrase)
+                proc.expect(pexpect.EOF)
+                response = proc.before.decode()
                 common.log(f"{Typgpy.OKGREEN}Edit-validator transaction response: {response}{Typgpy.ENDC}")
                 removed_keys.append(key)
 
@@ -115,7 +128,8 @@ if __name__ == "__main__":
         common.log(f"{Typgpy.FAIL}{validator_addr} is not a validator on {endpoint}.{Typgpy.ENDC}")
         exit(-1)
     keys_on_chain = staking.get_validator_information(validator_addr, endpoint=endpoint)['validator']['bls-public-keys']
-    common.log(f"{Typgpy.OKBLUE}Keys on validator {validator_addr} (before cleanse): {Typgpy.OKGREEN}{keys_on_chain}{Typgpy.ENDC}")
+    common.log(
+        f"{Typgpy.OKBLUE}Keys on validator {validator_addr} (before cleanse): {Typgpy.OKGREEN}{keys_on_chain}{Typgpy.ENDC}")
     if args.hard:
         hard_cleanse()
     elif args.keep_shard:
@@ -124,4 +138,5 @@ if __name__ == "__main__":
         reward_cleanse()
     keys_on_chain = staking.get_validator_information(validator_addr, endpoint=endpoint)['validator']['bls-public-keys']
     common.log(f"{Typgpy.OKBLUE}Cleansed following BLS keys: {Typgpy.OKGREEN}{removed_keys}{Typgpy.ENDC}")
-    common.log(f"{Typgpy.OKBLUE}Keys on validator {validator_addr} (after cleanse): {Typgpy.OKGREEN}{keys_on_chain}{Typgpy.ENDC}")
+    common.log(
+        f"{Typgpy.OKBLUE}Keys on validator {validator_addr} (after cleanse): {Typgpy.OKGREEN}{keys_on_chain}{Typgpy.ENDC}")
