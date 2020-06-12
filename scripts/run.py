@@ -8,9 +8,11 @@ from pyhmy import Typgpy
 import AutoNode
 from AutoNode import (
     initialize,
-    daemon
+    daemon,
+    validator,
+    common,
+    monitor
 )
-from AutoNode.common import log
 
 
 def parse_args():
@@ -42,12 +44,44 @@ def parse_args():
 
 
 def assert_dead_daemons():
+    """
+    Exits script if AutoNode services are active.
+    """
     check_monitor_cmd = f"systemctl --type=service --state=active | grep -e ^{daemon.name}@monitor"
     check_node_cmd = f"systemctl --type=service --state=active | grep -e ^{daemon.name}@node"
     if subprocess.call(f"{check_monitor_cmd} > /dev/null", shell=True, env=os.environ) == 0:
         raise SystemExit("AutoNode monitor daemon is still active, stop with `auto_node.sh kill`")
     if subprocess.call(f"{check_node_cmd} > /dev/null", shell=True, env=os.environ) == 0:
         raise SystemExit("AutoNode node daemon is still active, stop with `auto_node.sh kill`")
+
+
+def start_node():
+    """
+    Raises a subprocess.CalledProcessError if unable to start node service
+    """
+    service = "node"
+    assert service in daemon.services, f"sanity check: unknown {service} service"
+    cmd = f"sudo systemctl start {daemon.name}@{service}.service"
+    subprocess.check_call(cmd, shell=True, env=os.environ)
+    AutoNode.common.log(f"{Typgpy.HEADER}Started Node!{Typgpy.ENDC}")
+
+
+def start_monitor():
+    """
+    Raises a subprocess.CalledProcessError if unable to start node service
+    """
+    service = "monitor"
+    assert service in daemon.services, f"sanity check: unknown {service} service"
+    cmd = f"sudo systemctl start {daemon.name}@{service}.service"
+    subprocess.check_call(cmd, shell=True, env=os.environ)
+    AutoNode.common.log(f"{Typgpy.HEADER}Started monitor!{Typgpy.ENDC}")
+
+
+def tail_monitor_log():
+    if os.path.exists(monitor.log_path):
+        subprocess.call(f"tail -f {monitor.log_path}", shell=True, env=os.environ)
+    else:
+        raise SystemExit("Monitor failed to start")
 
 
 if __name__ == "__main__":
@@ -57,15 +91,13 @@ if __name__ == "__main__":
         raise SystemExit(
             f"{Typgpy.FAIL}User {AutoNode.common.user} does not have sudo privileges without password.\n "
             f"For `--auto-reset` option, user must have said privilege.{Typgpy.ENDC}")
-    AutoNode.initialize.reset()
+    initialize.reset()
     if args.network == 'mainnet':
         if args.auto_reset:
-            log(f'{Typgpy.WARNING}[!] Cannot use --auto-reset with Mainnet{Typgpy.ENDC}')
-            args.auto_reset = False
+            raise SystemExit(f"Cannot use --auto-reset with 'mainnet' network")
         if args.clean:
-            log(f'{Typgpy.WARNING}[!] Cannot use --clean with Mainnet{Typgpy.ENDC}')
-            args.clean = False
-    AutoNode.node_config.update({
+            raise SystemExit(f"Cannot use --clean with 'mainnet' network")
+    common.node_config.update({
         "endpoint": args.endpoint,
         "network": args.network,
         "clean": args.clean,
@@ -77,5 +109,11 @@ if __name__ == "__main__":
         "fast-sync": args.fast_sync,
         "archival": args.archival
     })
-    AutoNode.initialize.config(update_cli=args.update_cli)
-    AutoNode.common.log(f"{Typgpy.HEADER}AutoNode has been initialized!{Typgpy.ENDC}")
+    if args.update_cli:
+        initialize.update_cli()
+    initialize.setup_node()
+    start_node()
+    initialize.setup_validator()
+    validator.setup(hard_reset_recovery=False)
+    start_monitor()
+    tail_monitor_log()

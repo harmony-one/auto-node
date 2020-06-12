@@ -273,21 +273,36 @@ def make_directories():
     os.makedirs(imported_wallet_pass_file_dir, exist_ok=True)
 
 
-def config(update_cli=False):
-    make_directories()
-    cli.download(cli_bin_path, replace=update_cli)
+def update_cli():
+    cli.download(cli_bin_path, replace=True)
 
-    if not node_config['no-validator']:
-        interactive_setup_validator()
-        wallet_passphrase = _import_wallet_passphrase()
-        _save_protected_file(wallet_passphrase, saved_wallet_pass_path)
+
+def setup_node():
+    """
+    Setup configs needed to run a node.
+    """
+    make_directories()
     bls_passphrase = _import_bls_passphrase()
     public_bls_keys = _import_bls(bls_passphrase)
     _assert_same_shard_bls_keys(public_bls_keys)
     node_config['public-bls-keys'] = public_bls_keys
-    shard_id = json_load(cli.single_call(['hmy', '--node', f'{node_config["endpoint"]}', 'utility',
-                                          'shard-for-bls', public_bls_keys[0]]))['shard-id']
     save_node_config()
+
+
+def setup_validator():
+    """
+    Setup configs needed to handle a validator.
+    """
+    assert node_config['public-bls-keys'], f"node config is not setup."
+
+    make_directories()
+    if not node_config['no-validator']:
+        interactive_setup_validator()
+        # TODO: change where passphrase is installed and used.
+        wallet_passphrase = _import_wallet_passphrase()
+        _save_protected_file(wallet_passphrase, saved_wallet_pass_path)
+    shard_id = json_load(cli.single_call(['hmy', '--node', f'{node_config["endpoint"]}', 'utility',
+                                          'shard-for-bls', node_config['public-bls-keys'][0]]))['shard-id']
     log("~" * 110)
     log(f"Shard ID: {shard_id}")
     log(f"Saved Validator Information: {json.dumps(validator_config, indent=4)}")

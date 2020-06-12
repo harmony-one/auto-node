@@ -16,32 +16,11 @@ if (( "$EUID" == 0 )); then
 fi
 sudo -l > /dev/null  # To trigger sudo first
 
+# TODO: make sure all CLI calls use the AutoNode cli bin...
 case "${1}" in
   "run")
-    # TODO: first
-    # TODO: create python script for this and note that order matters...
-    # TODO: remove init, do in wrapper script instead
     harmony_dir=$(python3 -c "from AutoNode import common; print(common.harmony_dir)")
-    python3 -u "$harmony_dir"/init.py "${@:2}"
-    if [ "$2" == "-h" ] || [ "$2" == "--help" ]; then
-      exit
-    fi
-    echo "[AutoNode] Initialized service..."
-    daemon_name=$(python3 -c "from AutoNode import daemon; print(daemon.name)")
-    sudo systemctl start "$daemon_name"@node.service
-    python3 -u -c "from AutoNode import validator; validator.setup(hard_reset_recovery=False)" || true
-    sudo systemctl start "$daemon_name"@monitor.service
-    monitor_log_path=$(python3 -c "from AutoNode import monitor; print(monitor.log_path)")
-    if [ -f "$monitor_log_path" ]; then
-      tail -f "$monitor_log_path"
-    else
-      echo "[AutoNode] Monitor failed to start..."
-      systemctl status "$daemon_name"@monitor.service || true
-    fi
-    ;;
-  "init")
-    harmony_dir=$(python3 -c "from AutoNode import common; print(common.harmony_dir)")
-    python3 -u "$harmony_dir"/init.py "${@:2}"
+    python3 -u "$harmony_dir"/run.py "${@:2}"
     ;;
   "node")
     harmony_dir=$(python3 -c "from AutoNode import common; print(common.harmony_dir)")
@@ -59,6 +38,7 @@ case "${1}" in
     python3 -u -c "from AutoNode import validator; validator.setup(hard_reset_recovery=False)"
     ;;
   "activate")
+    # TODO: use python lib to actiavte
     val_config=$(python3 -c "from AutoNode import common; import json; print(json.dumps(common.validator_config))")
     node_config=$(python3 -c "from AutoNode import common; import json; print(json.dumps(common.node_config))")
     addr=$(echo "$val_config" | jq -r '.["validator-addr"]')
@@ -72,6 +52,7 @@ case "${1}" in
     fi
     ;;
   "deactivate")
+    # TODO: use python lib to deactivate
     val_config=$(python3 -c "from AutoNode import common; import json; print(json.dumps(common.validator_config))")
     node_config=$(python3 -c "from AutoNode import common; import json; print(json.dumps(common.node_config))")
     addr=$(echo "$val_config" | jq -r '.["validator-addr"]')
@@ -194,7 +175,6 @@ case "${1}" in
 
       run <run params>    Main execution to run a node. If errors are given
                            for other params, this needs to be ran. Use '-h' param to view help msg
-      init                Initialize AutoNode config. First fallback if any errors
       config              View the validator_config.json file used by AutoNode
       edit-config         Edit the validator_config.json file used by AutoNode and change validator info on-chain
       update-config       Update validator info on-chain with given validator_config.json
