@@ -101,9 +101,7 @@ case "${1}" in
     ;;
   "hmy")
     cli_bin=$(python3 -c "from AutoNode import common; print(common.cli_bin_path)")
-    node_config=$(python3 -c "from AutoNode import common; import json; print(json.dumps(common.node_config))")
-    endpoint=$(echo "$node_config" | jq -r ".endpoint")
-    $cli_bin -n "$endpoint" "${@:2}"
+    $cli_bin "${@:2}"
     ;;
   "hmy-update")
     cli_bin=$(python3 -c "from AutoNode import common; print(common.cli_bin_path)")
@@ -146,7 +144,7 @@ case "${1}" in
       header              Fetch the latest header (shard chain) for the node
       headers             Fetch the latest headers (beacon and shard chain) for the node
       clear-node-bls      Remove the BLS key directory used by the node.
-      hmy <command>       Execute the Harmony CLI with the given command on the given beacon endpoint.
+      hmy <command>       Execute the Harmony CLI with the given command.
                            Use '-h' param to view help msg
       hmy-update          Update the Harmony CLI used for AutoNode
       kill                Safely kill AutoNode & its monitor (if alive)
