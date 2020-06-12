@@ -38,8 +38,9 @@ def _validate_config(for_node=False):
     """
     required_files = [
         saved_node_path,
-        saved_validator_path,
     ]
+    if not for_node:
+        required_files.append(saved_validator_path)
     if any(not os.path.isfile(p) for p in required_files):
         raise SystemExit(f"AutoNode was not initialized properly. "
                          f"One or more files are missing: {required_files}")
