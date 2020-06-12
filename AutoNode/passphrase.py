@@ -9,12 +9,10 @@ from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import hashes, hmac
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 from pyhmy import (
-    Typgpy,
     cli
 )
 
 from .common import (
-    log,
     validator_config,
     node_config
 )
@@ -27,16 +25,16 @@ def _get_harmony_pid():
     try:
         return subprocess.check_output(["pgrep", "harmony"], env=os.environ, timeout=2)
     except (subprocess.TimeoutExpired, subprocess.CalledProcessError) as e:
-        log(f"{Typgpy.FAIL}WARNING: unable to get Harmony PID for wallet encryption. Error {e}{Typgpy.ENDC}")
         return b'0'
 
 
 def _get_process_info(pid):
     assert isinstance(pid, bytes)
+    if pid == b'0':
+        return pid
     try:
         return subprocess.check_output(["ls", "-ld", f"/proc/{pid.decode().strip()}"], env=os.environ, timeout=2)
     except (subprocess.TimeoutExpired, subprocess.CalledProcessError) as e:
-        log(f"{Typgpy.FAIL}WARNING: unable to list process info for PID {pid.decode().strip()}. Error {e}{Typgpy.ENDC}")
         return b'0'
 
 
