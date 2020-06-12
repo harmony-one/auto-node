@@ -10,7 +10,8 @@ from pyhmy import (
     exceptions,
     json_load,
     Typgpy,
-    validator
+    validator,
+    staking
 )
 
 from .common import (
@@ -304,6 +305,8 @@ def interactive_setup_validator():
                 log(f"{Typgpy.FAIL}Failed to load validator information, error {e}{Typgpy.ENDC}")
                 log(f"{Typgpy.WARNING}Re-enter validator info:{Typgpy.ENDC}")
                 update_validator = True
+    elif validator_config['validator-addr'] in staking.get_all_validator_addresses(node_config['endpoint']):
+        v.load_from_blockchain(node_config['endpoint'])
 
     if update_validator:
         _input_validator_field('name', v.set_name)

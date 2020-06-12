@@ -128,6 +128,7 @@ if __name__ == "__main__":
         "fast-sync": args.fast_sync,
         "archival": args.archival
     })
+    common.save_node_config()
     if args.update_cli:
         initialize.update_cli()
     initialize.setup_node_config()
