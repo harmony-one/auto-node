@@ -4,6 +4,7 @@ import logging
 import logging.handlers
 import sys
 
+import pexpect
 from pyhmy import cli
 from pyhmy import (
     Typgpy,
@@ -13,7 +14,15 @@ from pyhmy import (
 from .common import (
     log,
     node_config,
+    validator_config,
     msg_tag
+)
+from .passphrase import (
+    decrypt_wallet_passphrase,
+    is_valid_passphrase
+)
+from .exceptions import (
+    InvalidWalletPassphrase
 )
 
 
@@ -30,16 +39,34 @@ class _GZipRotator:
         os.remove(dest)
 
 
-def process_passphrase(proc, passphrase, double_take=False):
+def get_wallet_passphrase():
+    """
+    Gets encrypted passphrase from node_config, unencrypt, validate, and return.
+
+    Raises InvalidWalletPassphrase if encrypted passphrase is invalid.
+    """
+    passphrase = decrypt_wallet_passphrase(node_config["encrypted-wallet-passphrase"])
+    if not is_valid_passphrase(passphrase, validator_config["validator-addr"]):
+        raise InvalidWalletPassphrase()
+
+
+def interact_wallet_passphrase(proc, passphrase, prompt="Enter wallet keystore passphrase:\r\n"):
+    """
+    Interactively input the wallet passphrase to the given pexpect child process
+    """
+    assert isinstance(proc, pexpect.pty_spawn.spawn)
+    proc.expect(prompt)
+    proc.sendline(passphrase)
+
+
+def process_wallet_creation_passphrase(proc, passphrase):
     """
     This will enter the `passphrase` interactively given the pexpect child program, `proc`.
     """
-    proc.expect("Enter passphrase:\r\n")
-    proc.sendline(passphrase)
-    if double_take:
-        proc.expect("Repeat the passphrase:\r\n")
-        proc.sendline(passphrase)
-        proc.expect("\n")
+    assert isinstance(proc, pexpect.pty_spawn.spawn)
+    interact_wallet_passphrase(proc, passphrase, prompt="Enter passphrase:\r\n")
+    interact_wallet_passphrase(proc, passphrase, prompt="Repeat the passphrase:\r\n")
+    proc.expect("\n")
 
 
 def input_with_print(prompt_str, auto_interaction=None):

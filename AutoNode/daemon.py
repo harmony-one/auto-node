@@ -8,7 +8,6 @@ import time
 from .common import (
     saved_node_path,
     saved_validator_path,
-    saved_wallet_pass_path,
     bls_key_dir,
     node_config,
     user
@@ -40,7 +39,6 @@ def _validate_config(for_node=False):
     required_files = [
         saved_node_path,
         saved_validator_path,
-        saved_wallet_pass_path
     ]
     if any(not os.path.isfile(p) for p in required_files):
         raise SystemExit(f"AutoNode was not initialized properly. "

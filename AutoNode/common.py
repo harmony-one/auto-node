@@ -21,7 +21,6 @@ cli_bin_dir = f"{harmony_dir}/bin"
 cli_bin_path = f"{cli_bin_dir}/hmy"
 saved_validator_path = f"{os.environ['HOME']}/validator_config.json"
 saved_node_path = f"{harmony_dir}/.node_config.p"
-saved_wallet_pass_path = f"{harmony_dir}/.wallet_pass"
 tui_path = f"{harmony_dir}/tui"
 
 node_script_source = "https://harmony.one/node.sh"

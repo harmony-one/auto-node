@@ -277,3 +277,18 @@ def has_bad_block(log_file_path):
     except (UnicodeDecodeError, IOError):
         log(f"{Typgpy.WARNING}WARNING: failed to read `{log_file_path}` to check for bad block{Typgpy.ENDC}")
     return False
+
+
+def assert_started(timeout=60):
+    """
+    Assert the node has started within the given timeout.
+    Node that rclone does NOT count towards timeout.
+    """
+    start_time = time.time()
+    while time.time() - start_time < timeout:
+        if subprocess.call("pgrep rclone", shell=True, env=os.environ) == 0:
+            timeout += 1
+        elif subprocess.call("pgrep harmony", shell=True, env=os.environ) == 0:
+            break
+        time.sleep(1)
+    raise AssertionError("Node failed to start")

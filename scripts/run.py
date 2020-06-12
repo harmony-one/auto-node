@@ -12,7 +12,8 @@ from AutoNode import (
     daemon,
     validator,
     common,
-    monitor
+    monitor,
+    node
 )
 
 
@@ -85,6 +86,22 @@ def tail_monitor_log():
         raise SystemExit("Monitor failed to start")
 
 
+def reset():
+    """
+    Assumes that monitor and node daemons are stopped.
+    """
+    try:
+        common.reset_node_config()
+        if os.path.isfile(common.saved_node_path):
+            os.remove(common.saved_node_path)
+        if os.path.isfile(node.log_path):
+            os.remove(node.log_path)
+        if os.path.isfile(monitor.log_path):
+            os.remove(monitor.log_path)
+    except Exception as e:
+        raise SystemExit(e)
+
+
 if __name__ == "__main__":
     args = parse_args()
     assert_dead_daemons()
@@ -92,7 +109,7 @@ if __name__ == "__main__":
         raise SystemExit(
             f"{Typgpy.FAIL}User {AutoNode.common.user} does not have sudo privileges without password.\n "
             f"For `--auto-reset` option, user must have said privilege.{Typgpy.ENDC}")
-    initialize.reset()
+    reset()
     if args.network == 'mainnet':
         if args.auto_reset:
             raise SystemExit(f"Cannot use --auto-reset with 'mainnet' network")
@@ -112,9 +129,8 @@ if __name__ == "__main__":
     })
     if args.update_cli:
         initialize.update_cli()
-    initialize.setup_node()
+    initialize.setup_node_config()
     start_node()
-    initialize.setup_validator()
     try:
         validator.setup(hard_reset_recovery=False)
     finally:

@@ -1,8 +1,5 @@
 """
-This package takes care of all validator related commands.
-
-Note that if `_hard_reset_recovery` is set (True) then a function MUST exit
-gracefully (including RPC timeouts etc...), otherwise, it is free to throw errors.
+This library takes care of all validator related commands.
 """
 
 import sys
@@ -11,6 +8,7 @@ import json
 import logging
 import subprocess
 import traceback
+import pexpect
 
 from decimal import Decimal
 
@@ -27,18 +25,24 @@ from .common import (
     bls_key_dir,
     node_config,
     validator_config,
-    saved_wallet_pass_path,
-    check_interval
+    check_interval,
 )
 from .node import (
     log_path,
     wait_for_node_response,
     assert_no_bad_blocks,
+    assert_started as assert_node_started
+)
+from .initialize import (
+    setup_validator_config,
+    setup_wallet_passphrase,
 )
 from .util import (
     check_min_bal_on_s0,
     input_with_print,
-    get_simple_rotating_log_handler
+    get_simple_rotating_log_handler,
+    get_wallet_passphrase,
+    interact_wallet_passphrase
 )
 
 _balance_buffer = Decimal(1)
@@ -77,17 +81,20 @@ def _add_bls_key_to_validator():
 def _send_edit_validator_tx(bls_key_to_add):
     log(f"{Typgpy.OKBLUE}Adding bls key: {Typgpy.OKGREEN}{bls_key_to_add}{Typgpy.OKBLUE} "
         f"to validator: {Typgpy.OKGREEN}{validator_config['validator-addr']}{Typgpy.ENDC}")
+    passphrase = get_wallet_passphrase()
     count = 0
     while True:
         count += 1
         try:
             cmd = ['hmy', '--node', f'{node_config["endpoint"]}', 'staking', 'edit-validator',
                    '--validator-addr', f'{validator_config["validator-addr"]}',
-                   '--add-bls-key', bls_key_to_add, '--passphrase-file', saved_wallet_pass_path,
-                   '--bls-pubkeys-dir', bls_key_dir]
+                   '--add-bls-key', bls_key_to_add, '--bls-pubkeys-dir', bls_key_dir, '--passphrase']
             if validator_config["gas-price"]:
                 cmd.extend(['--gas-price', f'{validator_config["gas-price"]}'])
-            response = cli.single_call(cmd)
+            proc = cli.expect_call(cmd)
+            interact_wallet_passphrase(proc, passphrase)
+            proc.expect(pexpect.EOF)
+            response = proc.before.decode()
             log(f"{Typgpy.OKBLUE}Edit-validator transaction response: "
                 f"{Typgpy.OKGREEN}{response}{Typgpy.ENDC}")
             return
@@ -217,6 +224,7 @@ def verify_node_sync():
 
 def _send_create_validator_tx():
     log(f"{Typgpy.OKBLUE}Sending create validator transaction...{Typgpy.ENDC}")
+    passphrase = get_wallet_passphrase()
     count = 0
     while True:
         count += 1
@@ -235,11 +243,13 @@ def _send_create_validator_tx():
                    '--max-total-delegation', f'{validator_config["max-total-delegation"]}',
                    '--amount', f'{validator_config["amount"]}',
                    '--bls-pubkeys', f'{",".join(node_config["public-bls-keys"])}',
-                   '--passphrase-file', saved_wallet_pass_path,
-                   '--bls-pubkeys-dir', bls_key_dir]
+                   '--bls-pubkeys-dir', bls_key_dir, "--passphrase"]
             if validator_config["gas-price"]:
                 cmd.extend(['--gas-price', f'{validator_config["gas-price"]}'])
-            response = cli.single_call(cmd)
+            proc = cli.expect_call(cmd)
+            interact_wallet_passphrase(proc, passphrase)
+            proc.expect(pexpect.EOF)
+            response = proc.before.decode()
             log(f"{Typgpy.OKBLUE}Create-validator transaction response: "
                 f"{Typgpy.OKGREEN}{response}{Typgpy.ENDC}")
             return
@@ -283,13 +293,17 @@ def deactivate_validator():
         all_val = staking.get_all_validator_addresses(endpoint=node_config['endpoint'])
         if validator_config["validator-addr"] in all_val:
             log(f"{Typgpy.OKBLUE}Deactivating validator{Typgpy.ENDC}")
+            passphrase = get_wallet_passphrase()
             cmd = ['hmy', 'staking', 'edit-validator',
                    '--validator-addr', f'{validator_config["validator-addr"]}',
                    '--active', 'false', '--node', f'{node_config["endpoint"]}',
-                   '--passphrase-file', saved_wallet_pass_path]
+                   '--passphrase']
             if validator_config["gas-price"]:
                 cmd.extend(['--gas-price', f'{validator_config["gas-price"]}'])
-            response = cli.single_call(cmd)
+            proc = cli.expect_call(cmd)
+            interact_wallet_passphrase(proc, passphrase)
+            proc.expect(pexpect.EOF)
+            response = proc.before.decode()
             log(f"{Typgpy.OKGREEN}Edit-validator response: {response}{Typgpy.ENDC}")
         else:
             log(f"{Typgpy.FAIL}Address {validator_config['validator-addr']} is not a validator!{Typgpy.ENDC}")
@@ -306,12 +320,16 @@ def activate_validator():
         all_val = staking.get_all_validator_addresses(endpoint=node_config['endpoint'])
         if validator_config["validator-addr"] in all_val:
             log(f"{Typgpy.OKBLUE}Activating validator{Typgpy.ENDC}")
+            passphrase = get_wallet_passphrase()
             cmd = ['hmy', 'staking', 'edit-validator', '--validator-addr', f'{validator_config["validator-addr"]}',
                    '--active', 'true', '--node', f'{node_config["endpoint"]}',
-                   '--passphrase-file', saved_wallet_pass_path]
+                   '--passphrase']
             if validator_config["gas-price"]:
                 cmd.extend(['--gas-price', f'{validator_config["gas-price"]}'])
-            response = cli.single_call(cmd)
+            proc = cli.expect_call(cmd)
+            interact_wallet_passphrase(proc, passphrase)
+            proc.expect(pexpect.EOF)
+            response = proc.before.decode()
             log(f"{Typgpy.OKGREEN}Edit-validator response: {response}{Typgpy.ENDC}")
         else:
             log(f"{Typgpy.FAIL}Address {validator_config['validator-addr']} is not a validator!{Typgpy.ENDC}")
@@ -323,13 +341,29 @@ def activate_validator():
         log(f"{Typgpy.WARNING}{Typgpy.BOLD}Continuing...{Typgpy.ENDC}")
 
 
+def _first_setup():
+    """
+    Initial setup done on first run of validator setup.
+    """
+    while True:
+        try:
+            setup_validator_config()
+            assert_node_started()
+            setup_wallet_passphrase()
+            return
+        except AssertionError as e:
+            log(f"{Typgpy.WARNING}Assertion error: {e}{Typgpy.ENDC}")
+            if input_with_print("Try again?\n> ").lower() not in {'y', 'yes'}:
+                raise e
+
+
 def setup(hard_reset_recovery=False):
     log(f"{Typgpy.HEADER}Starting validator setup...{Typgpy.ENDC}")
     old_logging_handlers = _interaction_preprocessor(hard_reset_recovery)
-    log(f"{Typgpy.OKBLUE}Create validator config: {Typgpy.OKGREEN}"
-        f"{json.dumps(validator_config, indent=4)}{Typgpy.ENDC}")
     log(f"{Typgpy.OKBLUE}Using BLS key(s): {Typgpy.OKGREEN}{node_config['public-bls-keys']}{Typgpy.ENDC}")
     try:
+        if not hard_reset_recovery:
+            _first_setup()
         wait_for_node_response(node_config['endpoint'], verbose=True, tries=120, sleep=1)  # Try for 2 min
         all_val_address = staking.get_all_validator_addresses(endpoint=node_config['endpoint'])
         if validator_config['validator-addr'] in all_val_address:
@@ -391,11 +425,15 @@ def update_info(hard_reset_recovery=False):
         if fields:
             log(f"{Typgpy.OKBLUE}Updating validator information for {address}: "
                 f"{Typgpy.OKGREEN}{json.dumps(fields, indent=2)}{Typgpy.ENDC}")
+            passphrase = get_wallet_passphrase()
             cmd = ['hmy', '--node', f'{node_config["endpoint"]}', 'staking', 'edit-validator',
-                   '--validator-addr', f'{address}', '--passphrase-file', f'{saved_wallet_pass_path}']
+                   '--validator-addr', f'{address}', '--passphrase']
             for key, value in fields.items():
                 cmd.extend([f'--{key}', f'{value}'])
-            response = cli.single_call(cmd)
+            proc = cli.expect_call(cmd)
+            interact_wallet_passphrase(proc, passphrase)
+            proc.expect(pexpect.EOF)
+            response = proc.before.decode()
             log(f"{Typgpy.OKBLUE}Edit-validator transaction response: {Typgpy.OKGREEN}{response}{Typgpy.ENDC}")
         logging.getLogger('AutoNode').handlers = old_logging_handlers
     except Exception as e:

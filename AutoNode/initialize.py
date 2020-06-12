@@ -3,6 +3,7 @@ import getpass
 import shutil
 import time
 import json
+import subprocess
 
 from pyhmy import (
     cli,
@@ -18,8 +19,6 @@ from .common import (
     save_validator_config,
     node_config,
     save_node_config,
-    saved_node_path,
-    saved_wallet_pass_path,
     b32_addr_len,
     bls_key_len,
     bls_key_dir,
@@ -27,23 +26,17 @@ from .common import (
     cli_bin_path,
     protect_file,
     save_protected_file,
-    reset_node_config,
     user,
     harmony_dir,
     node_dir,
     node_sh_log_dir
 )
-
-from .node import (
-    log_path as n_log_path
-)
-
-from .monitor import (
-    log_path as m_log_path
-)
-
 from .util import (
     input_with_print
+)
+from .passphrase import (
+    encrypt_wallet_passphrase,
+    is_valid_passphrase
 )
 
 
@@ -155,19 +148,6 @@ def _import_bls_passphrase():
     return getpass.getpass(f"Enter passphrase for {Typgpy.UNDERLINE}generated{Typgpy.ENDC} BLS key\n> ")
 
 
-def _import_wallet_passphrase():
-    wallet_pass = filter(_wallet_pass_filter, os.listdir(imported_wallet_pass_file_dir))
-    for p in wallet_pass:
-        if validator_config['validator-addr'] == p.split('.')[0]:
-            passphrase_file = f"{imported_wallet_pass_file_dir}/{p}"
-            try:
-                with open(passphrase_file, 'r', encoding='utf8') as f:
-                    return f.read().strip()
-            except (IOError, PermissionError) as e:
-                raise SystemExit(f"Failed to import passphrase from {passphrase_file}, error: {e}")
-    return getpass.getpass(f"Enter wallet passphrase for {validator_config['validator-addr']}\n> ")
-
-
 def _import_bls(passphrase):
     """
     Import BLS keys using imported passphrase files if passphrase is None.
@@ -249,22 +229,6 @@ def _assert_same_shard_bls_keys(public_keys):
         assert shard == ref_shard, f"Bls keys {public_keys} are not for same shard, {shard} != {ref_shard}"
 
 
-def reset():
-    """
-    Assumes that monitor and node daemons are stopped.
-    """
-    try:
-        reset_node_config()
-        if os.path.isfile(saved_node_path):
-            os.remove(saved_node_path)
-        if os.path.isfile(n_log_path):
-            os.remove(n_log_path)
-        if os.path.isfile(m_log_path):
-            os.remove(m_log_path)
-    except Exception as e:
-        raise SystemExit(e)
-
-
 def make_directories():
     os.makedirs(harmony_dir, exist_ok=True)
     os.makedirs(node_dir, exist_ok=True)
@@ -277,7 +241,7 @@ def update_cli():
     cli.download(cli_bin_path, replace=True)
 
 
-def setup_node():
+def setup_node_config():
     """
     Setup configs needed to run a node.
     """
@@ -289,18 +253,17 @@ def setup_node():
     save_node_config()
 
 
-def setup_validator():
+def setup_validator_config():
     """
     Setup configs needed to handle a validator.
     """
-    assert node_config['public-bls-keys'], f"node config is not setup."
+    if not node_config['no-validator']:
+        log(f"{Typgpy.WARNING}Node config specify no validator automation, skipping setup...{Typgpy.ENDC}")
+        return
+    assert node_config['public-bls-keys'], f"sanity check: node config is not setup."
 
     make_directories()
-    if not node_config['no-validator']:
-        interactive_setup_validator()
-        # TODO: change where passphrase is installed and used.
-        wallet_passphrase = _import_wallet_passphrase()
-        _save_protected_file(wallet_passphrase, saved_wallet_pass_path)
+    interactive_setup_validator()
     shard_id = json_load(cli.single_call(['hmy', '--node', f'{node_config["endpoint"]}', 'utility',
                                           'shard-for-bls', node_config['public-bls-keys'][0]]))['shard-id']
     log("~" * 110)
@@ -308,6 +271,17 @@ def setup_validator():
     log(f"Saved Validator Information: {json.dumps(validator_config, indent=4)}")
     save_validator_config()
     log("~" * 110)
+
+
+def setup_wallet_passphrase():
+    """
+    Setup wallet passphrase (encrypted).
+    """
+    if not node_config['no-validator']:
+        log(f"{Typgpy.WARNING}Node config specify no validator automation, skipping wallet setup...{Typgpy.ENDC}")
+        return
+    passphrase = get_wallet_passphrase()
+    save_wallet_passphrase(passphrase)
 
 
 def interactive_setup_validator():
@@ -349,3 +323,33 @@ def interactive_setup_validator():
         for key, value in verified_info.items():
             assert value is not None, f"sanity check: validated config ({value}) should not be None"
             validator_config[key] = str(value)
+
+
+def get_wallet_passphrase():
+    """
+    Get wallet passphrase from wallet passphrase directory, if present.
+    Otherwise get it interactively from user.
+    """
+    wallet_pass = filter(_wallet_pass_filter, os.listdir(imported_wallet_pass_file_dir))
+    for p in wallet_pass:
+        if validator_config['validator-addr'] == p.split('.')[0]:
+            passphrase_file = f"{imported_wallet_pass_file_dir}/{p}"
+            try:
+                with open(passphrase_file, 'r', encoding='utf8') as f:
+                    return f.read().strip()
+            except (IOError, PermissionError) as e:
+                raise AssertionError(f"Failed to import passphrase from {passphrase_file}, error: {e}")
+    return getpass.getpass(f"Enter wallet passphrase for {validator_config['validator-addr']}\n> ")
+
+
+def save_wallet_passphrase(passphrase):
+    """
+    Encrypt and save wallet passphrase in node config.
+    """
+    is_node_running = subprocess.call("pgrep harmony", shell=True, env=os.environ) == 0
+    assert is_node_running, "Harmony process is not running, cannot save wallet passphrase"
+    addr = validator_config["validator-addr"]
+    assert addr, "Validator was not setup, cannot save passphrase"
+    assert is_valid_passphrase(passphrase, addr), f"Invalid passphrase for {addr}"
+    node_config["encrypted-wallet-passphrase"] = encrypt_wallet_passphrase(passphrase)
+    save_node_config()
