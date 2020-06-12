@@ -9,12 +9,14 @@ from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import hashes, hmac
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 from pyhmy import (
-    cli
+    cli,
+    Typgpy
 )
 
 from .common import (
     validator_config,
-    node_config
+    node_config,
+    log
 )
 from .exceptions import (
     InvalidWalletPassphrase
@@ -94,9 +96,13 @@ def is_valid_passphrase(passphrase, validator_address):
         proc = cli.expect_call(cmd)
         proc.expect("Enter wallet keystore passphrase:\r\n")
         proc.sendline(passphrase)
+        proc.wait()
         proc.expect(pexpect.EOF)
-        if "Exported" in proc.before.decode():
+        if validator_address in proc.before.decode():
             return True
+        log(f"{Typgpy.FAIL}Failed to verify passphrase, unable to unlock keystore "
+            f"file with given passphrase.{Typgpy.ENDC}")
         return False
-    except (RuntimeError, pexpect.ExceptionPexpect):
+    except (RuntimeError, pexpect.ExceptionPexpect) as e:
+        log(f"{Typgpy.FAIL}Failed to verify passphrase due to: {e}{Typgpy.ENDC}")
         return False
