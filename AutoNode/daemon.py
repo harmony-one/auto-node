@@ -16,11 +16,21 @@ from .node import (
     start as node_start
 )
 from .validator import (
-    setup as validator_setup
+    setup as validator_setup,
+    assert_node_started
 )
 from .monitor import (
     start as start_monitor,
     ResetNode
+)
+from .initialize import (
+    save_wallet_passphrase
+)
+from .util import (
+    get_wallet_passphrase,
+)
+from .exceptions import (
+    InvalidWalletPassphrase
 )
 
 name = f"{user}-autonoded"
@@ -79,7 +89,6 @@ def run_node(hard_reset_recovery=False, duration=float('inf')):
             subprocess.check_call(f"kill -2 {pid}", shell=True, env=os.environ)
 
 
-# TODO: handle passphrase transfer & re-auth during reset...
 def _reset_node(recover_service_name, error):
     """
     Internal function to reset a node during hard reset.
@@ -91,6 +100,8 @@ def _reset_node(recover_service_name, error):
     if node_config['network'] == 'mainnet':
         print("WARNING: cannot reset mainnet node, ignoring...")
         return
+
+    passphrase = get_wallet_passphrase()
 
     for service in map(lambda e: e.startswith("node"), services):
         daemon_name = f"{name}@{service}.service"
@@ -113,6 +124,13 @@ def _reset_node(recover_service_name, error):
     except subprocess.CalledProcessError as e:
         print(f"Unable to start service '{daemon_name}'")
         raise e
+
+    try:
+        assert_node_started()
+        save_wallet_passphrase(passphrase)
+    except (AssertionError, InvalidWalletPassphrase) as e:
+        print(f"Could not re-auth wallet, error {e}")
+        print(f"Continuing...")
 
 
 def run_monitor(duration=float('inf')):

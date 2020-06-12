@@ -16,7 +16,6 @@ if (( "$EUID" == 0 )); then
 fi
 sudo -l > /dev/null  # To trigger sudo first
 
-# TODO: make sure all CLI calls use the AutoNode cli bin...
 case "${1}" in
   "run")
     harmony_dir=$(python3 -c "from AutoNode import common; print(common.harmony_dir)")
