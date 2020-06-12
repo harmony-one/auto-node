@@ -105,6 +105,7 @@ def reset():
 if __name__ == "__main__":
     args = parse_args()
     assert_dead_daemons()
+    common.log(f"{Typgpy.HEADER}=== STARTED NEW AUTONODE ==={Typgpy.ENDC}")
     if args.auto_reset and subprocess.call("sudo -n true", shell=True, env=os.environ) != 0:
         raise SystemExit(
             f"{Typgpy.FAIL}User {AutoNode.common.user} does not have sudo privileges without password.\n "
