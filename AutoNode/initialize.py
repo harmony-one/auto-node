@@ -293,8 +293,14 @@ def interactive_setup_validator():
         _input_validator_address()
 
     v = validator.Validator(validator_config['validator-addr'])
-    update_validator = True
+    if validator_config['validator-addr'] in staking.get_all_validator_addresses(node_config['endpoint']):
+        v.load_from_blockchain(node_config['endpoint'])
+        # Can immediately load validator config since information is from on-chain data.
+        for key, value in v.export().items():
+            assert value is not None, f"sanity check: validated config ({key}) should not be None"
+            validator_config[key] = str(value)
 
+    update_validator = True
     if all(el is not None for el in validator_config.values()):
         log(f"{Typgpy.HEADER}Validator Config:{Typgpy.OKGREEN}{json.dumps(validator_config, indent=2)}{Typgpy.ENDC}")
         if input_with_print("Update validator? [Y]/n\n> ").lower() not in {'y', 'yes'}:
@@ -305,8 +311,6 @@ def interactive_setup_validator():
                 log(f"{Typgpy.FAIL}Failed to load validator information, error {e}{Typgpy.ENDC}")
                 log(f"{Typgpy.WARNING}Re-enter validator info:{Typgpy.ENDC}")
                 update_validator = True
-    elif validator_config['validator-addr'] in staking.get_all_validator_addresses(node_config['endpoint']):
-        v.load_from_blockchain(node_config['endpoint'])
 
     if update_validator:
         _input_validator_field('name', v.set_name)
@@ -322,9 +326,8 @@ def interactive_setup_validator():
         _display_warning('max-change-rate')
         _input_validator_field('max-change-rate', v.set_max_change_rate)
         _input_validator_field('rate', v.set_rate)
-        verified_info = v.export()
-        for key, value in verified_info.items():
-            assert value is not None, f"sanity check: validated config ({value}) should not be None"
+        for key, value in v.export().items():
+            assert value is not None, f"sanity check: validated config ({key}) should not be None"
             validator_config[key] = str(value)
 
 
