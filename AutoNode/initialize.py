@@ -282,7 +282,9 @@ def setup_wallet_passphrase():
         log(f"{Typgpy.WARNING}Node config specify no validator automation, skipping wallet setup...{Typgpy.ENDC}")
         return
     passphrase = get_wallet_passphrase()
+    log(f"{Typgpy.HEADER}Encrypting and saving wallet passphrase.{Typgpy.ENDC}")
     save_wallet_passphrase(passphrase)
+    log(f"{Typgpy.OKGREEN}Successfully saved wallet passphrase!{Typgpy.ENDC}")
 
 
 def interactive_setup_validator():
@@ -302,7 +304,7 @@ def interactive_setup_validator():
 
     update_validator = True
     if all(el is not None for el in validator_config.values()):
-        log(f"{Typgpy.HEADER}Validator Config:{Typgpy.OKGREEN}{json.dumps(validator_config, indent=2)}{Typgpy.ENDC}")
+        log(f"{Typgpy.HEADER}Validator Config:{Typgpy.OKGREEN} {json.dumps(validator_config, indent=2)}{Typgpy.ENDC}")
         if input_with_print("Update validator? [Y]/n\n> ").lower() not in {'y', 'yes'}:
             try:
                 v.load(validator_config)  # The act of loading will check params
@@ -352,11 +354,10 @@ def save_wallet_passphrase(passphrase):
     """
     Encrypt and save wallet passphrase in node config.
     """
-    is_node_running = subprocess.call("pgrep harmony", shell=True, env=os.environ) == 0
+    is_node_running = subprocess.call("pgrep harmony > /dev/null", shell=True, env=os.environ) == 0
     assert is_node_running, "Harmony process is not running, cannot save wallet passphrase"
     addr = validator_config["validator-addr"]
     assert addr, "Validator was not setup, cannot save passphrase"
     assert is_valid_passphrase(passphrase, addr), f"Invalid passphrase for {addr}"
-    log(f"{Typgpy.HEADER}Encrypting and saving wallet passphrase.{Typgpy.ENDC}")
     node_config["encrypted-wallet-passphrase"] = encrypt_wallet_passphrase(passphrase)
     save_node_config()
