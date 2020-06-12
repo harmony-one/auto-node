@@ -287,13 +287,11 @@ def config(update_cli=False):
     node_config['public-bls-keys'] = public_bls_keys
     shard_id = json_load(cli.single_call(['hmy', '--node', f'{node_config["endpoint"]}', 'utility',
                                           'shard-for-bls', public_bls_keys[0]]))['shard-id']
-
+    save_node_config()
     log("~" * 110)
     log(f"Shard ID: {shard_id}")
     log(f"Saved Validator Information: {json.dumps(validator_config, indent=4)}")
     save_validator_config()
-    log(f"Saved Node Information: {json.dumps(node_config, indent=4)}")
-    save_node_config()
     log("~" * 110)
 
 

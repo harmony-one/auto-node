@@ -174,6 +174,8 @@ def start(auto=False, verbose=True):
 
     Note that process is running after function return.
     """
+    if subprocess.call(["pgrep", "harmony"], env=os.environ) == 0:
+        raise RuntimeError("Harmony process is already running, can only start 1 node on machine with AutoNode.")
     old_logging_handlers = logging.getLogger('AutoNode').handlers.copy()
     logging.getLogger('AutoNode').addHandler(get_simple_rotating_log_handler(log_path))
     log(f"{Typgpy.HEADER}Starting node...{Typgpy.ENDC}")

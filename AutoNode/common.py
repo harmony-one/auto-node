@@ -52,6 +52,7 @@ _validator_config_default = {
 }
 validator_config = _validator_config_default.copy()
 
+# Invariant: 'public-bls-keys' does not change after node is started.
 _node_config_default = {
     "endpoint": "https://api.s0.b.hmny.io/",
     "network": "testnet",
@@ -64,7 +65,7 @@ _node_config_default = {
     "no-download": False,
     "fast-sync": False,
     "public-bls-keys": [],
-    "encrypted-wallet-passphrase": ""
+    "encrypted-wallet-passphrase": b''
 }
 node_config = _node_config_default.copy()
 
@@ -121,9 +122,9 @@ def save_node_config():
                 raise KeyError(f"{key} not present in node config to save: {json.dumps(node_config, indent=2)}")
         node_config_string = pickle.dumps(node_config)
     except (pickle.PickleError, KeyError) as e:
-        log(f"{Typgpy.FAIL}Invalid metadata to save.{Typgpy.ENDC}\n"
+        log(f"{Typgpy.FAIL}Invalid node config to save.{Typgpy.ENDC}\n"
             f"Error: {e}.")
-        log(f"{Typgpy.WARNING}NOT saving node metadata, continuing...{Typgpy.ENDC}")
+        log(f"{Typgpy.WARNING}NOT saving node config, continuing...{Typgpy.ENDC}")
         return
     save_protected_file(node_config_string, saved_node_path, verbose=False)
 

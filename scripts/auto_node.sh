@@ -26,8 +26,8 @@ case "${1}" in
     echo "[AutoNode] Initialized service..."
     daemon_name=$(python3 -c "from AutoNode import daemon; print(daemon.name)")
     sudo systemctl start "$daemon_name"@node.service
-    sudo systemctl start "$daemon_name"@monitor.service
     python3 -u -c "from AutoNode import validator; validator.setup(hard_reset_recovery=False)" || true
+    sudo systemctl start "$daemon_name"@monitor.service
     monitor_log_path=$(python3 -c "from AutoNode import monitor; print(monitor.log_path)")
     if [ -f "$monitor_log_path" ]; then
       tail -f "$monitor_log_path"
