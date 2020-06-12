@@ -121,10 +121,12 @@ def run_monitor(duration=float('inf')):
     """
     print(f"Running monitor for {duration} seconds.")
     _validate_config(for_node=False)
-    try:
-        # Monitor will raise a ResetNode exception to trigger a node reset, otherwise it will gracefully exit.
-        start_monitor(duration=duration)
-    except ResetNode as error:
-        if node_config['auto-reset']:
-            _reset_node("node_recovered", error)
+    while True:
+        try:
+            # Monitor will raise a ResetNode exception to trigger a node reset, otherwise it will gracefully exit.
+            start_monitor(duration=duration)
+            break
+        except ResetNode as error:
+            if node_config['auto-reset']:
+                _reset_node("node_recovered", error)
     print("Terminating monitor.")

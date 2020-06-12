@@ -152,5 +152,6 @@ def start(duration=float('inf')):
                 f"respond before triggering node reset.{Typgpy.ENDC}")
             wait_for_node_response(node_config['endpoint'], verbose=False, sleep=2)
             log(f"{Typgpy.WARNING}Monitor is triggering reset with clean: {node_config['clean']}{Typgpy.ENDC}")
+            logging.getLogger('AutoNode').handlers = old_logging_handlers
             raise err
     logging.getLogger('AutoNode').handlers = old_logging_handlers

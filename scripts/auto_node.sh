@@ -18,6 +18,9 @@ sudo -l > /dev/null  # To trigger sudo first
 
 case "${1}" in
   "run")
+    # TODO: first
+    # TODO: create python script for this and note that order matters...
+    # TODO: remove init, do in wrapper script instead
     harmony_dir=$(python3 -c "from AutoNode import common; print(common.harmony_dir)")
     python3 -u "$harmony_dir"/init.py "${@:2}"
     if [ "$2" == "-h" ] || [ "$2" == "--help" ]; then
