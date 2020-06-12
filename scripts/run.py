@@ -141,4 +141,7 @@ if __name__ == "__main__":
         while time.time() - start_time < 5:
             if os.path.exists(monitor.log_path):
                 break
-        tail_monitor_log()
+        try:
+            tail_monitor_log()
+        except KeyboardInterrupt:
+            exit(0)
