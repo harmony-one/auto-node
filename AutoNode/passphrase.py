@@ -91,7 +91,8 @@ def is_valid_passphrase(passphrase, validator_address):
     """
     cmd = ["hmy", "keys", "export-ks", validator_address, "/dev/null", "--passphrase"]
     try:
-        proc = cli.expect_call(cmd, timeout=10)
+        proc = cli.expect_call(cmd)
+        proc.expect("Enter wallet keystore passphrase:\r\n")
         proc.sendline(passphrase)
         proc.expect(pexpect.EOF)
         if "Exported" in proc.before.decode():
