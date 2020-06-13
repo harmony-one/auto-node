@@ -47,11 +47,10 @@ case "${1}" in
     python3 -u -c "from AutoNode import validator; validator.deactivate_validator()"
     ;;
   "info")
-    output=$(python3 -u -c "from AutoNode import validator; import json; print(json.dumps(validator.get_validator_information()))")
-    echo "$output" | jq || echo "$output"
+    python3 -u -c "from AutoNode import validator; import json; print(json.dumps(validator.get_validator_information(), indent=2))"
     ;;
   "config")
-    python3 -c "from AutoNode import common; import json; print(json.dumps(common.validator_config))" | jq
+    python3 -u -c "from AutoNode import common; import json; print(json.dumps(common.validator_config, indent=2))"
     ;;
   "edit-config")
     nano "$(python3 -c "from AutoNode import common; print(common.saved_validator_path)")"
@@ -69,8 +68,7 @@ case "${1}" in
     python3 -u "$harmony_dir"/cleanse-bls.py "${@:2}"
     ;;
   "balances")
-    output=$(python3 -c "from AutoNode import validator; import json; print(json.dumps(validator.get_balances()))")
-    echo "$output" | jq || echo "$output"
+    python3 -u -c "from AutoNode import validator; import json; print(json.dumps(validator.get_balances(), indent=2))"
     ;;
   "collect-rewards")
     python3 -u -c "from AutoNode import validator; validator.collect_reward()"
@@ -81,12 +79,10 @@ case "${1}" in
     cd "$node_dir" && ./node.sh -V && ./node.sh -v && cd "$owd" || echo "[AutoNode] Node files not found..."
     ;;
   "header")
-     output=$(python3 -c "from pyhmy import blockchain; import json; print(json.dumps(blockchain.get_latest_header()))")
-     echo "$output" | jq || echo "$output"
+     python3 -u -c "from pyhmy import blockchain; import json; print(json.dumps(blockchain.get_latest_header(), indent=2))"
     ;;
   "headers")
-    output=$(python3 -c "from pyhmy import blockchain; import json; print(json.dumps(blockchain.get_latest_headers()))")
-    echo "$output" | jq || echo "$output"
+    python3 -u -c "from pyhmy import blockchain; import json; print(json.dumps(blockchain.get_latest_headers(), indent=2))"
     ;;
   "clear-node-bls")
     daemon_name=$(python3 -c "from AutoNode import daemon; print(daemon.name)")
