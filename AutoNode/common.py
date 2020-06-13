@@ -68,14 +68,6 @@ _node_config_default = {
 }
 node_config = _node_config_default.copy()
 
-sync_dir_map = {
-    "staking": "ostn",
-    "partner": "pstn",
-    "stress": "stn",
-    "testnet": "testnet",
-    "mainnet": "mainnet"
-}
-
 
 def save_validator_config():
     """

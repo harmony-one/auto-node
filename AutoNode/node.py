@@ -23,7 +23,6 @@ from .common import (
     node_config,
     node_dir,
     bls_key_dir,
-    sync_dir_map,
     harmony_dir
 )
 
@@ -83,7 +82,7 @@ def _rclone(rclone_sync_dir, shard, verbose=True):
                 shutil.rmtree(db_dir)
 
 
-def _rclone_space_required(rclone_sync_dir, shard, verbose=True):
+def _rclone_space_required(rclone_sync_dir, shard):
     rclone_path = f'hmy://pub.harmony.one/{rclone_sync_dir}/harmony_db_{shard}'
     try:
         space_output = subprocess.check_output(['rclone', 'size', rclone_path, '--json'], env=os.environ)
@@ -94,16 +93,18 @@ def _rclone_space_required(rclone_sync_dir, shard, verbose=True):
 
 
 def _rclone_db(shard, verbose=True):
-    rclone_sync_dir = sync_dir_map[node_config['network']]
-    if node_config['network'] == 'mainnet' and not node_config['archival']:
-        rclone_sync_dir = rclone_sync_dir + '.min'
+    # WARNING: rclone sync directory naming convention may change in the future
+    if node_config['archival']:
+        rclone_sync_dir = node_config['network'] + '.archival'
+    else:
+        rclone_sync_dir = node_config['network'] + '.min'
 
     _, _, free_space = shutil.disk_usage(os.environ['HOME'])
     free_space = free_space + rclone_space_buffer
 
     rclone_processes = []
     if shard == 0:
-        required_space = _rclone_space_required(rclone_sync_dir, shard, verbose=verbose)
+        required_space = _rclone_space_required(rclone_sync_dir, shard)
         if required_space == 0:
             log(f"{Typgpy.WARNING}Fast-sync db not available.\n"
                 f"Skipping rclone shard {shard}...{Typgpy.ENDC}")
@@ -115,8 +116,8 @@ def _rclone_db(shard, verbose=True):
             return
         rclone_processes.append(_rclone(rclone_sync_dir, shard, verbose=verbose))
     else:
-        required_beacon_space = _rclone_space_required(rclone_sync_dir, 0, verbose=verbose)
-        required_shard_space = _rclone_space_required(rclone_sync_dir, shard, verbose=verbose)
+        required_beacon_space = _rclone_space_required(rclone_sync_dir, 0)
+        required_shard_space = _rclone_space_required(rclone_sync_dir, shard)
         total_required_space = required_beacon_space + required_shard_space
         if total_required_space > free_space:
             log(f"{Typgpy.WARNING}[!] Insufficient disk space. Required: {total_required_space}, Free: {free_space} \n"
