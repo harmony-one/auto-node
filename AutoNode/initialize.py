@@ -123,6 +123,9 @@ def _import_bls_passphrase():
     """
     Import BLS passphrase (from user or file).
     Returns None if using imported passphrase files.
+
+    NOTE: .pass files are SUBJECT TO CHANGE as they are files used
+    by node.sh & CLI layer of the harmony program.
     """
     bls_keys = list(filter(lambda e: _bls_filter(e, '.key'), os.listdir(bls_key_dir)))
     bls_pass = list(filter(lambda e: _bls_filter(e, '.pass'), os.listdir(bls_key_dir)))
@@ -284,7 +287,6 @@ def setup_wallet_passphrase():
     passphrase = get_wallet_passphrase()
     log(f"{Typgpy.HEADER}Encrypting and saving wallet passphrase.{Typgpy.ENDC}")
     save_wallet_passphrase(passphrase)
-    log(f"{Typgpy.OKGREEN}Successfully saved wallet passphrase!{Typgpy.ENDC}")
 
 
 def interactive_setup_validator():

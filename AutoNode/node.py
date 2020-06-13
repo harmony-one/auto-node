@@ -280,16 +280,24 @@ def has_bad_block(log_file_path):
     return False
 
 
-def assert_started(timeout=60):
+def assert_started(timeout=60, do_log=False):
     """
     Assert the node has started within the given timeout.
     Node that rclone does NOT count towards timeout.
     """
+    has_informed_rclone = False
     start_time = time.time()
     while time.time() - start_time < timeout:
         if subprocess.call("pgrep rclone > /dev/null", shell=True, env=os.environ) == 0:
             timeout += 1
+            if not has_informed_rclone and do_log:
+                log(f"Fast-sync (rclone) is in progress...")
+                has_informed_rclone = True
         elif subprocess.call("pgrep harmony > /dev/null", shell=True, env=os.environ) == 0:
+            if do_log:
+                log(f"Harmony node is running...")
             return
         time.sleep(1)
+    if do_log:
+        log(f"Harmony node is NOT running!")
     raise AssertionError("Node failed to start")

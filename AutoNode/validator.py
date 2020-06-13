@@ -3,6 +3,7 @@ This library takes care of all validator related commands.
 """
 
 import sys
+import os
 import time
 import json
 import logging
@@ -219,7 +220,7 @@ def _first_setup():
     while True:
         try:
             setup_validator_config()
-            assert_node_started()
+            assert_node_started(do_log=True)
             setup_wallet_passphrase()
             return
         except AssertionError as e:
@@ -297,9 +298,6 @@ def verify_node_sync():
         log("")
     log(f"{Typgpy.OKGREEN}Node synced to current epoch...{Typgpy.ENDC}")
     try:
-        if not has_looped and not is_active_validator():
-            log(f"{Typgpy.OKGREEN}Waiting {check_interval} seconds before sending activate transaction{Typgpy.ENDC}")
-            time.sleep(check_interval)  # Wait for nonce to finalize before sending activate
         if not is_active_validator():
             activate_validator()
     except (TimeoutError, ConnectionError, RuntimeError, subprocess.CalledProcessError) as e:
