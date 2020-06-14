@@ -19,7 +19,7 @@ from AutoNode import (
 
 def parse_args():
     parser = argparse.ArgumentParser(description='== Run a Harmony node & validator automagically ==',
-                                     usage="auto_node.sh run [OPTIONS]",
+                                     usage="auto-node run [OPTIONS]",
                                      formatter_class=RawTextHelpFormatter, add_help=False)
     parser.add_argument('-h', '--help', action='help', default=argparse.SUPPRESS,
                         help='Show this help message and exit')
@@ -52,9 +52,9 @@ def assert_dead_daemons():
     check_monitor_cmd = f"systemctl --type=service --state=active | grep -e ^{daemon.name}@monitor"
     check_node_cmd = f"systemctl --type=service --state=active | grep -e ^{daemon.name}@node"
     if subprocess.call(f"{check_monitor_cmd} > /dev/null", shell=True, env=os.environ) == 0:
-        raise SystemExit("AutoNode monitor daemon is still active, stop with `auto_node.sh kill`")
+        raise SystemExit("AutoNode monitor daemon is still active, stop with `auto-node kill`")
     if subprocess.call(f"{check_node_cmd} > /dev/null", shell=True, env=os.environ) == 0:
-        raise SystemExit("AutoNode node daemon is still active, stop with `auto_node.sh kill`")
+        raise SystemExit("AutoNode node daemon is still active, stop with `auto-node kill`")
 
 
 def start_node():

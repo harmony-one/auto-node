@@ -17,6 +17,6 @@ cp -v "$DIR"/../scripts/cleanse-bls.py "$harmony_dir"
 cp -v "$DIR"/../scripts/tui.sh "$harmony_dir"
 cp -v "$DIR"/../scripts/monitor.sh "$harmony_dir"
 cp -v "$DIR"/../scripts/node.sh "$harmony_dir"
-cp -v "$DIR"/../scripts/auto_node.sh "$HOME"
-cp -v "$DIR"/../scripts/autonode_service.py "$HOME"/bin/autonode_service.py
+cp -v "$DIR"/../scripts/auto-node.sh "$HOME/bin"
+cp -v "$DIR"/../scripts/autonode-service.py "$HOME"/bin/autonode-service.py
 echo "== FINISHED DEV INSTALL =="

@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-# TODO: convert auto_node.sh into python3 click CLI since lib is in python3.
+# TODO: convert auto-node.sh into python3 click CLI since lib is in python3.
 function yes_or_exit(){
   read -r reply
   if [[ ! $reply =~ ^[Yy]$ ]]
@@ -87,7 +87,7 @@ case "${1}" in
   "clear-node-bls")
     daemon_name=$(python3 -c "from AutoNode import daemon; print(daemon.name)")
     if systemctl --type=service --state=active | grep -e ^"$daemon_name"; then
-      echo "[AutoNode] AutoNode is still running. Kill with 'auto_node.sh kill' before cleaning BLS keys."
+      echo "[AutoNode] AutoNode is still running. Kill with 'auto-node kill' before cleaning BLS keys."
       exit 4
     fi
     bls_key_dir=$(python3 -c "from AutoNode import common; print(common.bls_key_dir)")

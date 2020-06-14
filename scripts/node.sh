@@ -53,7 +53,7 @@ case "${1}" in
     echo "
   == AutoNode node command help ==
 
-  Usage: auto_node.sh node <cmd>
+  Usage: auto-node node <cmd>
 
   Cmd:                  Help:
 

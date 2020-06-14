@@ -27,7 +27,7 @@ case "${1}" in
     echo "
       == AutoNode TUI command help ==
 
-      Usage: auto_node.sh tui <cmd>
+      Usage: auto-node tui <cmd>
 
       Cmd:              Help:
 

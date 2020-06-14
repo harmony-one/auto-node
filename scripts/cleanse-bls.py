@@ -27,7 +27,7 @@ removed_keys = []
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Cleanse BLS keys associated with this node's validator",
-                                     usage="auto_node.sh cleanse-bls [OPTIONS]",
+                                     usage="auto-node cleanse-bls [OPTIONS]",
                                      formatter_class=RawTextHelpFormatter, add_help=False)
     parser.add_argument('-h', '--help', action='help', default=argparse.SUPPRESS,
                         help='Show this help message and exit')

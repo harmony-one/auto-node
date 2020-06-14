@@ -23,7 +23,7 @@ case "${1}" in
     echo "
   == AutoNode node monitor command help ==
 
-  Usage: auto_node.sh monitor <cmd>
+  Usage: auto-node monitor <cmd>
 
   Cmd:            Help:
 
