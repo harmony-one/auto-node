@@ -111,7 +111,7 @@ Description=Harmony AutoNode %I service
 
 [Service]
 Type=simple
-ExecStart=$(command -v python3) -u $HOME/bin/autonode_service.py %I
+ExecStart=$(command -v python3) -u $HOME/bin/autonode-service.py %I
 User=$USER
 
 [Install]
@@ -119,11 +119,12 @@ WantedBy=multi-user.target
 "
   daemon_name=$(python3 -c "from AutoNode import daemon; print(daemon.name)")
   harmony_dir=$(python3 -c "from AutoNode import common; print(common.harmony_dir)")
+  user_systemd_dir="$HOME/.config/systemd/user"
 
-  if systemctl --type=service --state=active | grep -e ^"$daemon_name"; then
+  if systemctl --user --type=service --state=active | grep -e ^"$daemon_name"; then
     echo "[AutoNode] Detected running AutoNode. Must stop existing AutoNode to continue. Proceed (y/n)?"
     yes_or_exit
-    if ! "$HOME"/auto_node.sh kill; then
+    if ! auto-node kill; then
        echo "[AutoNode] Could not kill existing AutoNode, exiting"
        exit 3
     fi
@@ -135,33 +136,49 @@ WantedBy=multi-user.target
   fi
 
   echo "[AutoNode] Installing AutoNode wrapper script"
-  mkdir -p "$harmony_dir"
-  curl -s -o "$HOME"/auto_node.sh  https://raw.githubusercontent.com/harmony-one/auto-node/master/scripts/auto_node.sh
-  chmod +x "$HOME"/auto_node.sh
-  for autonode_script in "run.py" "cleanse-bls.py" "tui.sh" "monitor.sh" "node.sh"; do
-    curl -s -o "$harmony_dir/$autonode_script" "https://raw.githubusercontent.com/harmony-one/auto-node/master/scripts/$autonode_script"
+  mkdir -p "$harmony_dir" "$HOME/bin"
+  curl -s -o "$HOME/bin/auto-node"  https://raw.githubusercontent.com/harmony-one/auto-node/master/scripts/auto-node.sh
+  chmod +x "$HOME/bin/auto-node"
+  for auto_node_script in "run.py" "cleanse-bls.py" "tui.sh" "monitor.sh" "node.sh"; do
+    curl -s -o "$harmony_dir/$auto_node_script" "https://raw.githubusercontent.com/harmony-one/auto-node/master/scripts/$auto_node_script"
   done
-  "$HOME"/auto_node.sh tui update
+  export PATH=$PATH:~/bin
+  if [ -f "$HOME/.zshrc" ]; then
+    # shellcheck disable=SC2016
+    echo 'export PATH=$PATH:~/bin' >> "$HOME/.zshrc"
+  elif [ -f "$HOME/.bashrc" ]; then
+    # shellcheck disable=SC2016
+    echo 'export PATH=$PATH:~/bin' >> "$HOME/.bashrc"
+  else
+    echo "[AutoNode] Could not add \"export PATH=\$PATH:~/bin\" to rc shell file, please do so manually!"
+    sleep 3
+  fi
+  auto-node tui update
 
   echo "[AutoNode] Installing AutoNode daemon: $daemon_name"
-  mkdir -p "$HOME"/bin
-  curl -s -o "$HOME"/bin/autonode_service.py https://raw.githubusercontent.com/harmony-one/auto-node/master/scripts/autonode_service.py
-  sudo echo "$systemd_service" | sudo tee /etc/systemd/system/"$daemon_name"@.service > /dev/null
-  sudo chmod 644 /etc/systemd/system/"$daemon_name"@.service
-  sudo systemctl daemon-reload
+  curl -s -o "$HOME"/bin/autonode-service.py https://raw.githubusercontent.com/harmony-one/auto-node/master/scripts/autonode-service.py
+  mkdir -p "$user_systemd_dir"
+  echo "$systemd_service" > "$user_systemd_dir/$daemon_name@.service"
+  chmod 644 "$user_systemd_dir/$daemon_name@.service"
+  systemctl --user daemon-reload
+  systemctl --user enable "$daemon_name@.service"
 }
 
 function main(){
   check_min_dependencies
+
+  docs_link="https://docs.harmony.one/home/validators/autonode"
   echo "[AutoNode] Starting installation for user $USER (with home: $HOME)"
   echo "[AutoNode] Will install the following:"
   echo "           * Python 3.6 if needed and upgrade pip3"
   echo "           * AutoNode ($stable_auto_node_version) python3 library and all dependencies"
-  echo "           * autonode_service.py service script in $HOME/bin"
-  echo "           * auto_node.sh main shell script in $HOME"
+  echo "           * autonode-service.py service script in $HOME/bin"
+  echo "           * auto-node.sh in $HOME/bin"
   echo "           * validator_config.json config file in $HOME"
   echo "           * harmony node files generated in $HOME/harmony_node"
   echo "           * supporting script, saved configs, and BLS key(s) will be generated/saved in $HOME/.hmy"
+  echo "           * add \"$HOME/bin\" to path in .bashrc or .zshrc"
+  echo "[AutoNode] Reference the documentation here: $docs_link"
   echo "[AutoNode] Continue to install (y/n)?"
   yes_or_exit
 
@@ -177,13 +194,19 @@ function main(){
   install
 
   echo "[AutoNode] Installation complete!"
-  echo "[AutoNode] Help message for auto_node.sh:"
-  "$HOME"/auto_node.sh -h
+  echo -e "[AutoNode] Help message for \033[0;31mauto-node\033[0m"
+  auto-node -h
   echo ""
-  echo "[AutoNode] Note that you have to import your wallet using the Harmony CLI before"
-  echo "           you can use validator features of AutoNode."
-  run_cmd="$HOME/auto_node.sh run --auto-active --clean"
+  # shellcheck disable=SC2016
+  run_cmd='export PATH=$PATH:~/bin'
+  echo -e "[AutoNode] Before you can use the \033[0;31mauto-node\033[0m command, you must add \033[0;31mauto-node\033[0m to path."
+  echo -e "[AutoNode] You can do so by reloading your shell, or execute the following command: \e[38;5;0;48;5;255m$run_cmd\e[0m"
+  echo ""
+  echo -e "[AutoNode] \033[1;33mNote that you have to import your wallet using the Harmony CLI before"
+  echo "           you can use validator features of AutoNode.\033[0m"
+  run_cmd="auto-node run --fast-sync"
   echo -e "[AutoNode] Start your AutoNode with: \e[38;5;0;48;5;255m$run_cmd\e[0m"
+  echo "[AutoNode] Reference the documentation here: $docs_link"
   echo ""
 }
 
