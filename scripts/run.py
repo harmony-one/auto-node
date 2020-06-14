@@ -126,7 +126,8 @@ if __name__ == "__main__":
         "no-validator": args.no_validator,
         "no-download": args.no_download,
         "fast-sync": args.fast_sync,
-        "archival": args.archival
+        "archival": args.archival,
+        "_is_recovering": False  # Never recovering from a hard reset on a run
     })
     common.save_node_config()
     if args.update_cli:

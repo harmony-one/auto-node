@@ -4,12 +4,24 @@ from inspect import signature
 
 from AutoNode import (
     daemon,
+    common
 )
+
+
+def node():
+    if common.node_config["_is_recovering"]:
+        if common.node_config["auto-reset"]:
+            print("== RUNNING NODE IN HARD-RESET RECOVERY MODE ==")
+            daemon.run_node(hard_reset_recovery=True, duration=float('inf'))
+        else:
+            raise SystemExit("Node config specifies NO auto-reset, but node was attempting to auto-reset.")
+    else:
+        daemon.run_node(hard_reset_recovery=False, duration=float('inf'))
+
 
 autonode_service_functions = {
     "monitor": lambda: daemon.run_monitor(duration=float('inf')),
-    "node": lambda: daemon.run_node(hard_reset_recovery=False, duration=float('inf')),
-    "node_recovered": lambda: daemon.run_node(hard_reset_recovery=True, duration=float('inf')),
+    "node": node,
 }
 assert set(daemon.services) == set(autonode_service_functions.keys()), "Failed autonoded API sanity check"
 assert all(len(signature(fn).parameters) == 0 for fn in

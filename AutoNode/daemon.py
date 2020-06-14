@@ -7,10 +7,10 @@ import time
 
 from .common import (
     saved_node_path,
+    save_node_config,
     saved_validator_path,
     bls_key_dir,
     node_config,
-    user
 )
 from .node import (
     start as node_start
@@ -33,11 +33,10 @@ from .exceptions import (
     InvalidWalletPassphrase
 )
 
-name = f"{user}-autonoded"
+name = f"autonoded"
 services = [
     "monitor",
     "node",
-    "node_recovered"
 ]
 
 
@@ -103,7 +102,11 @@ def _reset_node(recover_service_name, error):
 
     passphrase = get_wallet_passphrase()
 
-    for service in map(lambda e: e.startswith("node"), services):
+    # Set flags to indicate that node is in hard-reset recovery mode.
+    node_config['_is_recovering'] = True
+    save_node_config()
+
+    for service in filter(lambda e: e.startswith("node"), services):
         daemon_name = f"{name}@{service}.service"
         command = f"sudo systemctl stop {daemon_name}"
         print(f"Stopping daemon {daemon_name}")
@@ -131,6 +134,10 @@ def _reset_node(recover_service_name, error):
     except (AssertionError, InvalidWalletPassphrase) as e:
         print(f"Could not re-auth wallet, error {e}")
         print(f"Continuing...")
+    finally:
+        # Set flags to indicate that node finished with hard-reset recovery.
+        node_config['_is_recovering'] = False
+        save_node_config()
 
 
 def run_monitor(duration=float('inf')):
@@ -146,5 +153,5 @@ def run_monitor(duration=float('inf')):
             break
         except ResetNode as error:
             if node_config['auto-reset']:
-                _reset_node("node_recovered", error)
+                _reset_node("node", error)
     print("Terminating monitor.")

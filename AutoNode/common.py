@@ -64,7 +64,8 @@ _node_config_default = {
     "no-download": False,
     "fast-sync": False,
     "public-bls-keys": [],
-    "encrypted-wallet-passphrase": b''
+    "encrypted-wallet-passphrase": b'',
+    "_is_recovering": False  # Only used for auto hard-reset
 }
 node_config = _node_config_default.copy()
 

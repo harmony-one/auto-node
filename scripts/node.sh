@@ -2,11 +2,7 @@
 set -e
 
 daemon_name=$(python3 -c "from AutoNode import daemon; print(daemon.name)")
-if systemctl --type=service --state=active | grep -e ^"$daemon_name"@node_recovered.service; then
-  node_daemon="$daemon_name"@node_recovered.service
-else
-  node_daemon="$daemon_name"@node.service
-fi
+node_daemon="$daemon_name"@node.service
 case "${1}" in
   "status")
   if [ "${2}" == "init" ]; then
