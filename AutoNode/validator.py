@@ -201,6 +201,52 @@ def _create_new_validator():
     _send_create_validator_tx()
 
 
+def _verify_node_sync():
+    log(f"{Typgpy.OKBLUE}Verifying Node Sync...{Typgpy.ENDC}")
+    wait_for_node_response("http://localhost:9500/", sleep=1, verbose=True)
+    wait_for_node_response(node_config['endpoint'], sleep=1, verbose=True)
+    curr_headers = blockchain.get_latest_headers()
+    curr_epoch_shard = curr_headers['shard-chain-header']['epoch']
+    curr_epoch_beacon = curr_headers['beacon-chain-header']['epoch']
+    ref_epoch = blockchain.get_current_epoch(endpoint=node_config['endpoint'])
+    has_looped = False
+    if curr_epoch_shard < ref_epoch or curr_epoch_beacon < ref_epoch:
+        prompt = "Waiting for node to sync. Deactivate validator? [Y]/n \n> "
+        auto_interaction = 'Y' if _hard_reset_recovery else None
+        if is_active_validator() and input_with_print(prompt, auto_interaction).lower() in {'y', 'yes'}:
+            try:
+                log(f"{Typgpy.OKBLUE}Deactivating validator until node is synced.{Typgpy.ENDC}")
+                deactivate_validator()
+            except (TimeoutError, ConnectionError, RuntimeError, subprocess.CalledProcessError) as e:
+                log(f"{Typgpy.FAIL}Unable to deactivate validator {validator_config['validator-addr']}"
+                    f"error {e}. Continuing...{Typgpy.ENDC}")
+    while curr_epoch_shard < ref_epoch or curr_epoch_beacon < ref_epoch:
+        sys.stdout.write(f"\rWaiting for node to sync: shard epoch ({curr_epoch_shard}/{ref_epoch}) "
+                         f"& beacon epoch ({curr_epoch_beacon}/{ref_epoch})")
+        sys.stdout.flush()
+        has_looped = True
+        time.sleep(check_interval)
+        assert_no_bad_blocks()
+        curr_headers = blockchain.get_latest_headers()
+        curr_epoch_shard = curr_headers['shard-chain-header']['epoch']
+        curr_epoch_beacon = curr_headers['beacon-chain-header']['epoch']
+        ref_epoch = blockchain.get_current_epoch(endpoint=node_config['endpoint'])
+    if curr_epoch_shard > ref_epoch + 1 or curr_epoch_beacon > ref_epoch + 1:  # +1 for some slack on epoch change.
+        log(f"{Typgpy.FAIL}Node epoch (shard: {curr_epoch_shard} beacon: {curr_epoch_beacon}) is greater than network "
+            f"epoch ({ref_epoch}) which is not possible, is config correct?{Typgpy.ENDC}")
+        if not _hard_reset_recovery:
+            raise SystemExit("Invalid node sync")
+    if has_looped:
+        log("")
+    log(f"{Typgpy.OKGREEN}Node synced to current epoch...{Typgpy.ENDC}")
+    try:
+        if not is_active_validator():
+            activate_validator()
+    except (TimeoutError, ConnectionError, RuntimeError, subprocess.CalledProcessError) as e:
+        log(f"{Typgpy.FAIL}Unable to activate validator {validator_config['validator-addr']}"
+            f"error {e}. Continuing...{Typgpy.ENDC}")
+
+
 def _get_edit_validator_options():
     changeable_fields = {
         "details", "identity", "name", "security-contact", "website",
@@ -256,53 +302,6 @@ def is_active_validator():
     except (exceptions.RPCError, exceptions.RequestsError, exceptions.RequestsTimeoutError) as e:
         log(f"{Typgpy.WARNING}Could not fetch validator active status, error: {e}{Typgpy.ENDC}")
         return False
-
-
-# TODO: separate this function into its own or proper lib
-def verify_node_sync():
-    log(f"{Typgpy.OKBLUE}Verifying Node Sync...{Typgpy.ENDC}")
-    wait_for_node_response("http://localhost:9500/", sleep=1, verbose=True)
-    wait_for_node_response(node_config['endpoint'], sleep=1, verbose=True)
-    curr_headers = blockchain.get_latest_headers()
-    curr_epoch_shard = curr_headers['shard-chain-header']['epoch']
-    curr_epoch_beacon = curr_headers['beacon-chain-header']['epoch']
-    ref_epoch = blockchain.get_current_epoch(endpoint=node_config['endpoint'])
-    has_looped = False
-    if curr_epoch_shard < ref_epoch or curr_epoch_beacon < ref_epoch:
-        prompt = "Waiting for node to sync. Deactivate validator? [Y]/n \n> "
-        auto_interaction = 'Y' if _hard_reset_recovery else None
-        if is_active_validator() and input_with_print(prompt, auto_interaction).lower() in {'y', 'yes'}:
-            try:
-                log(f"{Typgpy.OKBLUE}Deactivating validator until node is synced.{Typgpy.ENDC}")
-                deactivate_validator()
-            except (TimeoutError, ConnectionError, RuntimeError, subprocess.CalledProcessError) as e:
-                log(f"{Typgpy.FAIL}Unable to deactivate validator {validator_config['validator-addr']}"
-                    f"error {e}. Continuing...{Typgpy.ENDC}")
-    while curr_epoch_shard < ref_epoch or curr_epoch_beacon < ref_epoch:
-        sys.stdout.write(f"\rWaiting for node to sync: shard epoch ({curr_epoch_shard}/{ref_epoch}) "
-                         f"& beacon epoch ({curr_epoch_beacon}/{ref_epoch})")
-        sys.stdout.flush()
-        has_looped = True
-        time.sleep(check_interval)
-        assert_no_bad_blocks()
-        curr_headers = blockchain.get_latest_headers()
-        curr_epoch_shard = curr_headers['shard-chain-header']['epoch']
-        curr_epoch_beacon = curr_headers['beacon-chain-header']['epoch']
-        ref_epoch = blockchain.get_current_epoch(endpoint=node_config['endpoint'])
-    if curr_epoch_shard > ref_epoch + 1 or curr_epoch_beacon > ref_epoch + 1:  # +1 for some slack on epoch change.
-        log(f"{Typgpy.FAIL}Node epoch (shard: {curr_epoch_shard} beacon: {curr_epoch_beacon}) is greater than network "
-            f"epoch ({ref_epoch}) which is not possible, is config correct?{Typgpy.ENDC}")
-        if not _hard_reset_recovery:
-            raise SystemExit("Invalid node sync")
-    if has_looped:
-        log("")
-    log(f"{Typgpy.OKGREEN}Node synced to current epoch...{Typgpy.ENDC}")
-    try:
-        if not is_active_validator():
-            activate_validator()
-    except (TimeoutError, ConnectionError, RuntimeError, subprocess.CalledProcessError) as e:
-        log(f"{Typgpy.FAIL}Unable to activate validator {validator_config['validator-addr']}"
-            f"error {e}. Continuing...{Typgpy.ENDC}")
 
 
 def deactivate_validator():
@@ -438,7 +437,7 @@ def setup(hard_reset_recovery=False):
         else:
             node_config['no-validator'] = True
         log(f"{Typgpy.HEADER}{Typgpy.BOLD}Finished setting up validator!{Typgpy.ENDC}")
-        verify_node_sync()
+        _verify_node_sync()
         logging.getLogger('AutoNode').handlers = old_logging_handlers
     except Exception as e:
         log(traceback.format_exc())
