@@ -108,7 +108,7 @@ def _reset_node(recover_service_name, error):
 
     for service in filter(lambda e: e.startswith("node"), services):
         daemon_name = f"{name}@{service}.service"
-        command = f"sudo systemctl stop {daemon_name}"
+        command = f"systemctl --user stop {daemon_name}"
         print(f"Stopping daemon {daemon_name}")
         try:
             subprocess.check_call(command, shell=True, env=os.environ)
@@ -120,7 +120,7 @@ def _reset_node(recover_service_name, error):
     time.sleep(5)  # wait for node shutdown
 
     daemon_name = f"{name}@{recover_service_name}.service"
-    command = f"sudo systemctl start {daemon_name}"
+    command = f"systemctl --user start {daemon_name}"
     print(f"Starting daemon {daemon_name}")
     try:
         subprocess.check_call(command, shell=True, env=os.environ)

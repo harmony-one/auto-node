@@ -14,7 +14,6 @@ if (( "$EUID" == 0 )); then
   echo "You are running as root, which is not recommended. Continue (y/n)?"
   yes_or_exit
 fi
-sudo -l > /dev/null  # To trigger sudo first
 
 case "${1}" in
   "run")
@@ -105,17 +104,13 @@ case "${1}" in
   "kill")
     node_conf_path=$(python3 -u -c "from AutoNode import common; common.reset_node_config(); print(common.saved_node_path)")
     daemon_name=$(python3 -c "from AutoNode import daemon; print(daemon.name)")
-    sudo systemctl stop "$daemon_name"* || true
+    systemctl --user stop "$daemon_name"* || true
     rm -f "$node_conf_path"
     ;;
   *)
     echo "
       == Harmony AutoNode help message ==
       Note that all sensitive files are saved with read only access for user $USER.
-
-      To auto-reset your node during hard refreshes (for testnets), user $USER must have sudo access
-      with no passphrase since services must be stopped and started by a monitor.
-
 
       Param:              Help:
 

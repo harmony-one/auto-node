@@ -5,16 +5,16 @@ daemon_name=$(python3 -c "from AutoNode import daemon; print(daemon.name)")
 monitor_daemon="$daemon_name"@monitor.service
 case "${1}" in
   "status")
-  systemctl status "$monitor_daemon"
+  systemctl --user status "$monitor_daemon"
   ;;
   "log")
   tail -f "$(python3 -c "from AutoNode import monitor; print(monitor.log_path)")"
   ;;
   "journal")
-  journalctl -u "$monitor_daemon" "${@:2}"
+  journalctl _SYSTEMD_USER_UNIT="$monitor_daemon" "${@:2}"
   ;;
   "restart")
-  sudo systemctl restart "$monitor_daemon"
+  systemctl --user restart "$monitor_daemon"
   ;;
   "name")
   echo "$monitor_daemon"

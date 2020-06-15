@@ -177,14 +177,17 @@ function main(){
   echo "           * validator_config.json config file in $HOME"
   echo "           * harmony node files generated in $HOME/harmony_node"
   echo "           * supporting script, saved configs, and BLS key(s) will be generated/saved in $HOME/.hmy"
-  echo "           * add \"$HOME/bin\" to path in .bashrc or .zshrc"
+  echo "           * add \"$HOME/bin\" to path in .bashrc or .zshrc (if possible)"
   echo "[AutoNode] Reference the documentation here: $docs_link"
+  echo "[AutoNode] Sudo access may be required on installation, install script will prompt for passphrase when needed."
   echo "[AutoNode] Continue to install (y/n)?"
   yes_or_exit
 
   echo "[AutoNode] Installing for user $USER"
   if (( "$EUID" == 0 )); then
-    echo "You are installing as root, which is not recommended. Continue (y/n)?"
+    echo "[AutoNode] WARNING: You are installing as root, which is not recommended."
+    echo "[AutoNode] If you proceed, you must run AutoNode as root."
+    echo "[AutoNode] Continue (y/n)?"
     yes_or_exit
   fi
 

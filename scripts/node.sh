@@ -5,45 +5,22 @@ daemon_name=$(python3 -c "from AutoNode import daemon; print(daemon.name)")
 node_daemon="$daemon_name"@node.service
 case "${1}" in
   "status")
-  if [ "${2}" == "init" ]; then
-    systemctl status "$daemon_name"@node.service
-  else
-    systemctl status "$node_daemon"
-  fi
+  systemctl --user status "$node_daemon"
   ;;
   "log")
   tail -f "$(python3 -c "from AutoNode import node; print(node.log_path)")"
   ;;
   "journal")
-  if [ "${2}" == "init" ]; then
-    journalctl -u "$daemon_name"@node.service "${@:3}"
-  else
-    journalctl -u "$node_daemon" "${@:2}"
-  fi
+  journalctl _SYSTEMD_USER_UNIT="$node_daemon" "${@:2}"
   ;;
   "restart")
-  if [ "${2}" == "init" ]; then
-    systemctl restart "$daemon_name"@node.service
-  else
-    systemctl restart "$node_daemon"
-  fi
+  systemctl --user restart "$node_daemon"
   ;;
   "name")
-  if [ "${2}" == "init" ]; then
-    echo "$daemon_name"@node.service
-  else
-    echo "$node_daemon"
-  fi
+  echo "$node_daemon"
   ;;
   "info")
-  curl --location --request POST 'http://localhost:9500/' \
-  --header 'Content-Type: application/json' \
-  --data-raw '{
-      "jsonrpc": "2.0",
-      "method": "hmy_getNodeMetadata",
-      "params": [],
-      "id": 1
-  }' | jq
+  python3 -u -c "from pyhmy import blockchain; import json; print(json.dumps(blockchain.get_node_metadata('http://localhost:9500'), indent=2))"
   ;;
   *)
     echo "
@@ -51,13 +28,13 @@ case "${1}" in
 
   Usage: auto-node node <cmd>
 
-  Cmd:                  Help:
+  Cmd:           Help:
 
-  log                   View the current log of your Harmony Node
-  status [init]         View the status of your current Harmony Node daemon
-  journal [init] <opts> View the journal of your current Harmony Node daemon
-  restart [init]        Manually restart your current Harmony Node daemon
-  name [init]           Get the name of your current Harmony Node deamon
+  log            View the current log of your Harmony Node
+  status         View the status of your current Harmony Node daemon
+  journal <opts> View the journal of your current Harmony Node daemon
+  restart        Manually restart your current Harmony Node daemon
+  name           Get the name of your current Harmony Node deamon
   info                  Get the node's current metadata
 
   'init' is a special option for the inital node daemon, may be needed for debugging.
