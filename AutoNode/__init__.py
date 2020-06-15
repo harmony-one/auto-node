@@ -76,8 +76,9 @@ def _init():
 
     try:  # Config file that should exist on setup
         load_validator_config()
-    except (json.decoder.JSONDecodeError, IOError, PermissionError) as e:
-        print(f"Could not import validator config, ignoring...", file=sys.stderr)
+    except (json.decoder.JSONDecodeError, IOError, PermissionError):
+        warnings.simplefilter("once", ImportWarning)
+        warnings.warn(ImportWarning("Could not import validator config, using defaults."))
 
     if os.path.isfile(saved_node_path):  # Internal file that could not exist.
         try:

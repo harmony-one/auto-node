@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -e
 
-stable_auto_node_version="0.4.1"
+stable_auto_node_version="0.4.3"
 
 
 if command -v auto-node > /dev/null; then
@@ -58,7 +58,7 @@ function yes_or_exit(){
 function check_and_install_dependencies(){
   echo "[AutoNode] Checking dependencies..."
   setup_check_and_install
-  for dependency in "python3" "python3-pip" "jq" "unzip" "nano" "curl" "bc"; do
+  for dependency in "python3" "python3-pip" "unzip" "nano" "curl"; do
     check_and_install "$dependency"
   done
 
