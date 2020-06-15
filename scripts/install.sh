@@ -137,10 +137,12 @@ WantedBy=multi-user.target
 
   echo "[AutoNode] Installing AutoNode wrapper script"
   mkdir -p "$harmony_dir" "$HOME/bin"
-  curl -s -o "$HOME/bin/auto-node"  https://raw.githubusercontent.com/harmony-one/auto-node/master/scripts/auto-node.sh
+  # TODO: change this back to master
+  curl -s -o "$HOME/bin/auto-node"  https://raw.githubusercontent.com/harmony-one/auto-node/mainnet-pt2/scripts/auto-node.sh
   chmod +x "$HOME/bin/auto-node"
   for auto_node_script in "run.py" "cleanse-bls.py" "tui.sh" "monitor.sh" "node.sh"; do
-    curl -s -o "$harmony_dir/$auto_node_script" "https://raw.githubusercontent.com/harmony-one/auto-node/master/scripts/$auto_node_script"
+    # TODO: change this back to master
+    curl -s -o "$harmony_dir/$auto_node_script" "https://raw.githubusercontent.com/harmony-one/auto-node/mainnet-pt2/scripts/$auto_node_script"
   done
   export PATH=$PATH:~/bin
   if [ -f "$HOME/.zshrc" ]; then
@@ -156,7 +158,8 @@ WantedBy=multi-user.target
   auto-node tui update
 
   echo "[AutoNode] Installing AutoNode daemon: $daemon_name"
-  curl -s -o "$HOME"/bin/autonode-service.py https://raw.githubusercontent.com/harmony-one/auto-node/master/scripts/autonode-service.py
+  # TODO: change this back to master
+  curl -s -o "$HOME"/bin/autonode-service.py https://raw.githubusercontent.com/harmony-one/auto-node/mainnet-pt2/scripts/autonode-service.py
   mkdir -p "$user_systemd_dir"
   echo "$systemd_service" > "$user_systemd_dir/$daemon_name@.service"
   chmod 644 "$user_systemd_dir/$daemon_name@.service"
