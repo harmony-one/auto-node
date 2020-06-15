@@ -108,11 +108,12 @@ function install_cli(){
 function install(){
   systemd_service="[Unit]
 Description=Harmony AutoNode %I service
+After=network.target
 
 [Service]
 Type=simple
 ExecStart=$(command -v python3) -u $HOME/bin/autonode-service.py %I
-User=$USER
+StandardError=syslog
 
 [Install]
 WantedBy=multi-user.target
