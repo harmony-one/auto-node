@@ -37,6 +37,7 @@ node_sh_err_path = f"{node_sh_log_dir}/err.log"
 log_path = f"{harmony_dir}/autonode_node.log"
 
 rclone_space_buffer = 5 * 2**30  # 5GB in bytes
+rclone_config = "harmony"
 
 
 def _node_clean(verbose=True):
@@ -83,7 +84,7 @@ def _rclone(rclone_sync_dir, shard, verbose=True):
 
 
 def _rclone_space_required(rclone_sync_dir, shard):
-    rclone_path = f'hmy://pub.harmony.one/{rclone_sync_dir}/harmony_db_{shard}'
+    rclone_path = f'{rclone_config}://pub.harmony.one/{rclone_sync_dir}/harmony_db_{shard}'
     try:
         space_output = subprocess.check_output(['rclone', 'size', rclone_path, '--json'], env=os.environ)
         return int(json.loads(space_output.decode('utf8'))['bytes'])

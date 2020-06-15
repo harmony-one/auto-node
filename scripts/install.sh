@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -e
 
-stable_auto_node_version="0.4.4"
+stable_auto_node_version="0.4.5"
 
 
 if command -v auto-node > /dev/null; then
@@ -206,7 +206,7 @@ function main(){
   auto-node -h
   echo ""
   # shellcheck disable=SC2016
-  run_cmd='export PATH=$PATH:~/bin'
+  run_cmd="export PATH=\$PATH:$HOME/bin"
   if [ "$first_install" == "True" ]; then
     echo -e "[AutoNode] Before you can use the \033[0;92mauto-node\033[0m command, you must add \033[0;92mauto-node\033[0m to path."
     echo -e "[AutoNode] You can do so by reloading your shell, or execute the following command: \e[38;5;0;48;5;255m$run_cmd\e[0m"
