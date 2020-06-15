@@ -10,9 +10,10 @@ function yes_or_exit(){
   fi
 }
 
-if (( "$EUID" == 0 )); then
-  echo "You are running as root, which is not recommended. Continue (y/n)?"
-  yes_or_exit
+# Do not import python lib for performance, should change when converted to python3 click CLI.
+if ! systemctl list-unit-files --user | grep autonode > /dev/null; then
+  echo "[AutoNode] systemd services not found, maybe wrong user? exiting..."
+  exit 1
 fi
 
 case "${1}" in

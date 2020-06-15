@@ -49,8 +49,8 @@ def assert_dead_daemons():
     """
     Exits script if AutoNode services are active.
     """
-    check_monitor_cmd = f"systemctl --type=service --state=active | grep -e ^{daemon.name}@monitor"
-    check_node_cmd = f"systemctl --type=service --state=active | grep -e ^{daemon.name}@node"
+    check_monitor_cmd = f"systemctl --user --type=service --state=active | grep -e ^{daemon.name}@monitor"
+    check_node_cmd = f"systemctl --user --type=service --state=active | grep -e ^{daemon.name}@node"
     if subprocess.call(f"{check_monitor_cmd} > /dev/null", shell=True, env=os.environ) == 0:
         raise SystemExit("AutoNode monitor daemon is still active, stop with `auto-node kill`")
     if subprocess.call(f"{check_node_cmd} > /dev/null", shell=True, env=os.environ) == 0:
