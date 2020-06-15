@@ -35,8 +35,10 @@ def _get_process_info(pid):
     if pid == b'0':
         return pid
     try:
-        return subprocess.check_output(["ls", "-ld", f"/proc/{pid.decode().strip()}"], env=os.environ, timeout=2)
-    except (subprocess.TimeoutExpired, subprocess.CalledProcessError) as e:
+        raw_output = subprocess.check_output(["ls", "-ld", f"/proc/{pid.decode().strip()}"], env=os.environ, timeout=2)
+        lst = raw_output.split(' '.encode())
+        return b''.join(lst[1:-1]) if len(lst) >= 3 else b'0'
+    except (subprocess.TimeoutExpired, subprocess.CalledProcessError):
         return b'0'
 
 
