@@ -79,7 +79,8 @@ def save_validator_config():
         for key in _validator_config_default.keys():
             if key not in validator_config.keys():
                 raise KeyError(f"{key} not present in validator config to save.")
-        validator.Validator(validator_config['validator-addr']).load(validator_config)
+        if validator_config['validator-addr'] is not None:
+            validator.Validator(validator_config['validator-addr']).load(validator_config)
         config_string = json.dumps(validator_config, indent=4)
     except (exceptions.InvalidValidatorError, json.decoder.JSONDecodeError, KeyError) as e:
         log(f"{Typgpy.FAIL}Invalid validator information to save.{Typgpy.ENDC}\n"

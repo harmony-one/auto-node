@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -e
 
-stable_auto_node_version="0.4.3"
+stable_auto_node_version="0.4.4"
 
 
 if command -v auto-node > /dev/null; then
@@ -102,13 +102,8 @@ function install_python_lib(){
   echo "[AutoNode] Installing main python3 library"
   python3 -m pip install AutoNode=="$stable_auto_node_version" --no-cache-dir --user || sudo python3 -m pip install AutoNode=="$stable_auto_node_version" --no-cache-dir
   echo "[AutoNode] Initilizing python3 library"
-  python3 -c "from AutoNode import common; common.save_validator_config()" > /dev/null
-  python3 -c "from AutoNode import initialize; initialize.make_directories()" > /dev/null
-}
-
-function install_cli(){
-  echo "[AutoNode] Installing Harmony CLI"
-  curl -s -LO https://harmony.one/hmycli && mv hmycli "$HOME"/hmy && chmod +x "$HOME"/hmy
+  python3 -c "from AutoNode import common; common.save_validator_config()"
+  python3 -c "from AutoNode import initialize; initialize.make_directories()"
 }
 
 function install(){
@@ -204,7 +199,6 @@ function main(){
 
   check_and_install_dependencies
   install_python_lib
-  install_cli
   install
 
   echo "[AutoNode] Installation complete!"
