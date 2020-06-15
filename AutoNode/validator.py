@@ -240,7 +240,9 @@ def _verify_node_sync():
         log("")
     log(f"{Typgpy.OKGREEN}Node synced to current epoch...{Typgpy.ENDC}")
     try:
-        if not is_active_validator():
+        prompt = "Node is synced and ready to validate. Activate validator? [Y]/n \n> "
+        auto_interaction = 'Y' if _hard_reset_recovery else None
+        if not is_active_validator() and input_with_print(prompt, auto_interaction).lower() in {'y', 'yes'}:
             activate_validator()
     except (TimeoutError, ConnectionError, RuntimeError, subprocess.CalledProcessError) as e:
         log(f"{Typgpy.FAIL}Unable to activate validator {validator_config['validator-addr']}"
