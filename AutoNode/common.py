@@ -20,7 +20,7 @@ imported_wallet_pass_file_dir = f"{os.environ['HOME']}/wallet_pass"
 cli_bin_dir = f"{harmony_dir}/bin"
 cli_bin_path = f"{cli_bin_dir}/hmy"
 saved_validator_path = f"{os.environ['HOME']}/validator_config.json"
-saved_node_path = f"{harmony_dir}/.node_config.p"
+saved_node_config_path = f"{harmony_dir}/.node_config.p"
 tui_path = f"{harmony_dir}/tui"
 
 node_script_source = "https://harmony.one/node.sh"
@@ -119,7 +119,7 @@ def save_node_config():
             f"Error: {e}.")
         log(f"{Typgpy.WARNING}NOT saving node config, continuing...{Typgpy.ENDC}")
         return
-    save_protected_file(node_config_string, saved_node_path, verbose=False)
+    save_protected_file(node_config_string, saved_node_config_path, verbose=False)
 
 
 def load_node_config():
@@ -128,7 +128,7 @@ def load_node_config():
 
     Raises pickle.PickleError, IOError, PermissionError
     """
-    with open(saved_node_path, 'rb') as f:
+    with open(saved_node_config_path, 'rb') as f:
         imported_node_config = pickle.load(f)
         node_config.update(imported_node_config)
 

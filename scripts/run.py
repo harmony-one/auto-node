@@ -92,8 +92,8 @@ def reset():
     """
     try:
         common.reset_node_config()
-        if os.path.isfile(common.saved_node_path):
-            os.remove(common.saved_node_path)
+        if os.path.isfile(common.saved_node_config_path):
+            os.remove(common.saved_node_config_path)
         if os.path.isfile(node.log_path):
             os.remove(node.log_path)
         if os.path.isfile(monitor.log_path):

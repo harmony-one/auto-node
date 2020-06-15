@@ -2,7 +2,6 @@ import time
 import json
 import datetime
 import traceback
-import subprocess
 import os
 import logging
 
@@ -21,7 +20,8 @@ from .common import (
     validator_config,
     node_config,
     check_interval,
-    user
+    load_node_config,
+    saved_node_config_path
 )
 from .validator import (
     check_and_activate,
@@ -123,6 +123,8 @@ def _run_monitor(shard_endpoint, duration=50):
             log(f"{Typgpy.WARNING}RPC exception {e}{Typgpy.ENDC}")
             log(f"{Typgpy.WARNING}Continuing...{Typgpy.ENDC}")
         finally:
+            if os.path.isfile(saved_node_config_path):
+                load_node_config()
             time.sleep(check_interval)
 
 

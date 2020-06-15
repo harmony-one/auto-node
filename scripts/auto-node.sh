@@ -102,7 +102,7 @@ case "${1}" in
     python3 -u -c "from pyhmy import cli; cli.download(\"$cli_bin\", replace=True, verbose=True)"
     ;;
   "kill")
-    node_conf_path=$(python3 -u -c "from AutoNode import common; common.reset_node_config(); print(common.saved_node_path)")
+    node_conf_path=$(python3 -u -c "from AutoNode import common; common.reset_node_config(); print(common.saved_node_config_path)")
     daemon_name=$(python3 -c "from AutoNode import daemon; print(daemon.name)")
     systemctl --user stop "$daemon_name"* || true
     rm -f "$node_conf_path"

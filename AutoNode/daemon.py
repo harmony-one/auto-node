@@ -6,7 +6,7 @@ import subprocess
 import time
 
 from .common import (
-    saved_node_path,
+    saved_node_config_path,
     save_node_config,
     saved_validator_path,
     bls_key_dir,
@@ -46,7 +46,7 @@ def _validate_config(for_node=False):
     Should be used prior to running a major AutoNode operation.
     """
     required_files = [
-        saved_node_path,
+        saved_node_config_path,
     ]
     if not for_node:
         required_files.append(saved_validator_path)

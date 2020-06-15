@@ -21,7 +21,7 @@ from .common import (
     saved_validator_path,
     imported_wallet_pass_file_dir,
     cli_bin_path,
-    saved_node_path,
+    saved_node_config_path,
     validator_config,
     node_config,
     load_validator_config,
@@ -80,11 +80,11 @@ def _init():
         warnings.simplefilter("once", ImportWarning)
         warnings.warn(ImportWarning("Could not import validator config, using defaults."))
 
-    if os.path.isfile(saved_node_path):  # Internal file that could not exist.
+    if os.path.isfile(saved_node_config_path):  # Internal file that could not exist.
         try:
             load_node_config()
         except (pickle.PickleError, IOError, PermissionError) as e:
-            raise SystemExit(f"Could not import saved node config from {saved_node_path}, error: {e}")
+            raise SystemExit(f"Could not import saved node config from {saved_node_config_path}, error: {e}")
 
 
 _init()
