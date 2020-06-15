@@ -20,6 +20,11 @@ function check_min_dependencies(){
     exit
   fi
   systemctl > /dev/null  # Check if systemd is ran with PID 1
+  if ! command -v systemctl --user > /dev/null; then
+    echo "[AutoNode] unable to access user systemd."
+    echo "[AutoNode] ensure the command: 'systemctl --user' works before installing, exiting."
+    exit
+  fi
 }
 
 function setup_check_and_install(){
