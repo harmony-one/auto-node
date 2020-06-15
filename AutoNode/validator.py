@@ -3,7 +3,6 @@ This library takes care of all validator related commands.
 """
 
 import sys
-import os
 import time
 import json
 import logging

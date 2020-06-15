@@ -88,7 +88,6 @@ def _run_monitor(shard_endpoint, duration=50):
     1) See bad blocks in logs
     2) Node's epoch is greater than network's epoch
     3) Block 1 hashes dont match (on shard)
-    4) Node unable to boot 5 mins after rclone (last resort clean)
     """
     activate_count, start_time = 0, time.time()
     while time.time() - start_time < duration:
