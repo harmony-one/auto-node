@@ -4,6 +4,12 @@ set -e
 stable_auto_node_version="0.4.1"
 
 
+if command -v auto-node > /dev/null; then
+  first_install=False
+else
+  first_install=True
+fi
+
 function check_min_dependencies(){
   if [ "$(uname)" != "Linux" ]; then
     echo "[AutoNode] not on a Linux machine, exiting."
@@ -201,18 +207,20 @@ function main(){
   install
 
   echo "[AutoNode] Installation complete!"
-  echo -e "[AutoNode] Help message for \033[0;31mauto-node\033[0m"
+  echo -e "[AutoNode] Help message for \033[0;92mauto-node\033[0m"
   auto-node -h
   echo ""
   # shellcheck disable=SC2016
   run_cmd='export PATH=$PATH:~/bin'
-  echo -e "[AutoNode] Before you can use the \033[0;31mauto-node\033[0m command, you must add \033[0;31mauto-node\033[0m to path."
-  echo -e "[AutoNode] You can do so by reloading your shell, or execute the following command: \e[38;5;0;48;5;255m$run_cmd\e[0m"
-  echo ""
+  if [ "$first_install" == "True" ]; then
+    echo -e "[AutoNode] Before you can use the \033[0;92mauto-node\033[0m command, you must add \033[0;92mauto-node\033[0m to path."
+    echo -e "[AutoNode] You can do so by reloading your shell, or execute the following command: \e[38;5;0;48;5;255m$run_cmd\e[0m"
+    echo ""
+  fi
   echo -e "[AutoNode] \033[1;33mNote that you have to import your wallet using the Harmony CLI before"
-  echo "           you can use validator features of AutoNode.\033[0m"
+  echo -e "           you can use validator features.\033[0m"
   run_cmd="auto-node run --fast-sync"
-  echo -e "[AutoNode] Start your AutoNode with: \e[38;5;0;48;5;255m$run_cmd\e[0m"
+  echo -e "[AutoNode] Start your validator with: \e[38;5;0;48;5;255m$run_cmd\e[0m"
   echo "[AutoNode] Reference the documentation here: $docs_link"
   echo ""
 }
