@@ -7,15 +7,6 @@ import time
 import datetime
 from argparse import RawTextHelpFormatter
 
-from pyhmy import (
-    Typgpy
-)
-
-from AutoNode import (
-    common,
-    util
-)
-
 kernel_tunes = {
     "fs.file-max": 2097152,
     "vm.swappiness": 10,
@@ -58,18 +49,17 @@ network_tuning = {
 
 params = {"kernel", "network", "restore"}
 sysctl_path = "/etc/sysctl.conf"
-saved_config_path = f"{common.harmony_dir}/.tune_saved_configs.p"
 saved_config = {}  # Keys = time.time(): Value = saved config as a string
 
 
-def _load_existing_config():
+def _load_existing_config(saved_config_path):
     saved_config.clear()
     if os.path.exists(saved_config_path):
         with open(saved_config_path, 'rb') as f:
             saved_config.update(pickle.load(f))
 
 
-def _save_existing_config():
+def _save_existing_config(saved_config_path):
     if os.path.isfile(saved_config_path):
         subprocess.check_call(["sudo", "chattr", "-i", saved_config_path], env=os.environ)
     try:
@@ -79,7 +69,7 @@ def _save_existing_config():
         subprocess.check_call(["sudo", "chattr", "+i", saved_config_path], env=os.environ)
 
 
-def save_existing_config():
+def save_existing_config(saved_config_path):
     """
     Saves files contents at `sysctl_path` to pickle file in
     AutoNode directory and makes saves pickle file immutable.
@@ -90,38 +80,38 @@ def save_existing_config():
     if os.path.isfile(sysctl_path):
         with open(sysctl_path, 'r', encoding='utf8') as f:
             old_config_string = f.read()
-    _load_existing_config()
+    _load_existing_config(saved_config_path)
     saved_time = time.time()
     saved_config[saved_time] = old_config_string
-    _save_existing_config()
+    _save_existing_config(saved_config_path)
     return saved_time
 
 
-def restore_existing_config():
+def restore_existing_config(saved_config_path):
     """
     Restore existing config file in last known.
 
     Returns time of restored config.
     """
-    _load_existing_config()
+    _load_existing_config(saved_config_path)
     if not saved_config:
         raise SystemExit("No sysctl config to restore from...")
     latest_saved_config_key = sorted(saved_config.keys(), reverse=True)[0]
     latest_saved_config = saved_config[latest_saved_config_key]
 
-    common.log(f"{Typgpy.HEADER}'{sysctl_path}' to be restored:{Typgpy.ENDC}")
-    common.log(f"")
-    common.log(latest_saved_config)
-    common.log("")
+    print(f"'{sysctl_path}' to be restored:")
+    print(f"")
+    print(latest_saved_config)
+    print("")
     prompt = "Revert to this sysctl.conf? [Y/n]\n>"
-    if util.input_with_print(prompt).lower() not in {'yes', 'y'}:
+    if input(prompt).lower() not in {'yes', 'y'}:
         raise SystemExit("Abandoned config restore..")
 
     with open(sysctl_path, 'w', encoding='utf8') as f:
         f.write(latest_saved_config)
     subprocess.check_call(["sudo", "sysctl", "-p"], env=os.environ)
     del saved_config[latest_saved_config_key]
-    _save_existing_config()
+    _save_existing_config(saved_config_path)
     return latest_saved_config_key
 
 
@@ -134,19 +124,19 @@ def process_temp_config(configs, verbose=True):
     assert isinstance(configs, dict)
     assert isinstance(verbose, bool)
 
-    common.log(f"{Typgpy.HEADER}Variables to set:{Typgpy.ENDC}")
-    for key, value in configs:
-        common.log(f"{Typgpy.OKBLUE}{key}\t{Typgpy.OKGREEN}{value}{Typgpy.ENDC}")
-    common.log("")
+    print(f"Variables to set:")
+    for key, value in configs.items():
+        print(f"{key}\t{value}")
+    print("")
     prompt = "Temporarily set the sysctl variables (until system reboot)? [Y/n]\n>"
-    if util.input_with_print(prompt).lower() not in {'yes', 'y'}:
+    if input(prompt).lower() not in {'yes', 'y'}:
         return
 
-    for key, value in configs:
+    for key, value in configs.items():
         subprocess.check_call(["sysctl", "-w", f"{key}={str(value)}"])
 
     if verbose:
-        common.log(f"{Typgpy.OKGREEN}Successfully set sysctl variables!{Typgpy.ENDC}")
+        print(f"Successfully set sysctl variables!")
 
 
 def process_persistent_config(configs, verbose=True):
@@ -158,19 +148,19 @@ def process_persistent_config(configs, verbose=True):
     assert isinstance(configs, dict)
     assert isinstance(verbose, bool)
 
-    common.log(f"{Typgpy.HEADER}Variables to set:{Typgpy.ENDC}")
-    for key, value in configs:
-        common.log(f"{Typgpy.OKBLUE}{key}\t{Typgpy.OKGREEN}{value}{Typgpy.ENDC}")
-    common.log("")
+    print(f"Variables to set:")
+    for key, value in configs.items():
+        print(f"{key}\t{value}")
+    print("")
     prompt = "Set persisting (through system reboot) sysctl variables? [Y/n]\nNote that this can be reverted.\n>"
-    if util.input_with_print(prompt).lower() not in {'yes', 'y'}:
+    if input(prompt).lower() not in {'yes', 'y'}:
         return
 
     with open(sysctl_path, 'r') as f:
         lines_in_sysctl_path = f.readlines()
     lines_currently_in_sysctl_path = set(lines_in_sysctl_path)
 
-    for key, value in configs:
+    for key, value in configs.items():
         line = f"{key}={value}"
         if line not in lines_currently_in_sysctl_path:
             lines_in_sysctl_path.append(line)
@@ -181,7 +171,7 @@ def process_persistent_config(configs, verbose=True):
     subprocess.check_call(["sudo", "sysctl", "-p"], env=os.environ)
 
     if verbose:
-        common.log(f"{Typgpy.OKGREEN}Successfully set sysctl variables!{Typgpy.ENDC}")
+        print(f"Successfully set sysctl variables!")
 
 
 def _parse_args():
@@ -196,6 +186,9 @@ def _parse_args():
                                        f"* restore\t Restore sysctl config to previous config (if available).")
     parser.add_argument("--save", action="store_true", help="Save tuning between system restarts.")
     parser.add_argument("--quiet", action="store_true", help="Do not print anything.")
+    parser.add_argument("--saved-sysctl-path", default="/var/saved-sysctl.conf.p",
+                        help="Path to saved sysctl config(s) path as a python pickle file.\n"
+                             "Handled by AutoNode by default.")
     return parser.parse_args()
 
 
@@ -205,28 +198,28 @@ if __name__ == "__main__":
     assert os.geteuid() == 0, f"must be ran as root! Try running command with 'sudo' in front of it."
 
     if args.target == "restore":
-        latest_saved_time = restore_existing_config()
+        latest_saved_time = restore_existing_config(args.saved_sysctl_path)
         if not args.quiet:
             restored_readable_time = datetime.datetime.fromtimestamp(latest_saved_time).strftime('%c')
-            common.log(f"Restored sysctl config from {restored_readable_time}")
-            common.log(f"{Typgpy.OKGREEN}Successfully restored sysctl config!{Typgpy.ENDC}")
+            print(f"Restored sysctl config from {restored_readable_time}")
+            print(f"Successfully restored sysctl config!")
         exit(0)
 
     if args.save:
-        save_existing_config()
+        save_existing_config(args.saved_sysctl_path)
         if not args.quiet:
-            common.log(f"{Typgpy.OKGREEN}Successfully saved existing sysctl config!{Typgpy.ENDC}")
+            print(f"Successfully saved existing sysctl config!")
 
     if args.target == "kernel":
         if not args.quiet:
-            common.log(f"{Typgpy.HEADER}== Tuning kernel =={Typgpy.ENDC}")
+            print(f"== Tuning kernel ==")
         if args.save:
             process_persistent_config(kernel_tunes, verbose=not args.quiet)
         else:
             process_temp_config(kernel_tunes, verbose=not args.quiet)
     if args.target == "network":
         if not args.quiet:
-            common.log(f"{Typgpy.HEADER}== Tuning network =={Typgpy.ENDC}")
+            print(f"== Tuning network ==")
             if args.save:
                 process_persistent_config(network_tuning, verbose=not args.quiet)
                 process_persistent_config(network_security, verbose=not args.quiet)
@@ -234,4 +227,4 @@ if __name__ == "__main__":
                 process_temp_config(network_tuning, verbose=not args.quiet)
                 process_temp_config(network_security, verbose=not args.quiet)
     if not args.quiet:
-        common.log(f"{Typgpy.OKGREEN}Finished tuning!{Typgpy.ENDC}")
+        print(f"Finished tuning!")
