@@ -270,6 +270,13 @@ function main(){
   echo -e "[AutoNode] Start your node with: \e[38;5;0;48;5;255m$run_cmd\e[0m"
   echo "[AutoNode] Reference the documentation here: $docs_link"
   echo ""
+  echo "[AutoNode] It is recommended to tune your OS for running a node."
+  run_cmd="auto-node tune kernel --save"
+  echo -e "[AutoNode] You can tune your kernel using \033[0;92mauto-node\033[0m with \e[38;5;0;48;5;255m$run_cmd\e[0m"
+  run_cmd="auto-node tune network --save"
+  echo -e "[AutoNode] You can tune your network settings using \033[0;92mauto-node\033[0m with \e[38;5;0;48;5;255m$run_cmd\e[0m"
+  run_cmd="auto-node tune restore"
+  echo -e "[AutoNode] Note that all tunes can be undone with \e[38;5;0;48;5;255m$run_cmd\e[0m"
 }
 
 if [ "$1" != "source" ]; then
