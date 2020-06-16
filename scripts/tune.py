@@ -7,9 +7,13 @@ import time
 import datetime
 from argparse import RawTextHelpFormatter
 
-from AutoNode import common
 from pyhmy import (
     Typgpy
+)
+
+from AutoNode import (
+    common,
+    util
 )
 
 kernel_tunes = {
@@ -104,6 +108,15 @@ def restore_existing_config():
         raise SystemExit("No sysctl config to restore from...")
     latest_saved_config_key = sorted(saved_config.keys(), reverse=True)[0]
     latest_saved_config = saved_config[latest_saved_config_key]
+
+    common.log(f"{Typgpy.HEADER}'{sysctl_path}' to be restored:{Typgpy.ENDC}")
+    common.log(f"")
+    common.log(latest_saved_config)
+    common.log("")
+    prompt = "Revert to this sysctl.conf? [Y/n]\n>"
+    if util.input_with_print(prompt).lower() not in {'yes', 'y'}:
+        raise SystemExit("Abandoned config restore..")
+
     with open(sysctl_path, 'w', encoding='utf8') as f:
         f.write(latest_saved_config)
     subprocess.check_call(["sudo", "sysctl", "-p"], env=os.environ)
@@ -121,8 +134,19 @@ def process_temp_config(configs, verbose=True):
     assert isinstance(configs, dict)
     assert isinstance(verbose, bool)
 
-    # TODO: interactive confirm before proceeding...
-    # TODO: sysctl -w each config
+    common.log(f"{Typgpy.HEADER}Variables to set:{Typgpy.ENDC}")
+    for key, value in configs:
+        common.log(f"{Typgpy.OKBLUE}{key}\t{Typgpy.OKGREEN}{value}{Typgpy.ENDC}")
+    common.log("")
+    prompt = "Temporarily set the sysctl variables (until system reboot)? [Y/n]\n>"
+    if util.input_with_print(prompt).lower() not in {'yes', 'y'}:
+        return
+
+    for key, value in configs:
+        subprocess.check_call(["sysctl", "-w", f"{key}={str(value)}"])
+
+    if verbose:
+        common.log(f"{Typgpy.OKGREEN}Successfully set sysctl variables!{Typgpy.ENDC}")
 
 
 def process_persistent_config(configs, verbose=True):
@@ -134,9 +158,30 @@ def process_persistent_config(configs, verbose=True):
     assert isinstance(configs, dict)
     assert isinstance(verbose, bool)
 
-    # TODO: interactive confirm before proceeding...
-    # TODO: see if sysctl -w write to `sysctl_path` otherwise:
-    # TODO: write each config to config file if is not present, first filter out all comments (ez to do)....
+    common.log(f"{Typgpy.HEADER}Variables to set:{Typgpy.ENDC}")
+    for key, value in configs:
+        common.log(f"{Typgpy.OKBLUE}{key}\t{Typgpy.OKGREEN}{value}{Typgpy.ENDC}")
+    common.log("")
+    prompt = "Set persisting (through system reboot) sysctl variables? [Y/n]\nNote that this can be reverted.\n>"
+    if util.input_with_print(prompt).lower() not in {'yes', 'y'}:
+        return
+
+    with open(sysctl_path, 'r') as f:
+        lines_in_sysctl_path = f.readlines()
+    lines_currently_in_sysctl_path = set(lines_in_sysctl_path)
+
+    for key, value in configs:
+        line = f"{key}={value}"
+        if line not in lines_currently_in_sysctl_path:
+            lines_in_sysctl_path.append(line)
+
+    with open(sysctl_path, 'w') as f:
+        f.write('\n'.join(lines_in_sysctl_path))
+
+    subprocess.check_call(["sudo", "sysctl", "-p"], env=os.environ)
+
+    if verbose:
+        common.log(f"{Typgpy.OKGREEN}Successfully set sysctl variables!{Typgpy.ENDC}")
 
 
 def _parse_args():
