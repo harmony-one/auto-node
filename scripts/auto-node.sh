@@ -39,11 +39,11 @@ case "${1}" in
     ;;
   "tune")
     harmony_dir=$(python3 -c "from AutoNode import common; print(common.harmony_dir)")
-    if echo "${@:2}" | grep -q "--saved-sysctl-path" > /dev/null; then
+    if echo "${@:2}" | grep "saved-sysctl-path" > /dev/null; then
       sudo python3 -u "$harmony_dir"/tune.py "${@:2}"
     else
       saved_sysctl_path="$harmony_dir/saved_sysctl.conf.p"
-      sudo python3 -u "$harmony_dir"/tune.py "${@:2}" --saved-sysctl-path="$saved_sysctl_path"
+      sudo python3 -u "$harmony_dir"/tune.py "${@:2}" "--saved-sysctl-path=$saved_sysctl_path"
     fi
     ;;
   "create-validator")
