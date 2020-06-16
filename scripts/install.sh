@@ -199,7 +199,7 @@ WantedBy=multi-user.target
   # TODO: change this back to master
   curl -s -o "$HOME/bin/auto-node"  https://raw.githubusercontent.com/harmony-one/auto-node/mainnet-pt2/scripts/auto-node.sh
   chmod +x "$HOME/bin/auto-node"
-  for auto_node_script in "run.py" "cleanse-bls.py" "tui.sh" "monitor.sh" "node.sh"; do
+  for auto_node_script in "run.py" "cleanse-bls.py" "tui.sh" "monitor.sh" "node.sh" "tune.sh"; do
     # TODO: change this back to master
     curl -s -o "$harmony_dir/$auto_node_script" "https://raw.githubusercontent.com/harmony-one/auto-node/mainnet-pt2/scripts/$auto_node_script"
   done

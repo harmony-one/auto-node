@@ -37,6 +37,10 @@ case "${1}" in
     harmony_dir=$(python3 -c "from AutoNode import common; print(common.harmony_dir)")
     bash "$harmony_dir"/tui.sh "${@:2}"
     ;;
+  "tune")
+    harmony_dir=$(python3 -c "from AutoNode import common; print(common.harmony_dir)")
+    sudo python3 -u "$harmony_dir"/tune.py "${@:2}"
+    ;;
   "create-validator")
     python3 -u -c "from AutoNode import validator; validator.setup(hard_reset_recovery=False)"
     ;;
@@ -125,6 +129,7 @@ case "${1}" in
       node <cmd>          View/Command Harmony Node. Use '-h' params to view help msg
       tui <cmd>           Start the text-based user interface to monitor your node and validator.
                            Use '-h' param to view help msg
+      tune <tune params>  Tune the OS for running a node. Use '-h' param to view help msg
       create-validator    Run through the steps to setup your validator
       activate            Make validator associated with node eligible for election in next epoch
       deactivate          Make validator associated with node NOT eligible for election in next epoch.

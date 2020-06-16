@@ -17,34 +17,6 @@ from AutoNode import (
 )
 
 
-def parse_args():
-    parser = argparse.ArgumentParser(description='== Run a Harmony node & validator automagically ==',
-                                     usage="auto-node run [OPTIONS]",
-                                     formatter_class=RawTextHelpFormatter, add_help=False)
-    parser.add_argument('-h', '--help', action='help', default=argparse.SUPPRESS,
-                        help='Show this help message and exit')
-    parser.add_argument("--auto-active", action="store_true",
-                        help="Always try to set active when EPOS status is inactive.")
-    parser.add_argument("--auto-reset", action="store_true", help="Automatically reset node during hard resets.")
-    parser.add_argument("--no-validator", action="store_true", help="Disable validator automation.")
-    parser.add_argument("--archival", action="store_true", help="Run node with archival mode.")
-    parser.add_argument("--no-download", action="store_true", help="Run node with existing binary.")
-    parser.add_argument("--update-cli", action="store_true", help="Toggle upgrading the Harmony CLI used by AutoNode")
-    parser.add_argument("--clean", action="store_true", help="Clean shared node directory before starting node.\n "
-                                                             "Only available with test networks.")
-    parser.add_argument("--fast-sync", action="store_true", help="Rclone existing db snapshot(s)")
-    parser.add_argument("--shard", default=None,
-                        help="Specify shard of generated bls key.\n  "
-                             "Only used if no BLS keys are not provided.", type=int)
-    parser.add_argument("--network", help="Network to connect to (mainnet, testnet).\n  "
-                                          "Default: 'testnet'.", type=str, default='testnet',
-                        choices=['mainnet', 'testnet', 'partner', 'stress', 'staking'])
-    parser.add_argument("--beacon-endpoint", dest="endpoint", type=str, default="https://api.s0.b.hmny.io/",
-                        help=f"Beacon chain (shard 0) endpoint for staking transactions.\n  "
-                             f"Default is https://api.s0.b.hmny.io/")
-    return parser.parse_args()
-
-
 def assert_dead_daemons():
     """
     Exits script if AutoNode services are active.
@@ -102,8 +74,36 @@ def reset():
         raise SystemExit(e)
 
 
+def _parse_args():
+    parser = argparse.ArgumentParser(description='== Run a Harmony node & validator automagically ==',
+                                     usage="auto-node run [OPTIONS]",
+                                     formatter_class=RawTextHelpFormatter, add_help=False)
+    parser.add_argument('-h', '--help', action='help', default=argparse.SUPPRESS,
+                        help='Show this help message and exit')
+    parser.add_argument("--auto-active", action="store_true",
+                        help="Always try to set active when EPOS status is inactive.")
+    parser.add_argument("--auto-reset", action="store_true", help="Automatically reset node during hard resets.")
+    parser.add_argument("--no-validator", action="store_true", help="Disable validator automation.")
+    parser.add_argument("--archival", action="store_true", help="Run node with archival mode.")
+    parser.add_argument("--no-download", action="store_true", help="Run node with existing binary.")
+    parser.add_argument("--update-cli", action="store_true", help="Toggle upgrading the Harmony CLI used by AutoNode")
+    parser.add_argument("--clean", action="store_true", help="Clean shared node directory before starting node.\n "
+                                                             "Only available with test networks.")
+    parser.add_argument("--fast-sync", action="store_true", help="Rclone existing db snapshot(s)")
+    parser.add_argument("--shard", default=None,
+                        help="Specify shard of generated bls key.\n  "
+                             "Only used if no BLS keys are not provided.", type=int)
+    parser.add_argument("--network", help="Network to connect to (mainnet, testnet).\n  "
+                                          "Default: 'testnet'.", type=str, default='testnet',
+                        choices=['mainnet', 'testnet', 'partner', 'stress', 'staking'])
+    parser.add_argument("--beacon-endpoint", dest="endpoint", type=str, default="https://api.s0.b.hmny.io/",
+                        help=f"Beacon chain (shard 0) endpoint for staking transactions.\n  "
+                             f"Default is https://api.s0.b.hmny.io/")
+    return parser.parse_args()
+
+
 if __name__ == "__main__":
-    args = parse_args()
+    args = _parse_args()
     assert_dead_daemons()
     common.log(f"{Typgpy.HEADER}=== STARTED NEW AUTONODE ==={Typgpy.ENDC}")
     reset()
