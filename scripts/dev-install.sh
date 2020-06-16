@@ -18,6 +18,6 @@ cp -v "$DIR"/../scripts/tui.sh "$harmony_dir"
 cp -v "$DIR"/../scripts/monitor.sh "$harmony_dir"
 cp -v "$DIR"/../scripts/node.sh "$harmony_dir"
 cp -v "$DIR"/../scripts/tune.py "$harmony_dir"
-cp -v "$DIR"/../scripts/auto-node.sh "$HOME/bin"
+cp -v "$DIR"/../scripts/auto-node.sh "$HOME/bin" && mv "$HOME/bin/auto-node.sh" "$HOME/bin/auto-node"
 cp -v "$DIR"/../scripts/autonode-service.py "$HOME"/bin/autonode-service.py
 echo "== FINISHED DEV INSTALL =="
