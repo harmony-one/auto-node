@@ -125,7 +125,7 @@ def process_temp_config(configs, verbose=True):
     assert isinstance(configs, dict)
     assert isinstance(verbose, bool)
 
-    print(f"Variables to set:\n")
+    print(f"\nVariables to set:\n")
     max_char_count = len(max(configs.keys(), key=lambda e: len(e)))
     formatted_row = f"{{:<{max_char_count}}}\t{{:<30}}"
     print(formatted_row.format("Variable", "Value"))
@@ -153,7 +153,7 @@ def process_persistent_config(configs, verbose=True):
     assert isinstance(configs, dict)
     assert isinstance(verbose, bool)
 
-    print(f"Variables to set:\n")
+    print(f"\nVariables to set:\n")
     max_char_count = len(max(configs.keys(), key=lambda e: len(e)))
     formatted_row = f"{{:<{max_char_count}}}\t{{:<30}}"
     print(formatted_row.format("Variable", "Value"))
@@ -166,16 +166,16 @@ def process_persistent_config(configs, verbose=True):
         return
 
     with open(sysctl_path, 'r') as f:
-        lines_in_sysctl_path = [line.strip() for line in f.readlines() if line.strip()]
+        lines_in_sysctl_path = f.readlines()
     lines_currently_in_sysctl_path = set(lines_in_sysctl_path)
 
     for key, value in configs.items():
-        line = f"{key}={value}"
+        line = f"{key}={value}\n"
         if line not in lines_currently_in_sysctl_path:
             lines_in_sysctl_path.append(line)
 
     with open(sysctl_path, 'w') as f:
-        f.write('\n'.join(line for line in lines_in_sysctl_path if line.strip()))
+        f.write(''.join(lines_in_sysctl_path))
 
     subprocess.check_call(["sudo", "sysctl", "-p"], env=os.environ)
 
