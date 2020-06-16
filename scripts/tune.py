@@ -10,7 +10,7 @@ from argparse import RawTextHelpFormatter
 kernel_tunes = {
     "fs.file-max": 2097152,
     "vm.swappiness": 10,
-    "vm.dirty_ratiol": 60,
+    "vm.dirty_ratio": 60,
     "vm.dirty_background_ratio": 2,
     "kernel.sched_migration_cost_ns": 5000000
 }
@@ -98,11 +98,12 @@ def restore_existing_config(saved_config_path):
         raise SystemExit("No sysctl config to restore from...")
     latest_saved_config_key = sorted(saved_config.keys(), reverse=True)[0]
     latest_saved_config = saved_config[latest_saved_config_key]
+    restored_readable_time = datetime.datetime.fromtimestamp(latest_saved_config_key).strftime('%c')
 
-    print(f"'{sysctl_path}' to be restored:")
-    print(f"")
+    print(f"'{sysctl_path}' to be restored from: {restored_readable_time}")
+    print('='*100)
     print(latest_saved_config)
-    print("")
+    print('='*100)
     prompt = "Revert to this sysctl.conf? [Y/n]\n>"
     if input(prompt).lower() not in {'yes', 'y'}:
         raise SystemExit("Abandoned config restore..")
@@ -124,9 +125,13 @@ def process_temp_config(configs, verbose=True):
     assert isinstance(configs, dict)
     assert isinstance(verbose, bool)
 
-    print(f"Variables to set:")
+    print(f"Variables to set:\n")
+    max_char_count = len(max(configs.keys(), key=lambda e: len(e)))
+    formatted_row = f"{{:<{max_char_count}}}\t{{:<30}}"
+    print(formatted_row.format("Variable", "Value"))
+    print(formatted_row.format("--------", "-----"))
     for key, value in configs.items():
-        print(f"{key}\t{value}")
+        print(formatted_row.format(key, value))
     print("")
     prompt = "Temporarily set the sysctl variables (until system reboot)? [Y/n]\n>"
     if input(prompt).lower() not in {'yes', 'y'}:
@@ -148,16 +153,20 @@ def process_persistent_config(configs, verbose=True):
     assert isinstance(configs, dict)
     assert isinstance(verbose, bool)
 
-    print(f"Variables to set:")
+    print(f"Variables to set:\n")
+    max_char_count = len(max(configs.keys(), key=lambda e: len(e)))
+    formatted_row = f"{{:<{max_char_count}}}\t{{:<30}}"
+    print(formatted_row.format("Variable", "Value"))
+    print(formatted_row.format("--------", "-----"))
     for key, value in configs.items():
-        print(f"{key}\t{value}")
+        print(formatted_row.format(key, value))
     print("")
-    prompt = "Set persisting (through system reboot) sysctl variables? [Y/n]\nNote that this can be reverted.\n>"
+    prompt = "Set persisting (remain after system reboot) sysctl variables? [Y/n]\nNote that this can be reverted.\n>"
     if input(prompt).lower() not in {'yes', 'y'}:
         return
 
     with open(sysctl_path, 'r') as f:
-        lines_in_sysctl_path = f.readlines()
+        lines_in_sysctl_path = [line.strip() for line in f.readlines() if line.strip()]
     lines_currently_in_sysctl_path = set(lines_in_sysctl_path)
 
     for key, value in configs.items():
@@ -166,7 +175,7 @@ def process_persistent_config(configs, verbose=True):
             lines_in_sysctl_path.append(line)
 
     with open(sysctl_path, 'w') as f:
-        f.write('\n'.join(lines_in_sysctl_path))
+        f.write('\n'.join(line for line in lines_in_sysctl_path if line.strip()))
 
     subprocess.check_call(["sudo", "sysctl", "-p"], env=os.environ)
 
