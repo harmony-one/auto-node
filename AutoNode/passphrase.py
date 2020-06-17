@@ -58,14 +58,22 @@ def _derive_wallet_encryption_key():
     """
     pid = _get_harmony_pid()
     proc_info = _get_process_info(pid)
+    salt = _get_node_based_salt()
     kdf = PBKDF2HMAC(
         algorithm=hashes.SHA256(),
         length=32,
-        salt=_get_node_based_salt().strip(),
+        salt=salt,
         iterations=50,
         backend=default_backend()
     )
-    return base64.urlsafe_b64encode(kdf.derive(pid.strip() + proc_info.strip()))
+    data = pid.strip() + proc_info.strip()
+    key = base64.urlsafe_b64encode(kdf.derive(data))
+    log(f"{Typgpy.WARNING}ENCRYPTION DATA:{Typgpy.ENDC}\n"
+        f"salt: {salt}\n"
+        f"pid: {pid}\n"
+        f"proc_info: {proc_info}\n"
+        f"key: {key}\n")
+    return key
 
 
 def encrypt_wallet_passphrase(passphrase):
@@ -75,7 +83,10 @@ def encrypt_wallet_passphrase(passphrase):
     Returned string can be stored on disk, will be invalidated once harmony process is stopped.
     """
     assert isinstance(passphrase, str)
-    return Fernet(_derive_wallet_encryption_key()).encrypt(passphrase.encode())
+    encrypted_passphrase = Fernet(_derive_wallet_encryption_key()).encrypt(passphrase.encode())
+    log(f"{Typgpy.WARNING}GENERATED ENCRYPTION KEY:{Typgpy.ENDC}\n"
+        f"encrypted passphrase: {encrypted_passphrase}")
+    return encrypted_passphrase
 
 
 def decrypt_wallet_passphrase(encrypted_wallet_passphrase):
@@ -84,6 +95,8 @@ def decrypt_wallet_passphrase(encrypted_wallet_passphrase):
     """
     assert isinstance(encrypted_wallet_passphrase, bytes)
     try:
+        log(f"{Typgpy.WARNING}DECRYPTION KEY:{Typgpy.ENDC}\n"
+            f"encrypted wallet passphrase: {encrypted_wallet_passphrase}")
         return Fernet(_derive_wallet_encryption_key()).decrypt(encrypted_wallet_passphrase).decode()
     except InvalidToken:
         raise InvalidWalletPassphrase()
