@@ -25,7 +25,7 @@ from .exceptions import (
 
 def _get_harmony_pid():
     try:
-        return subprocess.check_output(["pgrep", "harmony"], env=os.environ, timeout=2)
+        return subprocess.check_output(["pgrep", "harmony"], env=os.environ, timeout=10)
     except (subprocess.TimeoutExpired, subprocess.CalledProcessError):
         return b'0'
 
@@ -35,7 +35,7 @@ def _get_process_info(pid):
     if pid == b'0':
         return pid
     try:
-        raw_output = subprocess.check_output(["ls", "-ld", f"/proc/{pid.decode().strip()}"], env=os.environ, timeout=2)
+        raw_output = subprocess.check_output(["ls", "-ld", f"/proc/{pid.decode().strip()}"], env=os.environ, timeout=10)
         lst = raw_output.split(' '.encode())
         return b''.join(lst[1:-1]) if len(lst) >= 3 else b'0'
     except (subprocess.TimeoutExpired, subprocess.CalledProcessError):
@@ -93,18 +93,17 @@ def is_valid_passphrase(passphrase, validator_address):
     """
     Validate the given passphrase, can be an expensive call.
     """
-    cmd = ["hmy", "keys", "export-ks", validator_address, "/dev/null", "--passphrase"]
+    cmd = ["hmy", "keys", "check-passphrase", validator_address]
     try:
         proc = cli.expect_call(cmd)
         proc.expect("Enter wallet keystore passphrase:\r\n")
         proc.sendline(passphrase)
-        proc.wait()
+        proc.expect("Valid passphrase\r\n")
         proc.expect(pexpect.EOF)
-        if validator_address in proc.before.decode():
-            return True
-        log(f"{Typgpy.FAIL}Failed to verify passphrase, unable to unlock keystore "
-            f"file with given passphrase.{Typgpy.ENDC}")
-        return False
-    except (RuntimeError, pexpect.ExceptionPexpect) as e:
+        return True
+    except RuntimeError as e:
         log(f"{Typgpy.FAIL}Failed to verify passphrase due to: {e}{Typgpy.ENDC}")
+        return False
+    except pexpect.ExceptionPexpect as e:
+        log(f"{Typgpy.FAIL}Failed to verify passphrase due to:\n{e.get_trace()}{Typgpy.ENDC}")
         return False

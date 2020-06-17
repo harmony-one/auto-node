@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -e
 
-stable_auto_node_version="0.5.0"
+stable_auto_node_version="0.5.1"
 
 
 if command -v auto-node > /dev/null; then
@@ -252,6 +252,7 @@ function main(){
   install_python_lib
   install
 
+  # TODO: add optimization check (like first install) & only execute if needed...
   echo ""
   echo "[AutoNode] Optimize OS for running a harmony node (y/n)?"
   read -r reply
@@ -274,12 +275,15 @@ function main(){
     echo -e "[AutoNode] You can do so by reloading your shell, or execute the following command: \e[38;5;0;48;5;255m$run_cmd\e[0m"
     echo ""
   fi
+
+  # TODO: add wallet count check & onlt print if needed...
   echo -e "[AutoNode] \033[1;33mNote that you have to import/generate your validator wallet using"
   echo -e "           the Harmony CLI before you can use validator features.\033[0m"
   run_cmd="auto-node hmy keys add example-validator-wallet-name"
   echo -e "           Generate a wallet with the following command: \e[38;5;0;48;5;255m$run_cmd\e[0m"
   echo -e "           Import a wallet following the documentation here: $cli_doc_link"
   echo ""
+
   run_cmd="auto-node run --fast-sync"
   echo -e "[AutoNode] Start your node with: \e[38;5;0;48;5;255m$run_cmd\e[0m"
   echo "[AutoNode] Reference the documentation here: $docs_link"
