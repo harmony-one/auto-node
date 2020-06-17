@@ -25,7 +25,7 @@ from .exceptions import (
 
 def _get_harmony_pid():
     try:
-        return subprocess.check_output(["pgrep", "harmony"], env=os.environ, timeout=10)
+        return subprocess.check_output(["pgrep", "harmony"], env=os.environ).strip()
     except (subprocess.TimeoutExpired, subprocess.CalledProcessError):
         return b'0'
 
@@ -35,7 +35,7 @@ def _get_process_info(pid):
     if pid == b'0':
         return pid
     try:
-        raw_output = subprocess.check_output(["ls", "-ld", f"/proc/{pid.decode().strip()}"], env=os.environ, timeout=10)
+        raw_output = subprocess.check_output(["ls", "-ld", f"/proc/{pid.decode().strip()}"], env=os.environ).strip()
         lst = raw_output.split(' '.encode())
         return b''.join(lst[1:-1]) if len(lst) >= 3 else b'0'
     except (subprocess.TimeoutExpired, subprocess.CalledProcessError):
@@ -62,7 +62,7 @@ def _derive_wallet_encryption_key():
         algorithm=hashes.SHA256(),
         length=32,
         salt=_get_node_based_salt().strip(),
-        iterations=100,
+        iterations=50,
         backend=default_backend()
     )
     return base64.urlsafe_b64encode(kdf.derive(pid.strip() + proc_info.strip()))
