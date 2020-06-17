@@ -494,8 +494,9 @@ def can_safe_stop_node():
     """
     if node_config['no-validator']:
         return True
-    if validator_config['validator-addr'] in staking.get_all_validator_addresses(endpoint=node_config['endpoint']):
-        bls_metrics = get_validator_information()['metrics']['by-bls-key']
+    val_info = get_validator_information()
+    if val_info['currently-in-committee']:
+        bls_metrics = val_info['metrics']['by-bls-key']
         for metric in bls_metrics:
             if metric['key']['bls-public-key'] in node_config['public-bls-keys'] and metric['earned-reward'] > 0:
                 return False
