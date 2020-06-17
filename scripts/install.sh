@@ -199,7 +199,7 @@ WantedBy=multi-user.target
   # TODO: change this back to master
   curl -s -o "$HOME/bin/auto-node"  https://raw.githubusercontent.com/harmony-one/auto-node/mainnet-pt2/scripts/auto-node.sh
   chmod +x "$HOME/bin/auto-node"
-  for auto_node_script in "run.py" "cleanse-bls.py" "tui.sh" "monitor.sh" "node.sh" "tune.sh"; do
+  for auto_node_script in "run.py" "cleanse-bls.py" "tui.sh" "monitor.sh" "node.sh" "tune.py"; do
     # TODO: change this back to master
     curl -s -o "$harmony_dir/$auto_node_script" "https://raw.githubusercontent.com/harmony-one/auto-node/mainnet-pt2/scripts/$auto_node_script"
   done
@@ -249,6 +249,16 @@ function main(){
   install_python_lib
   install
 
+  echo "[AutoNode] Optimize OS for running a harmony node (y/n)? (optimization can be reverted)"
+  read -r reply
+  if [[ $reply =~ ^[Yy]$ ]]; then
+    auto-node tune kernel --save || true
+    auto-node tune network --save || true
+    run_cmd="auto-node tune restore"
+    echo -e "[AutoNode] Note that all tunes can be undone with \e[38;5;0;48;5;255m$run_cmd\e[0m"
+    echo ""
+  fi
+
   echo "[AutoNode] Installation complete!"
   echo -e "[AutoNode] Help message for \033[0;92mauto-node\033[0m"
   auto-node -h
@@ -269,14 +279,6 @@ function main(){
   run_cmd="auto-node run --fast-sync"
   echo -e "[AutoNode] Start your node with: \e[38;5;0;48;5;255m$run_cmd\e[0m"
   echo "[AutoNode] Reference the documentation here: $docs_link"
-  echo ""
-  echo "[AutoNode] It is recommended to tune your OS for running a node."
-  run_cmd="auto-node tune kernel --save"
-  echo -e "[AutoNode] You can tune your kernel using \033[0;92mauto-node\033[0m with \e[38;5;0;48;5;255m$run_cmd\e[0m"
-  run_cmd="auto-node tune network --save"
-  echo -e "[AutoNode] You can tune your network settings using \033[0;92mauto-node\033[0m with \e[38;5;0;48;5;255m$run_cmd\e[0m"
-  run_cmd="auto-node tune restore"
-  echo -e "[AutoNode] Note that all tunes can be undone with \e[38;5;0;48;5;255m$run_cmd\e[0m"
 }
 
 if [ "$1" != "source" ]; then
