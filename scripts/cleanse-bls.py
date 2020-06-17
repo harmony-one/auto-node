@@ -9,7 +9,6 @@ from pyhmy import (
     blockchain,
     cli,
     json_load,
-    staking,
     Typgpy
 )
 from AutoNode import (
@@ -40,14 +39,18 @@ def parse_args():
     return parser.parse_args()
 
 
-def hard_cleanse():
-    """ Only keep BLS keys for current running node.
+def hard_cleanse(yes=False):
+    """
+    Only keep BLS keys for current running node.
     """
     # WARNING: Assumption that chain BLS keys are not 0x strings
     keys_on_chain = validator.get_validator_information()['validator']['bls-public-keys']
     passphrase = util.get_wallet_passphrase()
     for key in keys_on_chain:
         if key not in bls_keys:
+            prompt = f"{Typgpy.HEADER}Remove BLS key: {Typgpy.OKGREEN}{key}{Typgpy.HEADER} ?\n> {Typgpy.ENDC}"
+            if not yes and util.input_with_print(prompt).lower() not in {'y', 'yes'}:
+                continue
             common.log(f"{Typgpy.WARNING}Removing {key}, key not in node's list of BLS keys: {bls_keys}{Typgpy.ENDC}")
             proc = cli.expect_call(['hmy', '--node', endpoint, 'staking', 'edit-validator',
                                     '--validator-addr', validator_addr,
@@ -59,8 +62,9 @@ def hard_cleanse():
             removed_keys.append(key)
 
 
-def shard_cleanse():
-    """ Only keep BLS keys on same shard as current running node.
+def shard_cleanse(yes=False):
+    """
+    Only keep BLS keys on same shard as current running node.
     """
     # WARNING: Assumption that chain BLS keys are not 0x strings
     keys_on_chain = validator.get_validator_information()['validator']['bls-public-keys']
@@ -71,8 +75,11 @@ def shard_cleanse():
         key_shard = json_load(cli.single_call(['hmy', 'utility', 'shard-for-bls', key,
                                                '--node', endpoint]))['shard-id']
         if key_shard != shard and key not in bls_keys:
-            common.log(
-                f"{Typgpy.WARNING}Removing {key}, key for shard {key_shard}, node for shard {shard}{Typgpy.ENDC}")
+            prompt = f"{Typgpy.HEADER}Remove BLS key: {Typgpy.OKGREEN}{key}{Typgpy.HEADER} ?\n> {Typgpy.ENDC}"
+            if not yes and util.input_with_print(prompt).lower() not in {'y', 'yes'}:
+                continue
+            common.log(f"{Typgpy.WARNING}Removing {key}, key for shard {key_shard}, "
+                       f"node for shard {shard}{Typgpy.ENDC}")
             proc = cli.expect_call(['hmy', '--node', endpoint, 'staking', 'edit-validator',
                                     '--validator-addr', validator_addr,
                                     '--remove-bls-key', key, '--passphrase'])
@@ -83,8 +90,9 @@ def shard_cleanse():
             removed_keys.append(key)
 
 
-def reward_cleanse():
-    """ Only keep BLS keys that have earned something in the current epoch
+def reward_cleanse(yes=False):
+    """
+    Only keep BLS keys that have earned something in the current epoch
     """
     # WARNING: Assumption that chain BLS keys are not 0x strings
     val_metrics = validator.get_validator_information()['metrics']
@@ -109,6 +117,9 @@ def reward_cleanse():
         if metric['earned-reward'] == 0:
             key = metric['key']['bls-public-key']
             if key not in bls_keys and key in keys_on_chain:
+                prompt = f"{Typgpy.HEADER}Remove BLS key: {Typgpy.OKGREEN}{key}{Typgpy.HEADER} ?\n> {Typgpy.ENDC}"
+                if not yes and util.input_with_print(prompt).lower() not in {'y', 'yes'}:
+                    continue
                 common.log(f"{Typgpy.WARNING}Removing {key}, key earned 0 rewards.{Typgpy.ENDC}")
                 proc = cli.expect_call(['hmy', '--node', endpoint, 'staking', 'edit-validator',
                                         '--validator-addr', validator_addr,
@@ -132,11 +143,11 @@ if __name__ == "__main__":
     common.log(
         f"{Typgpy.OKBLUE}Keys on validator {validator_addr} (before cleanse): {Typgpy.OKGREEN}{keys_on_chain}{Typgpy.ENDC}")
     if args.hard:
-        hard_cleanse()
+        hard_cleanse(yes=args.yes)
     elif args.keep_shard:
-        shard_cleanse()
+        shard_cleanse(yes=args.yes)
     else:
-        reward_cleanse()
+        reward_cleanse(yes=args.yes)
     keys_on_chain = validator.get_validator_information()['validator']['bls-public-keys']
     common.log(f"{Typgpy.OKBLUE}Cleansed following BLS keys: {Typgpy.OKGREEN}{removed_keys}{Typgpy.ENDC}")
     common.log(
