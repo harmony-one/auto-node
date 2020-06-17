@@ -53,7 +53,6 @@ def _derive_wallet_encryption_key():
     """
     Create the wallet encryption key based on:
         PBKDF2HMAC(PID(harmony) + ProcessInfo(harmony), salt=HMAC(node_bls_public_keys, Validator_Addr, Validator_ID))
-    Where node_config* are all node_configs as a dict, except for encrypted values.
 
     This means that the encryption key is only valid for when AutoNode has a harmony node process running.
     """
@@ -64,7 +63,7 @@ def _derive_wallet_encryption_key():
         algorithm=hashes.SHA256(),
         length=32,
         salt=salt,
-        iterations=50,
+        iterations=10000,
         backend=default_backend()
     )
     data = pid + b' ' + proc_info
