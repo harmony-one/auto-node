@@ -128,6 +128,12 @@ case "${1}" in
     daemon_name=$(python3 -c "from AutoNode import daemon; print(daemon.name)")
     systemctl --user stop "$daemon_name"*
     rm -f "$node_conf_path"
+    if ! pgrep harmony > /dev/null; then
+      echo "[AutoNode] Successfully killed auto-node"
+    else
+      echo "[AutoNode] FAILED TO KILL! Check node and/or monitor status."
+      exit 1
+    fi
     ;;
   *)
     echo "
