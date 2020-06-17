@@ -1,19 +1,26 @@
 #!/bin/bash
 set -e
 
+function yes_or_exit() {
+  read -r reply
+  if [[ ! $reply =~ ^[Yy]$ ]]; then
+    exit 1
+  fi
+}
+
 daemon_name=$(python3 -c "from AutoNode import daemon; print(daemon.name)")
 node_daemon="$daemon_name"@node.service
 case "${1}" in
-  "status")
+"status")
   systemctl --user status "$node_daemon"
   ;;
-  "log")
+"log")
   tail -f "$(python3 -c "from AutoNode import node; print(node.log_path)")"
   ;;
-  "journal")
+"journal")
   journalctl _SYSTEMD_USER_UNIT="$node_daemon" "${@:2}"
   ;;
-  "restart")
+"restart")
   can_safe_stop=$(python3 -c "from AutoNode import validator; print(validator.can_safe_stop_node())")
   if [ "$can_safe_stop" == "False" ]; then
     echo "[AutoNode] Validator is still elected and node is still signing."
@@ -22,14 +29,14 @@ case "${1}" in
   fi
   systemctl --user restart "$node_daemon"
   ;;
-  "name")
+"name")
   echo "$node_daemon"
   ;;
-  "info")
+"info")
   python3 -u -c "from pyhmy import blockchain; import json; print(json.dumps(blockchain.get_node_metadata('http://localhost:9500'), indent=2))"
   ;;
-  *)
-    echo "
+*)
+  echo "
   == AutoNode node command help ==
 
   Usage: auto-node node <cmd>
@@ -46,5 +53,6 @@ case "${1}" in
   'init' is a special option for the inital node daemon, may be needed for debugging.
   Otherwise not needed.
     "
-    exit
+  exit
+  ;;
 esac
