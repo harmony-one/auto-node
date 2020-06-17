@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -e
 
-stable_auto_node_version="0.4.6"
+stable_auto_node_version="0.4.7"
 
 
 if command -v auto-node > /dev/null; then
@@ -231,7 +231,7 @@ function main(){
   echo "           * AutoNode ($stable_auto_node_version) python3 library and all dependencies"
   echo "           * autonode-service.py service script in $HOME/bin"
   echo "           * auto-node.sh in $HOME/bin"
-  echo "           * validator_config.json config file in $HOME"
+  echo "           * harmony_validator_config.json config file in $HOME"
   echo "           * harmony node files generated in $HOME/harmony_node"
   echo "           * supporting script, saved configs, and BLS key(s) will be generated/saved in $HOME/.hmy"
   echo "           * add \"$HOME/bin\" to path in .bashrc or .zshrc (if possible)"

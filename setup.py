@@ -3,7 +3,7 @@ from setuptools import setup
 
 setup(
     name='AutoNode',
-    version=f"0.4.6",
+    version=f"0.4.7",
     description="AutoNode Python Library",
     author='Daniel Van Der Maden',
     author_email='daniel@harmony.one',

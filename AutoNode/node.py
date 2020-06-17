@@ -159,15 +159,18 @@ def _get_node_shard():
     Returns None if 0 or > 1 shards are derived from the node's BLS keys.
     """
     key_shards = []
+    if not node_config['public-bls-keys']:
+        log(f"{Typgpy.WARNING}No saved BLS keys for node!{Typgpy.ENDC}")
     for bls_key in node_config['public-bls-keys']:
         try:
             key_shards.append(json.loads(cli.single_call(['hmy', 'utility', 'shard-for-bls', bls_key,
                                                           '--node', f'{node_config["endpoint"]}']))['shard-id'])
         except json.decoder.JSONDecodeError:
             log(f'{Typgpy.WARNING}[!] Failed to get shard for bls key {bls_key}!{Typgpy.ENDC}')
-            key_shards.append(None)
-    if len(set(key_shards)) == 1:
-        return key_shards[0]
+    if not key_shards:
+        return None
+    assert len(set(key_shards)) == 1, f"Node BLS keys can only be for 1 shard. BLS keys: {node_config['public-bls-keys']}"
+    return key_shards[0]
 
 
 def start(auto=False, verbose=True):
