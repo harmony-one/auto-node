@@ -48,7 +48,7 @@ network_tuning = {
 }
 
 params = {"kernel", "network", "restore"}
-sysctl_path = "/etc/sysctl.d/harmony-auto-node.conf"
+sysctl_path = "/etc/sysctl.conf"
 saved_config = {}  # Keys = time.time(): Value = saved config as a string
 
 
@@ -96,9 +96,7 @@ def restore_existing_config(saved_config_path):
     _load_existing_config(saved_config_path)
     if not saved_config:
         print("No sysctl config to restore from...")
-        if os.path.exists(sysctl_path):
-            print("Removing harmony-auto-node sysctl config...")
-            os.remove(sysctl_path)
+        exit(-1)
     latest_saved_config_key = sorted(saved_config.keys(), reverse=True)[0]
     latest_saved_config = saved_config[latest_saved_config_key]
     restored_readable_time = datetime.datetime.fromtimestamp(latest_saved_config_key).strftime('%c')
