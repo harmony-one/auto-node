@@ -204,12 +204,15 @@ WantedBy=multi-user.target
     curl -s -o "$harmony_dir/$auto_node_script" "https://raw.githubusercontent.com/harmony-one/auto-node/mainnet-pt2/scripts/$auto_node_script"
   done
   export PATH=$PATH:~/bin
+  # shellcheck disable=SC2016
   if [ -f "$HOME/.zshrc" ]; then
-    # shellcheck disable=SC2016
-    echo 'export PATH=$PATH:~/bin' >> "$HOME/.zshrc"
+    if ! grep 'PATH=$PATH:~/bin' "$HOME/.zshrc" > /dev/null; then
+      echo 'export PATH=$PATH:~/bin' >> "$HOME/.zshrc"
+    fi
   elif [ -f "$HOME/.bashrc" ]; then
-    # shellcheck disable=SC2016
-    echo 'export PATH=$PATH:~/bin' >> "$HOME/.bashrc"
+    if ! grep 'PATH=$PATH:~/bin' "$HOME/.bashrc" > /dev/null; then
+      echo 'export PATH=$PATH:~/bin' >> "$HOME/.bashrc"
+    fi
   else
     echo "[AutoNode] Could not add \"export PATH=\$PATH:~/bin\" to rc shell file, please do so manually!"
     sleep 3
@@ -249,7 +252,8 @@ function main(){
   install_python_lib
   install
 
-  echo "[AutoNode] Optimize OS for running a harmony node (y/n)? (optimization can be reverted)"
+  echo ""
+  echo "[AutoNode] Optimize OS for running a harmony node (y/n)?"
   read -r reply
   if [[ $reply =~ ^[Yy]$ ]]; then
     auto-node tune kernel --save || true
