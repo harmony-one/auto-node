@@ -33,7 +33,8 @@ from .node import (
     log_path,
     wait_for_node_response,
     assert_no_bad_blocks,
-    assert_started as assert_node_started
+    assert_started as assert_node_started,
+    is_signing
 )
 from .initialize import (
     setup_validator_config,
@@ -494,10 +495,6 @@ def can_safe_stop_node():
     """
     if node_config['no-validator']:
         return True
-    val_info = get_validator_information()
-    if val_info['currently-in-committee']:
-        bls_metrics = val_info['metrics']['by-bls-key']
-        for metric in bls_metrics:
-            if metric['key']['bls-public-key'] in node_config['public-bls-keys'] and metric['earned-reward'] > 0:
-                return False
-    return True
+    if not get_validator_information()['currently-in-committee']:
+        return True
+    return not is_signing()

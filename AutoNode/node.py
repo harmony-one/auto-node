@@ -271,6 +271,19 @@ def assert_no_bad_blocks():
             assert not has_bad_block(log_path), f"`BAD BLOCK` present in {log_path}, restart AutoNode with clean option"
 
 
+def is_signing():
+    if os.path.isdir(f"{node_dir}/latest"):
+        files = [x for x in os.listdir(f"{node_dir}/latest") if x.endswith(".log")]
+        if files:
+            log_path = f"{node_dir}/latest/{files[-1]}"
+            with open(log_path, 'r', encoding='utf8') as f:
+                for line in f:
+                    line = line.rstrip()
+                    if "BINGO" in line or "HOORAY" in line:
+                        return True
+    return False
+
+
 def has_bad_block(log_file_path):
     assert os.path.isfile(log_file_path)
     try:
