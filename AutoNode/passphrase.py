@@ -32,13 +32,14 @@ def _get_harmony_pid():
 
 def _get_process_info(pid):
     assert isinstance(pid, bytes)
-    if pid == b'0':
-        return pid
+    pid = pid.strip()
     try:
-        raw_output = subprocess.check_output(["ls", "-ld", f"/proc/{pid.decode().strip()}"], env=os.environ).strip()
-        lst = raw_output.split(' '.encode())
-        return b''.join(lst[1:-1]) if len(lst) >= 3 else b'0'
-    except (subprocess.TimeoutExpired, subprocess.CalledProcessError):
+        if int(pid) < 0:
+            return b'0'
+        proc_start = subprocess.check_output(["ps", "-p", pid.decode(), "-o", "lstart="], env=os.environ).strip()
+        proc_command = subprocess.check_output(["ps", "-p", pid.decode(), "-o", "command="], env=os.environ).strip()
+        return proc_start + proc_command
+    except (subprocess.TimeoutExpired, subprocess.CalledProcessError, ValueError):
         return b'0'
 
 
