@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -e
 
-stable_auto_node_version="0.5.3"
+stable_auto_node_version="0.5.4"
 
 if command -v auto-node >/dev/null; then
   first_install=False
