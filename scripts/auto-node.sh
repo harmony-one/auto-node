@@ -95,7 +95,7 @@ case "${1}" in
     ;;
   "clear-node-bls")
     daemon_name=$(python3 -c "from AutoNode import daemon; print(daemon.name)")
-    if systemctl --type=service --state=active | grep -e ^"$daemon_name"; then
+    if systemctl --type=service --all --state=active | grep -e ^"$daemon_name"; then
       echo "[AutoNode] AutoNode is still running. Kill with 'auto-node kill' before cleaning BLS keys."
       exit 4
     fi
