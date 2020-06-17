@@ -94,7 +94,6 @@ def reward_cleanse(yes=False):
     """
     Only keep BLS keys that have earned something in the current epoch
     """
-    # WARNING: Assumption that chain BLS keys are not 0x strings
     val_metrics = validator.get_validator_information()['metrics']
     if val_metrics is None:
         common.log(f"{Typgpy.WARNING}Can not get current BLS key performance, "

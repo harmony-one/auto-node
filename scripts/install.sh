@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -e
 
-stable_auto_node_version="0.4.8"
+stable_auto_node_version="0.4.9"
 
 
 if command -v auto-node > /dev/null; then

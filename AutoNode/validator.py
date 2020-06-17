@@ -212,7 +212,8 @@ def _verify_node_sync():
     if curr_epoch_shard < ref_epoch or curr_epoch_beacon < ref_epoch:
         prompt = "Waiting for node to sync. Deactivate validator? [Y]/n \n> "
         auto_interaction = 'Y' if _hard_reset_recovery else None
-        if is_active_validator() and input_with_print(prompt, auto_interaction).lower() in {'y', 'yes'}:
+        if is_active_validator() and can_safe_stop_node() \
+                and input_with_print(prompt, auto_interaction).lower() in {'y', 'yes'}:
             try:
                 log(f"{Typgpy.OKBLUE}Deactivating validator until node is synced.{Typgpy.ENDC}")
                 deactivate_validator()
@@ -484,3 +485,18 @@ def update_info(hard_reset_recovery=False):
         else:
             log(f"{Typgpy.FAIL}{Typgpy.BOLD}Edit-validator error: {e}{Typgpy.ENDC}")
             log(f"{Typgpy.WARNING}{Typgpy.BOLD}Continuing...{Typgpy.ENDC}")
+
+
+def can_safe_stop_node():
+    """
+    Determine if a node can be stopped. Conditions:
+    If elected, BLS keys must not be earning (if present), otherwise can shutdown.
+    """
+    if node_config['no-validator']:
+        return True
+    if validator_config['validator-addr'] in staking.get_all_validator_addresses(endpoint=node_config['endpoint']):
+        bls_metrics = get_validator_information()['metrics']['by-bls-key']
+        for metric in bls_metrics:
+            if metric['key']['bls-public-key'] in node_config['public-bls-keys'] and metric['earned-reward'] > 0:
+                return False
+    return True
