@@ -14,6 +14,12 @@ case "${1}" in
   journalctl _SYSTEMD_USER_UNIT="$node_daemon" "${@:2}"
   ;;
   "restart")
+  can_safe_stop=$(python3 -c "from AutoNode import validator; print(validator.can_safe_stop_node())")
+  if [ "$can_safe_stop" == "False" ]; then
+    echo "[AutoNode] Validator is still elected and node is still signing."
+    echo "[AutoNode] Continue to restart node? (y/n)"
+    yes_or_exit
+  fi
   systemctl --user restart "$node_daemon"
   ;;
   "name")

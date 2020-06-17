@@ -53,12 +53,6 @@ case "${1}" in
     python3 -u -c "from AutoNode import validator; validator.activate_validator()"
     ;;
   "deactivate")
-    can_safe_stop=$(python3 -c "from AutoNode import validator; print(validator.can_safe_stop_node())")
-    if [ "$can_safe_stop" == "False" ]; then
-      echo "[AutoNode] Validator is still elected and BLS key has signed this epoch."
-      echo "[AutoNode] Continue to deactivate? (y/n)"
-      yes_or_exit
-    fi
     python3 -u -c "from AutoNode import validator; validator.deactivate_validator()"
     ;;
   "info")
@@ -120,7 +114,7 @@ case "${1}" in
   "kill")
     can_safe_stop=$(python3 -c "from AutoNode import validator; print(validator.can_safe_stop_node())")
     if [ "$can_safe_stop" == "False" ]; then
-      echo "[AutoNode] Validator is still elected and BLS key has signed this epoch."
+      echo "[AutoNode] Validator is still elected and node is still signing."
       echo "[AutoNode] Continue to kill? (y/n)"
       yes_or_exit
     fi
