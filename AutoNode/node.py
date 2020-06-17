@@ -212,7 +212,7 @@ def start(auto=False, verbose=True):
         if verbose:
             log(f'{Typgpy.WARNING}[!] Fast syncing before starting node.{Typgpy.ENDC}')
         shard = _get_node_shard()
-        if shard:
+        if shard is not None:
             _rclone_db(shard, verbose=verbose)
         else:
             log(f'{Typgpy.WARNING}[!] Unable to determine node shard.\n'
