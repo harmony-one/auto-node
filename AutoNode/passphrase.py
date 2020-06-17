@@ -26,7 +26,7 @@ from .exceptions import (
 def _get_harmony_pid():
     try:
         return subprocess.check_output(["pgrep", "harmony"], env=os.environ, timeout=2)
-    except (subprocess.TimeoutExpired, subprocess.CalledProcessError) as e:
+    except (subprocess.TimeoutExpired, subprocess.CalledProcessError):
         return b'0'
 
 
@@ -61,11 +61,11 @@ def _derive_wallet_encryption_key():
     kdf = PBKDF2HMAC(
         algorithm=hashes.SHA256(),
         length=32,
-        salt=_get_node_based_salt(),
-        iterations=10000,
+        salt=_get_node_based_salt().strip(),
+        iterations=100,
         backend=default_backend()
     )
-    return base64.urlsafe_b64encode(kdf.derive(pid + proc_info))
+    return base64.urlsafe_b64encode(kdf.derive(pid.strip() + proc_info.strip()))
 
 
 def encrypt_wallet_passphrase(passphrase):
