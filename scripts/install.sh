@@ -166,7 +166,7 @@ WantedBy=multi-user.target
   harmony_dir=$(python3 -c "from AutoNode import common; print(common.harmony_dir)")
   user_systemd_dir="$HOME/.config/systemd/user"
 
-  if systemctl --user --type=service --all --state=active | grep -e ^"$daemon_name"; then
+  if systemctl --user --type=service --all --state=active | grep "$daemon_name"; then
     echo "[AutoNode] Detected running AutoNode. Must stop existing AutoNode to continue. Proceed (y/n)?"
     yes_or_exit
     if ! auto-node kill; then
