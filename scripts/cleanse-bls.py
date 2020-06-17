@@ -48,7 +48,7 @@ def hard_cleanse(yes=False):
     passphrase = util.get_wallet_passphrase()
     for key in keys_on_chain:
         if key not in bls_keys:
-            prompt = f"{Typgpy.HEADER}Remove BLS key: {Typgpy.OKGREEN}{key}{Typgpy.HEADER} ?\n> {Typgpy.ENDC}"
+            prompt = f"{Typgpy.HEADER}Remove BLS key: {Typgpy.OKGREEN}{key}{Typgpy.HEADER} ?\n{Typgpy.ENDC}> "
             if not yes and util.input_with_print(prompt).lower() not in {'y', 'yes'}:
                 continue
             common.log(f"{Typgpy.WARNING}Removing {key}, key not in node's list of BLS keys: {bls_keys}{Typgpy.ENDC}")
@@ -75,7 +75,7 @@ def shard_cleanse(yes=False):
         key_shard = json_load(cli.single_call(['hmy', 'utility', 'shard-for-bls', key,
                                                '--node', endpoint]))['shard-id']
         if key_shard != shard and key not in bls_keys:
-            prompt = f"{Typgpy.HEADER}Remove BLS key: {Typgpy.OKGREEN}{key}{Typgpy.HEADER} ?\n> {Typgpy.ENDC}"
+            prompt = f"{Typgpy.HEADER}Remove BLS key: {Typgpy.OKGREEN}{key}{Typgpy.HEADER} ?\n{Typgpy.ENDC}> "
             if not yes and util.input_with_print(prompt).lower() not in {'y', 'yes'}:
                 continue
             common.log(f"{Typgpy.WARNING}Removing {key}, key for shard {key_shard}, "
@@ -117,7 +117,7 @@ def reward_cleanse(yes=False):
         if metric['earned-reward'] == 0:
             key = metric['key']['bls-public-key']
             if key not in bls_keys and key in keys_on_chain:
-                prompt = f"{Typgpy.HEADER}Remove BLS key: {Typgpy.OKGREEN}{key}{Typgpy.HEADER} ?\n> {Typgpy.ENDC}"
+                prompt = f"{Typgpy.HEADER}Remove BLS key: {Typgpy.OKGREEN}{key}{Typgpy.HEADER} ?{Typgpy.ENDC}\n> "
                 if not yes and util.input_with_print(prompt).lower() not in {'y', 'yes'}:
                     continue
                 common.log(f"{Typgpy.WARNING}Removing {key}, key earned 0 rewards.{Typgpy.ENDC}")
@@ -140,8 +140,10 @@ if __name__ == "__main__":
         common.log(f"{Typgpy.FAIL}{validator_addr} is not a validator on {endpoint}.{Typgpy.ENDC}")
         exit(-1)
     keys_on_chain = validator.get_validator_information()['validator']['bls-public-keys']
-    common.log(
-        f"{Typgpy.OKBLUE}Keys on validator {validator_addr} (before cleanse): {Typgpy.OKGREEN}{keys_on_chain}{Typgpy.ENDC}")
+    common.log(f"{Typgpy.OKBLUE}Keys of validator {Typgpy.OKGREEN}{validator_addr}{Typgpy.OKBLUE} "
+               f"on chain (before cleanse): {Typgpy.OKGREEN}{keys_on_chain}{Typgpy.ENDC}")
+    common.log(f"{Typgpy.OKBLUE}This node's BLS key(s): "
+               f"{Typgpy.OKGREEN}{common.node_config['public-bls-keys']}{Typgpy.ENDC}")
     if args.hard:
         hard_cleanse(yes=args.yes)
     elif args.keep_shard:
