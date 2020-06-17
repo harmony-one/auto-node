@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -e
 
-stable_auto_node_version="0.5.4"
+stable_auto_node_version="0.5.5"
 
 if command -v auto-node >/dev/null; then
   first_install=False
@@ -96,7 +96,7 @@ function check_and_install() {
 function check_and_install_dependencies() {
   echo "[AutoNode] Checking dependencies..."
   setup_check_and_install
-  for dependency in "python3" "python3-pip" "unzip" "nano" "curl" "bc"; do
+  for dependency in "python3" "python3-pip" "unzip" "nano" "curl" "bc" "jq"; do
     check_and_install "$dependency"
   done
 
