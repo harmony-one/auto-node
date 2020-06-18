@@ -80,9 +80,6 @@ def save_validator_config():
         for key, value in _validator_config_default.items():
             if key not in validator_config.keys():
                 raise KeyError(f"Missing key {key} from validator config.")
-            expected_type = type(value)
-            if validator_config[key] is not None and not isinstance(validator_config[key], expected_type):
-                raise TypeError(f"Type of key {key} is not {expected_type} in validator config.")
         validator.Validator(validator_config['validator-addr']).load(validator_config)
         config_string = json.dumps(validator_config, indent=4)
     except (exceptions.InvalidValidatorError, json.decoder.JSONDecodeError, KeyError, TypeError) as e:
@@ -116,9 +113,6 @@ def save_node_config():
         for key, value in _node_config_default.items():
             if key not in node_config.keys():
                 raise KeyError(f"Missing key {key} from node config.")
-            expected_type = type(value)
-            if node_config[key] is not None and not isinstance(node_config[key], expected_type):
-                raise TypeError(f"Type of key {key} is not {expected_type} in node config.")
         node_config_string = pickle.dumps(node_config)
     except (pickle.PickleError, KeyError, TypeError) as e:
         log(f"{Typgpy.FAIL}Invalid node config to save.{Typgpy.ENDC}\n"
