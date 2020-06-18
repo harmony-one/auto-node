@@ -267,7 +267,7 @@ def assert_no_invalid_blocks():
     if os.path.isdir(f"{node_dir}/latest"):
         files = glob.glob(f"{node_dir}/latest/zero*.log")
         if files:
-            log_path = f"{node_dir}/latest/{files[-1]}"
+            log_path = files[-1]
             assert not has_invalid_block(log_path), f"`invalid merkle root` present in {log_path}, restart AutoNode with clean option"
 
 
@@ -278,7 +278,7 @@ def is_signing(count=1500):
     if os.path.isdir(f"{node_dir}/latest"):
         files = glob.glob(f"{node_dir}/latest/zero*.log")
         if files:
-            log_path = f"{node_dir}/latest/{files[-1]}"
+            log_path = files[-1]
             content = subprocess.check_output(["tail", "-n", count, log_path], env=os.environ).decode().split("\n")
             for line in content:
                 line = line.rstrip()
@@ -288,7 +288,7 @@ def is_signing(count=1500):
 
 
 def has_invalid_block(log_file_path):
-    assert os.path.isfile(log_file_path)
+    assert os.path.isfile(log_file_path), f"{log_file_path} is not a file"
     try:
         with open(log_file_path, 'r', encoding='utf8') as f:
             for line in f:
