@@ -147,13 +147,12 @@ case "${1}" in
     exit 0
   fi
   echo "[AutoNode] Must shutdown node to update..."
+  sleep 2  # Sleep to read message
   _kill
   temp_install_script_path="/tmp/auto-node-install.sh"
   install_script=$(echo "$release_info" | jq ".assets" | jq '[.[]|select(.name="install.sh")][0].browser_download_url' -r)
   wget "$install_script" -O "$temp_install_script_path"
   bash "$temp_install_script_path"
-  echo "[AutoNode] Install Complete! Don't forget to re-run your AutoNode!"
-  exit 0
   ;;
 "kill")
   _kill
