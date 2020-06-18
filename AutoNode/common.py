@@ -92,7 +92,7 @@ def save_validator_config():
         return
     save_protected_file(config_string, saved_validator_path, verbose=False)
     # Make validator config file easily writeable
-    subprocess.check_call(["chmod", "600", saved_validator_path], env=os.environ)
+    os.chmod(saved_validator_path, 0o600)
 
 
 def load_validator_config():
@@ -175,4 +175,4 @@ def protect_file(file_path, verbose=True):
     """
     if verbose:
         log(f"{Typgpy.WARNING}Protecting file `{file_path}` for user {user}{Typgpy.ENDC}")
-    return subprocess.check_call(["chmod", "400", file_path], env=os.environ)
+    os.chmod(file_path, 0o400)
