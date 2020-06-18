@@ -51,7 +51,7 @@ def get_wallet_passphrase():
     return passphrase
 
 
-def interact_wallet_passphrase(proc, passphrase, prompt="Enter wallet keystore passphrase:\r\n"):
+def pexpect_input_wallet_passphrase(proc, passphrase, prompt="Enter wallet keystore passphrase:\r\n"):
     """
     Interactively input the wallet passphrase to the given pexpect child process
     """
@@ -60,13 +60,13 @@ def interact_wallet_passphrase(proc, passphrase, prompt="Enter wallet keystore p
     proc.sendline(passphrase)
 
 
-def process_wallet_creation_passphrase(proc, passphrase):
+def pexpect_input_wallet_creation_passphrase(proc, passphrase):
     """
     This will enter the `passphrase` interactively given the pexpect child program, `proc`.
     """
     assert isinstance(proc, pexpect.pty_spawn.spawn)
-    interact_wallet_passphrase(proc, passphrase, prompt="Enter passphrase:\r\n")
-    interact_wallet_passphrase(proc, passphrase, prompt="Repeat the passphrase:\r\n")
+    pexpect_input_wallet_passphrase(proc, passphrase, prompt="Enter passphrase:\r\n")
+    pexpect_input_wallet_passphrase(proc, passphrase, prompt="Repeat the passphrase:\r\n")
     proc.expect("\n")
 
 
@@ -87,7 +87,7 @@ def check_min_bal_on_s0(address, amount, endpoint=node_config['endpoint'], timeo
             return bal['amount'] >= amount
 
 
-def get_simple_rotating_log_handler(log_file_path, max_size=5*1024*1024):
+def get_simple_rotating_log_handler(log_file_path, max_size=5 * 1024 * 1024):
     """
     A simple log handler with no level support.
     Used purely for the output rotation.
@@ -101,3 +101,13 @@ def get_simple_rotating_log_handler(log_file_path, max_size=5*1024*1024):
     handler.setFormatter(log_formatter)
     handler.rotator = _GZipRotator()
     return handler
+
+
+def shard_for_bls(public_bls_key):
+    """
+    Fetch the shard for the BLS key.
+
+    NOTE: Expect to be invalid one we have resharding.
+    """
+    return json_load(cli.single_call(['hmy', '--node', f'{node_config["endpoint"]}', 'utility',
+                                      'shard-for-bls', public_bls_key]))['shard-id']

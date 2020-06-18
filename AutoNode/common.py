@@ -1,5 +1,4 @@
 import json
-import subprocess
 import logging
 import os
 import getpass
@@ -8,7 +7,7 @@ import pickle
 from pyhmy import (
     Typgpy,
     validator,
-    exceptions
+    exceptions,
 )
 
 user = getpass.getuser()
@@ -47,7 +46,7 @@ _validator_config_default = {
     "max-change-rate": None,
     "max-total-delegation": None,
     "details": None,
-    "gas-price": ""
+    "gas-price": "1"
 }
 validator_config = _validator_config_default.copy()
 
@@ -75,14 +74,18 @@ def save_validator_config():
     Do not save invalid validator.
     In worst case, new validator information will be re-prompted on re-init of AutoNode.
     """
+    if node_config['no-validator']:
+        return
     try:
-        for key in _validator_config_default.keys():
+        for key, value in _validator_config_default.items():
             if key not in validator_config.keys():
-                raise KeyError(f"{key} not present in validator config to save.")
-        if validator_config['validator-addr'] is not None:
-            validator.Validator(validator_config['validator-addr']).load(validator_config)
+                raise KeyError(f"Missing key {key} from validator config.")
+            expected_type = type(value)
+            if validator_config[key] is not None and not isinstance(validator_config[key], expected_type):
+                raise TypeError(f"Type of key {key} is not {expected_type} in validator config.")
+        validator.Validator(validator_config['validator-addr']).load(validator_config)
         config_string = json.dumps(validator_config, indent=4)
-    except (exceptions.InvalidValidatorError, json.decoder.JSONDecodeError, KeyError) as e:
+    except (exceptions.InvalidValidatorError, json.decoder.JSONDecodeError, KeyError, TypeError) as e:
         log(f"{Typgpy.FAIL}Invalid validator information to save.{Typgpy.ENDC}\n"
             f"Error: {e}.\n"
             f"Validator Config: {json.dumps(validator_config, indent=2)}")
@@ -90,7 +93,7 @@ def save_validator_config():
         return
     save_protected_file(config_string, saved_validator_path, verbose=False)
     # Make validator config file easily writeable
-    subprocess.check_call(f"chmod 600 {saved_validator_path}", shell=True, env=os.environ)
+    os.chmod(saved_validator_path, 600)
 
 
 def load_validator_config():
@@ -110,11 +113,14 @@ def save_node_config():
     In worst case, node config will be refreshed with valid info on re-init of AutoNode.
     """
     try:
-        for key in _node_config_default.keys():
+        for key, value in _node_config_default.items():
             if key not in node_config.keys():
-                raise KeyError(f"{key} not present in node config to save: {json.dumps(node_config, indent=2)}")
+                raise KeyError(f"Missing key {key} from node config.")
+            expected_type = type(value)
+            if node_config[key] is not None and not isinstance(node_config[key], expected_type):
+                raise TypeError(f"Type of key {key} is not {expected_type} in node config.")
         node_config_string = pickle.dumps(node_config)
-    except (pickle.PickleError, KeyError) as e:
+    except (pickle.PickleError, KeyError, TypeError) as e:
         log(f"{Typgpy.FAIL}Invalid node config to save.{Typgpy.ENDC}\n"
             f"Error: {e}.")
         log(f"{Typgpy.WARNING}NOT saving node config, continuing...{Typgpy.ENDC}")
@@ -173,4 +179,4 @@ def protect_file(file_path, verbose=True):
     """
     if verbose:
         log(f"{Typgpy.WARNING}Protecting file `{file_path}` for user {user}{Typgpy.ENDC}")
-    return subprocess.check_call(f"chmod 400 {file_path}", shell=True, env=os.environ)
+    os.chmod(file_path, 400)

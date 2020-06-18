@@ -29,7 +29,7 @@ from .validator import (
 )
 from .node import (
     wait_for_node_response,
-    assert_no_bad_blocks,
+    assert_no_invalid_blocks,
 )
 from .util import (
     get_simple_rotating_log_handler
@@ -69,9 +69,9 @@ def _check_for_hard_reset(shard_endpoint, error_ok=False):
             log(f"{Typgpy.WARNING} Shard endpoint ({shard_endpoint}) is not making progress, "
                 f"possible endpoint issue, or hard-reset.{Typgpy.ENDC}")
     try:
-        assert_no_bad_blocks()
+        assert_no_invalid_blocks()
     except AssertionError as e:
-        raise ResetNode("BAD BLOCK", clean=True) from e
+        raise ResetNode("INVALID BLOCK", clean=True) from e
     fb_ref_hash = blockchain.get_block_by_number(1, endpoint=shard_endpoint)['hash']
     fb_hash = blockchain.get_block_by_number(1)['hash']
     if not error_ok and fb_hash is not None and fb_ref_hash is not None and fb_hash != fb_ref_hash:
@@ -85,7 +85,7 @@ def _run_monitor(shard_endpoint, duration=50):
     Internal function that monitors the node for `duration` seconds.
 
     Hard reset (clean node.sh reset) triggers:
-    1) See bad blocks in logs
+    1) See invalid block in logs
     2) Node's epoch is greater than network's epoch
     3) Block 1 hashes dont match (on shard)
     """
@@ -107,6 +107,7 @@ def _run_monitor(shard_endpoint, duration=50):
             if validator_config["validator-addr"] in all_val:
                 val_chain_info = get_validator_information()
                 log(f"{Typgpy.HEADER}EPOS status: {Typgpy.OKGREEN}{val_chain_info['epos-status']}{Typgpy.ENDC}")
+                log(f"{Typgpy.HEADER}Active status: {Typgpy.OKGREEN}{val_chain_info['active-status']}{Typgpy.ENDC}")
                 log(f"{Typgpy.HEADER}Booted status: {Typgpy.OKGREEN}{val_chain_info['booted-status']}{Typgpy.ENDC}")
                 log(f"{Typgpy.HEADER}Current epoch performance: {Typgpy.OKGREEN}"
                     f"{json.dumps(val_chain_info['current-epoch-performance'], indent=4)}{Typgpy.ENDC}")

@@ -263,37 +263,40 @@ def wait_for_node_response(endpoint, verbose=True, tries=float("inf"), sleep=0.5
         log(f"{Typgpy.HEADER}[!] {endpoint} is alive!{Typgpy.ENDC}")
 
 
-def assert_no_bad_blocks():
+def assert_no_invalid_blocks():
     if os.path.isdir(f"{node_dir}/latest"):
-        files = [x for x in os.listdir(f"{node_dir}/latest") if x.endswith(".log")]
+        files = glob.glob(f"{node_dir}/latest/zero*.log")
         if files:
             log_path = f"{node_dir}/latest/{files[-1]}"
-            assert not has_bad_block(log_path), f"`BAD BLOCK` present in {log_path}, restart AutoNode with clean option"
+            assert not has_invalid_block(log_path), f"`invalid merkle root` present in {log_path}, restart AutoNode with clean option"
 
 
-def is_signing():
+def is_signing(count=1500):
+    """
+    Read the last `count` lines and check for signing logs.
+    """
     if os.path.isdir(f"{node_dir}/latest"):
-        files = [x for x in os.listdir(f"{node_dir}/latest") if x.endswith(".log")]
+        files = glob.glob(f"{node_dir}/latest/zero*.log")
         if files:
             log_path = f"{node_dir}/latest/{files[-1]}"
-            with open(log_path, 'r', encoding='utf8') as f:
-                for line in f:
-                    line = line.rstrip()
-                    if "BINGO" in line or "HOORAY" in line:
-                        return True
+            content = subprocess.check_output(["tail", "-n", count, log_path], env=os.environ).decode().split("\n")
+            for line in content:
+                line = line.rstrip()
+                if "BINGO" in line or "HOORAY" in line:
+                    return True
     return False
 
 
-def has_bad_block(log_file_path):
+def has_invalid_block(log_file_path):
     assert os.path.isfile(log_file_path)
     try:
         with open(log_file_path, 'r', encoding='utf8') as f:
             for line in f:
                 line = line.rstrip()
-                if "## BAD BLOCK ##" in line:
+                if "invalid merkle root" in line:
                     return True
     except (UnicodeDecodeError, IOError):
-        log(f"{Typgpy.WARNING}WARNING: failed to read `{log_file_path}` to check for bad block{Typgpy.ENDC}")
+        log(f"{Typgpy.WARNING}WARNING: failed to read `{log_file_path}` to check for invalid block{Typgpy.ENDC}")
     return False
 
 
@@ -305,16 +308,16 @@ def assert_started(timeout=60, do_log=False):
     has_informed_rclone = False
     start_time = time.time()
     while time.time() - start_time < timeout:
-        if subprocess.call("pgrep rclone > /dev/null", shell=True, env=os.environ) == 0:
+        if subprocess.call(["pgrep", "rclone"], env=os.environ, stdout=subprocess.DEVNULL) == 0:
             timeout += 1
             if not has_informed_rclone and do_log:
-                log(f"Fast-sync (rclone) is in progress...")
+                log(f"{Typgpy.WARNING}Fast-sync (rclone) is in progress...{Typgpy.ENDC}")
                 has_informed_rclone = True
-        elif subprocess.call("pgrep harmony > /dev/null", shell=True, env=os.environ) == 0:
+        elif subprocess.call(["pgrep", "harmony"], env=os.environ, stdout=subprocess.DEVNULL) == 0:
             if do_log:
-                log(f"Harmony node is running...")
+                log(f"{Typgpy.OKGREEN}Harmony node is running...{Typgpy.ENDC}")
             return
         time.sleep(1)
     if do_log:
-        log(f"Harmony node is NOT running!")
+        log(f"{Typgpy.FAIL}Harmony node is NOT running!{Typgpy.ENDC}")
     raise AssertionError("Node failed to start")

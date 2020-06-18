@@ -33,7 +33,8 @@ from .common import (
     node_sh_log_dir
 )
 from .util import (
-    input_with_print
+    input_with_print,
+    shard_for_bls
 )
 from .passphrase import (
     encrypt_wallet_passphrase,
@@ -226,8 +227,7 @@ def _import_bls(passphrase):
 def _assert_same_shard_bls_keys(public_keys):
     ref_shard = None
     for key in public_keys:
-        shard = json_load(cli.single_call(['hmy', '--node', f'{node_config["endpoint"]}', 'utility',
-                                           'shard-for-bls', key]))['shard-id']
+        shard = shard_for_bls(key)
         if ref_shard is None:
             ref_shard = shard
         assert shard == ref_shard, f"Bls keys {public_keys} are not for same shard, {shard} != {ref_shard}"
@@ -356,7 +356,7 @@ def save_wallet_passphrase(passphrase):
     """
     Encrypt and save wallet passphrase in node config.
     """
-    is_node_running = subprocess.call("pgrep harmony > /dev/null", shell=True, env=os.environ) == 0
+    is_node_running = subprocess.call(["pgrep", "harmony"], env=os.environ, stdout=subprocess.DEVNULL) == 0
     assert is_node_running, "Harmony process is not running, cannot save wallet passphrase"
     addr = validator_config["validator-addr"]
     assert addr, "Validator was not setup, cannot save passphrase"

@@ -48,11 +48,8 @@ case "${1}" in
   journal <opts> View the journal of your current Harmony Node daemon
   restart        Manually restart your current Harmony Node daemon
   name           Get the name of your current Harmony Node deamon
-  info                  Get the node's current metadata
-
-  'init' is a special option for the inital node daemon, may be needed for debugging.
-  Otherwise not needed.
-    "
+  info           Get the node's current metadata
+  "
   exit
   ;;
 esac

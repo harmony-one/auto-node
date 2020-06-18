@@ -32,7 +32,7 @@ from .common import (
 from .node import (
     log_path,
     wait_for_node_response,
-    assert_no_bad_blocks,
+    assert_no_invalid_blocks,
     assert_started as assert_node_started,
     is_signing
 )
@@ -45,7 +45,7 @@ from .util import (
     input_with_print,
     get_simple_rotating_log_handler,
     get_wallet_passphrase,
-    interact_wallet_passphrase
+    pexpect_input_wallet_passphrase
 )
 
 _balance_buffer = Decimal(1)
@@ -95,7 +95,7 @@ def _send_edit_validator_tx(bls_key_to_add):
             if validator_config["gas-price"]:
                 cmd.extend(['--gas-price', f'{validator_config["gas-price"]}'])
             proc = cli.expect_call(cmd)
-            interact_wallet_passphrase(proc, passphrase)
+            pexpect_input_wallet_passphrase(proc, passphrase)
             proc.expect(pexpect.EOF)
             response = proc.before.decode()
             log(f"{Typgpy.OKBLUE}Edit-validator transaction response: "
@@ -181,7 +181,7 @@ def _send_create_validator_tx():
             if validator_config["gas-price"]:
                 cmd.extend(['--gas-price', f'{validator_config["gas-price"]}'])
             proc = cli.expect_call(cmd)
-            interact_wallet_passphrase(proc, passphrase)
+            pexpect_input_wallet_passphrase(proc, passphrase)
             proc.expect(pexpect.EOF)
             response = proc.before.decode()
             log(f"{Typgpy.OKBLUE}Create-validator transaction response: "
@@ -227,7 +227,7 @@ def _verify_node_sync():
         sys.stdout.flush()
         has_looped = True
         time.sleep(check_interval)
-        assert_no_bad_blocks()
+        assert_no_invalid_blocks()
         curr_headers = blockchain.get_latest_headers()
         curr_epoch_shard = curr_headers['shard-chain-header']['epoch']
         curr_epoch_beacon = curr_headers['beacon-chain-header']['epoch']
@@ -320,7 +320,7 @@ def deactivate_validator():
             if validator_config["gas-price"]:
                 cmd.extend(['--gas-price', f'{validator_config["gas-price"]}'])
             proc = cli.expect_call(cmd)
-            interact_wallet_passphrase(proc, passphrase)
+            pexpect_input_wallet_passphrase(proc, passphrase)
             proc.expect(pexpect.EOF)
             response = proc.before.decode()
             log(f"{Typgpy.OKGREEN}Edit-validator response: {response}{Typgpy.ENDC}")
@@ -346,7 +346,7 @@ def activate_validator():
             if validator_config["gas-price"]:
                 cmd.extend(['--gas-price', f'{validator_config["gas-price"]}'])
             proc = cli.expect_call(cmd)
-            interact_wallet_passphrase(proc, passphrase)
+            pexpect_input_wallet_passphrase(proc, passphrase)
             proc.expect(pexpect.EOF)
             response = proc.before.decode()
             log(f"{Typgpy.OKGREEN}Edit-validator response: {response}{Typgpy.ENDC}")
@@ -371,7 +371,7 @@ def collect_reward():
             if validator_config["gas-price"]:
                 cmd.extend(['--gas-price', f'{validator_config["gas-price"]}'])
             proc = cli.expect_call(cmd)
-            interact_wallet_passphrase(proc, passphrase)
+            pexpect_input_wallet_passphrase(proc, passphrase)
             proc.expect(pexpect.EOF)
             response = proc.before.decode()
             log(f"{Typgpy.OKGREEN}Collect rewards response: {response}{Typgpy.ENDC}")
@@ -473,7 +473,7 @@ def update_info(hard_reset_recovery=False):
             for key, value in fields.items():
                 cmd.extend([f'--{key}', f'{value}'])
             proc = cli.expect_call(cmd)
-            interact_wallet_passphrase(proc, passphrase)
+            pexpect_input_wallet_passphrase(proc, passphrase)
             proc.expect(pexpect.EOF)
             response = proc.before.decode()
             log(f"{Typgpy.OKBLUE}Edit-validator transaction response: {Typgpy.OKGREEN}{response}{Typgpy.ENDC}")

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -e
 
-stable_auto_node_version="0.5.5"
+stable_auto_node_version="0.5.6"
 
 if command -v auto-node >/dev/null; then
   first_install=False
@@ -258,7 +258,7 @@ function main() {
     auto-node tune kernel --save || true
     auto-node tune network --save || true
     run_cmd="auto-node tune restore"
-    echo -e "[AutoNode] Note that all tunes can be undone with \e[38;5;0;48;5;255m$run_cmd\e[0m"
+    echo -e "[AutoNode] Note that all optimizations can be undone with \e[38;5;0;48;5;255m$run_cmd\e[0m"
     echo ""
   fi
 
@@ -274,7 +274,7 @@ function main() {
     echo ""
   fi
 
-  # TODO: add wallet count check & onlt print if needed...
+  # TODO: add wallet count check & only print if needed...
   echo -e "[AutoNode] \033[1;33mNote that you have to import/generate your validator wallet using"
   echo -e "           the Harmony CLI before you can use validator features.\033[0m"
   run_cmd="auto-node hmy keys add example-validator-wallet-name"

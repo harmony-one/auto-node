@@ -7,47 +7,67 @@ import time
 import datetime
 from argparse import RawTextHelpFormatter
 
-kernel_tunes = {
+kernel_tuning = {
+    # Increase size of file handles and node cache
     "fs.file-max": 2097152,
+    # Do less swapping
     "vm.swappiness": 10,
     "vm.dirty_ratio": 60,
     "vm.dirty_background_ratio": 2,
+    # Sets the time before the kernel considers migrating a proccess to another core
     "kernel.sched_migration_cost_ns": 5000000
 }
 
 network_security = {
+    # Number of times SYNACKs for passive TCP connection.
     "net.ipv4.tcp_synack_retries": 2,
+    # Allowed local port range
     "net.ipv4.ip_local_port_range": "2000 65535",
+    # Protect Against TCP Time-Wait
     "net.ipv4.tcp_rfc1337": 1,
+    # Control Syncookies
     "net.ipv4.tcp_syncookies": 1,
+    # Decrease the time default value for tcp_fin_timeout connection
     "net.ipv4.tcp_fin_timeout": 15,
+    # Decrease the time default value for connections to keep alive
     "net.ipv4.tcp_keepalive_time": 300,
     "net.ipv4.tcp_keepalive_probes": 5,
     "net.ipv4.tcp_keepalive_intvl": 15,
 }
 
 network_tuning = {
+    # Default Socket Receive Buffer
     "net.core.rmem_default": 31457280,
+    # Maximum Socket Receive Buffer
     "net.core.rmem_max": 33554432,
+    # Default Socket Send Buffer
     "net.core.wmem_default": 31457280,
+    # Maximum Socket Send Buffer
     "net.core.wmem_max": 33554432,
+    # Increase number of incoming connections
     "net.core.somaxconn": 8096,
+    # Increase number of incoming connections backlog
     "net.core.netdev_max_backlog": 65536,
+    # Increase the maximum amount of option memory buffers
     "net.core.optmem_max": 25165824,
     "net.ipv4.tcp_max_syn_backlog": 8192,
+    # Increase the maximum total buffer-space allocatable
+    # This is measured in units of pages (4096 bytes)
     "net.ipv4.tcp_mem": "786432 1048576 26777216",
     "net.ipv4.udp_mem": "65536 131072 262144",
+    # Increase the read-buffer space allocatable
     "net.ipv4.tcp_rmem": "8192 87380 33554432",
     "net.ipv4.udp_rmem_min": 16384,
+    # Increase the write-buffer-space allocatable
     "net.ipv4.tcp_wmem": "8192 65536 33554432",
     "net.ipv4.udp_wmem_min": 16384,
+    # Increase the tcp-time-wait buckets pool size to prevent simple DOS attacks
     "net.ipv4.tcp_max_tw_buckets": 1440000,
     "net.ipv4.tcp_tw_reuse": 1,
     "net.ipv4.tcp_fastopen": 3,
     "net.ipv4.tcp_window_scaling": 1
 }
 
-params = {"kernel", "network", "restore"}
 sysctl_path = "/etc/sysctl.conf"
 saved_config = {}  # Keys = time.time(): Value = saved config as a string
 
@@ -195,7 +215,8 @@ def _parse_args():
     parser.add_argument("target", help=f"Desired thing to optimize. Options:\n"
                                        f"* kernel\t Tune kernel for running a node.\n"
                                        f"* network\t Tune network settings for running a node.\n"
-                                       f"* restore\t Restore sysctl config to previous config (if available).")
+                                       f"* restore\t Restore sysctl config to previous config (if available).",
+                        choices=['kernel', 'network', 'restore'])
     parser.add_argument("--save", action="store_true", help="Save tuning between system restarts.")
     parser.add_argument("--quiet", action="store_true", help="Do not print anything.")
     parser.add_argument("--saved-sysctl-path", default="/var/saved-sysctl.conf.p",
@@ -206,7 +227,6 @@ def _parse_args():
 
 if __name__ == "__main__":
     args = _parse_args()
-    assert args.target in params, f"given target {args.target} not in {params}"
     assert os.geteuid() == 0, f"must be ran as root! Try running command with 'sudo' in front of it."
 
     if args.target == "restore":
@@ -226,9 +246,9 @@ if __name__ == "__main__":
         if not args.quiet:
             print(f"== Tuning kernel ==")
         if args.save:
-            process_persistent_config(kernel_tunes, verbose=not args.quiet)
+            process_persistent_config(kernel_tuning, verbose=not args.quiet)
         else:
-            process_temp_config(kernel_tunes, verbose=not args.quiet)
+            process_temp_config(kernel_tuning, verbose=not args.quiet)
     if args.target == "network":
         if not args.quiet:
             print(f"== Tuning network ==")

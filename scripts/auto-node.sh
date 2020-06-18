@@ -45,6 +45,9 @@ case "${1}" in
     sudo python3 -u "$harmony_dir"/tune.py "${@:2}" "--saved-sysctl-path=$saved_sysctl_path"
   fi
   ;;
+"bls-shard")
+  python3 -u -c "from AutoNode import util; print(util.shard_for_bls($2))"
+  ;;
 "create-validator")
   python3 -u -c "from AutoNode import validator; validator.setup(hard_reset_recovery=False)"
   ;;
@@ -133,35 +136,36 @@ case "${1}" in
       == Harmony AutoNode help message ==
       Note that all sensitive files are saved with read only access for user $USER.
 
-      Param:              Help:
+      Param:               Help:
 
-      run <run params>    Main execution to run a node. If errors are given
-                           for other params, this needs to be ran. Use '-h' param to view help msg
-      auth-wallet         Re-auth wallet passphrase if AutoNode expires/invalidates stored passphrase.
-      config              View the validator_config.json file used by AutoNode
-      edit-config         Edit the validator_config.json file used by AutoNode and change validator info on-chain
-      update-config       Update validator info on-chain with given validator_config.json
-      monitor <cmd>       View/Command Harmony Node Monitor. Use '-h' param to view help msg
-      node <cmd>          View/Command Harmony Node. Use '-h' params to view help msg
-      tui <cmd>           Start the text-based user interface to monitor your node and validator.
-                           Use '-h' param to view help msg
-      tune <tune params>  Tune the OS for running a node. Use '-h' param to view help msg
-      create-validator    Run through the steps to setup your validator
-      activate            Make validator associated with node eligible for election in next epoch
-      deactivate          Make validator associated with node NOT eligible for election in next epoch.
-                           Note that this may not work as intended if auto-active was enabled
-      info                Fetch information for validator associated with node
-      cleanse-bls <opts>  Remove BLS keys from validator that are not earning. Use '-h' param to view help msg
-      balances            Fetch balances for validator associated with node
-      collect-rewards     Collect rewards for the associated validator
-      version             Fetch the version of the node
-      header              Fetch the latest header (shard chain) for the node
-      headers             Fetch the latest headers (beacon and shard chain) for the node
-      clear-node-bls      Remove the BLS key directory used by the node.
-      hmy <command>       Execute the Harmony CLI with the given command.
-                           Use '-h' param to view help msg
-      hmy-update          Update the Harmony CLI used for AutoNode
-      kill                Safely kill AutoNode & its monitor (if alive)
+      run <run params>     Main execution to run a node. If errors are given
+                            for other params, this needs to be ran. Use '-h' param to view help msg
+      auth-wallet          Re-auth wallet passphrase if AutoNode expires/invalidates stored passphrase.
+      config               View the validator_config.json file used by AutoNode
+      edit-config          Edit the validator_config.json file used by AutoNode and change validator info on-chain
+      update-config        Update validator info on-chain with given validator_config.json
+      monitor <cmd>        View/Command Harmony Node Monitor. Use '-h' param to view help msg
+      node <cmd>           View/Command Harmony Node. Use '-h' params to view help msg
+      tui <cmd>            Start the text-based user interface to monitor your node and validator.
+                            Use '-h' param to view help msg
+      tune <params>        Optimize the OS for running a node. Use '-h' param to view help msg
+      create-validator     Run through the steps to setup your validator
+      activate             Make validator associated with node eligible for election in next epoch
+      deactivate           Make validator associated with node NOT eligible for election in next epoch.
+                            Note that this may not work as intended if auto-active is enabled
+      info                 Display information for validator associated with node
+      cleanse-bls <opts>   Remove BLS keys from validator that are not earning. Use '-h' param to view help msg
+      bls-shard <pub-key>  Get shard for given public BLS key
+      balances             Display balances for validator associated with node
+      collect-rewards      Collect rewards for the associated validator
+      version              Display the version of the node
+      header               Display the latest header (shard chain) for the node
+      headers              Display the latest headers (beacon and shard chain) for the node
+      clear-node-bls       Remove the BLS key directory used by the node.
+      hmy <command>        Execute the Harmony CLI with the given command.
+                            Use '-h' param to view help msg
+      hmy-update           Update the Harmony CLI used for AutoNode
+      kill                 Safely kill AutoNode & its monitor (if alive)
     "
   exit
   ;;

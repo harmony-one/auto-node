@@ -13,10 +13,10 @@ from .common import (
     node_config,
 )
 from .node import (
-    start as node_start
+    start as start_node
 )
 from .validator import (
-    setup as validator_setup,
+    setup as setup_validator,
     assert_node_started
 )
 from .monitor import (
@@ -76,16 +76,15 @@ def run_node(hard_reset_recovery=False, duration=float('inf')):
     _validate_config(for_node=True)
     pid = None
     try:
-        pid = node_start(auto=True, verbose=True)
+        pid = start_node(auto=True, verbose=True)
         if hard_reset_recovery:
-            validator_setup(hard_reset_recovery=True)
+            setup_validator(hard_reset_recovery=True)
         while time.time() - start_time < duration:
             time.sleep(1)
-            pass
     finally:
         if pid is not None:
             print(f"Killing harmony process, pid: {pid}")
-            subprocess.check_call(f"kill -2 {pid}", shell=True, env=os.environ)
+            subprocess.check_call(["kill", "-2", str(pid)], env=os.environ)
 
 
 def _reset_node(recover_service_name, error):
@@ -108,22 +107,22 @@ def _reset_node(recover_service_name, error):
 
     for service in filter(lambda e: e.startswith("node"), services):
         daemon_name = f"{name}@{service}.service"
-        command = f"systemctl --user stop {daemon_name}"
+        command = ["systemctl", "--user", "stop", daemon_name]
         print(f"Stopping daemon {daemon_name}")
         try:
-            subprocess.check_call(command, shell=True, env=os.environ)
+            subprocess.check_call(command, env=os.environ)
         except subprocess.CalledProcessError as e:
             print(f"Unable to stop service '{daemon_name}'")
             raise e
 
-    subprocess.call(f"killall harmony", shell=True, env=os.environ)  # OK if this fails, so use subprocess.call
+    subprocess.call(["killall", "harmony"], env=os.environ)  # OK if this fails, so use subprocess.call
     time.sleep(5)  # wait for node shutdown
 
     daemon_name = f"{name}@{recover_service_name}.service"
-    command = f"systemctl --user start {daemon_name}"
+    command = ["systemctl", "--user", "start", daemon_name]
     print(f"Starting daemon {daemon_name}")
     try:
-        subprocess.check_call(command, shell=True, env=os.environ)
+        subprocess.check_call(command, env=os.environ)
     except subprocess.CalledProcessError as e:
         print(f"Unable to start service '{daemon_name}'")
         raise e

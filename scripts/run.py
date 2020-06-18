@@ -35,9 +35,9 @@ def start_node():
     """
     service = "node"
     assert service in daemon.services, f"sanity check: unknown {service} service"
-    cmd = f"systemctl --user start {daemon.name}@{service}.service"
-    subprocess.check_call(cmd, shell=True, env=os.environ)
-    AutoNode.common.log(f"{Typgpy.HEADER}Started Node!{Typgpy.ENDC}")
+    cmd = ["systemctl", "--user", "start", f"{daemon.name}@{service}.service"]
+    subprocess.check_call(cmd, env=os.environ)
+    AutoNode.common.log(f"{Typgpy.HEADER}Started node!{Typgpy.ENDC}")
 
 
 def start_monitor():
@@ -46,14 +46,14 @@ def start_monitor():
     """
     service = "monitor"
     assert service in daemon.services, f"sanity check: unknown {service} service"
-    cmd = f"systemctl --user start {daemon.name}@{service}.service"
-    subprocess.check_call(cmd, shell=True, env=os.environ)
+    cmd = ["systemctl", "--user", "start", f"{daemon.name}@{service}.service"]
+    subprocess.check_call(cmd, env=os.environ)
     AutoNode.common.log(f"{Typgpy.HEADER}Started monitor!{Typgpy.ENDC}")
 
 
 def tail_monitor_log():
     if os.path.exists(monitor.log_path):
-        subprocess.call(f"tail -f {monitor.log_path}", shell=True, env=os.environ)
+        subprocess.call(["tail", "-f", monitor.log_path], env=os.environ)
     else:
         raise SystemExit("Monitor failed to start")
 
