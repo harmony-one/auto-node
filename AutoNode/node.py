@@ -279,7 +279,7 @@ def is_signing(count=1500):
         files = glob.glob(f"{node_dir}/latest/zero*.log")
         if files:
             log_path = files[-1]
-            content = subprocess.check_output(["tail", "-n", count, log_path], env=os.environ).decode().split("\n")
+            content = subprocess.check_output(["tail", "-n", str(count), str(log_path)], env=os.environ).decode().split("\n")
             for line in content:
                 line = line.rstrip()
                 if "BINGO" in line or "HOORAY" in line:
