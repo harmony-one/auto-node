@@ -167,9 +167,7 @@ def _import_bls(passphrase):
             time.sleep(3)  # Sleep so user can read message
         for k in bls_keys:
             passphrase_file = f"{bls_key_dir}/{k.replace('.key', '.pass')}"
-            if protect_file(passphrase_file) != 0:
-                raise SystemExit(f"Unable to protect `{passphrase_file}`, check user ({user}) "
-                                 f"permissions on file.")
+            protect_file(passphrase_file)
             try:
                 cli.single_call(['hmy', 'keys', 'recover-bls-key', f'{bls_key_dir}/{k}',
                                  '--passphrase-file', passphrase_file])
