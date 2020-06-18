@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 set -e
 
-stable_auto_node_version="0.6.3"
+stable_auto_node_pypi_version="0.6.4"
+release_branch="mainnet-pt2"
 
 if command -v auto-node >/dev/null; then
   first_install=False
@@ -96,7 +97,7 @@ function check_and_install() {
 function check_and_install_dependencies() {
   echo "[AutoNode] Checking dependencies..."
   setup_check_and_install
-  for dependency in "python3" "python3-pip" "unzip" "nano" "curl" "bc" "jq"; do
+  for dependency in "python3" "python3-pip" "unzip" "nano" "curl" "bc" "jq" "sort" "wget"; do
     check_and_install "$dependency"
   done
 
@@ -141,13 +142,12 @@ function install_python_lib() {
   echo "[AutoNode] Removing existing AutoNode installation"
   python3 -m pip uninstall AutoNode -y 2>/dev/null || sudo python3 -m pip uninstall AutoNode -y 2>/dev/null || echo "[AutoNode] Was not installed..."
   echo "[AutoNode] Installing main python3 library"
-  python3 -m pip install AutoNode=="$stable_auto_node_version" --no-cache-dir --user || sudo python3 -m pip install AutoNode=="$stable_auto_node_version" --no-cache-dir
+  python3 -m pip install AutoNode=="$stable_auto_node_pypi_version" --no-cache-dir --user || sudo python3 -m pip install AutoNode=="$stable_auto_node_pypi_version" --no-cache-dir
   echo "[AutoNode] Initilizing python3 library"
   python3 -c "from AutoNode import common; common.save_validator_config()"
   python3 -c "from AutoNode import initialize; initialize.make_directories()"
 }
 
-# TODO: set-up versioned install...
 function install() {
   systemd_service="[Unit]
 Description=Harmony AutoNode %I service
@@ -183,8 +183,7 @@ WantedBy=multi-user.target
   mkdir -p "$harmony_dir" "$HOME/bin" "$user_systemd_dir"
 
   echo "[AutoNode] Installing AutoNode daemon: $daemon_name"
-  # TODO: change this back to master
-  curl -s -o "$HOME"/bin/autonode-service.py https://raw.githubusercontent.com/harmony-one/auto-node/mainnet-pt2/scripts/autonode-service.py
+  curl -s -o "$HOME/bin/autonode-service.py" "https://raw.githubusercontent.com/harmony-one/auto-node/$release_branch/scripts/autonode-service.py"
   echo "$systemd_service" >"$user_systemd_dir/$daemon_name@.service"
   chmod 644 "$user_systemd_dir/$daemon_name@.service"
   systemctl --user daemon-reload
@@ -194,12 +193,10 @@ WantedBy=multi-user.target
   done
 
   echo "[AutoNode] Installing AutoNode wrapper script"
-  # TODO: change this back to master
-  curl -s -o "$HOME/bin/auto-node" https://raw.githubusercontent.com/harmony-one/auto-node/mainnet-pt2/scripts/auto-node.sh
+  curl -s -o "$HOME/bin/auto-node" "https://raw.githubusercontent.com/harmony-one/auto-node/$release_branch/scripts/auto-node.sh"
   chmod +x "$HOME/bin/auto-node"
   for auto_node_script in "run.py" "cleanse-bls.py" "tui.sh" "monitor.sh" "node.sh" "tune.py"; do
-    # TODO: change this back to master
-    curl -s -o "$harmony_dir/$auto_node_script" "https://raw.githubusercontent.com/harmony-one/auto-node/mainnet-pt2/scripts/$auto_node_script"
+    curl -s -o "$harmony_dir/$auto_node_script" "https://raw.githubusercontent.com/harmony-one/auto-node/$release_branch/scripts/$auto_node_script"
   done
   export PATH=$PATH:~/bin
   # shellcheck disable=SC2016
@@ -226,7 +223,7 @@ function main() {
   echo "[AutoNode] Starting installation for user $USER (with home: $HOME)"
   echo "[AutoNode] Will install the following:"
   echo "           * Python 3.6 if needed and upgrade pip3"
-  echo "           * AutoNode ($stable_auto_node_version) python3 library and all dependencies"
+  echo "           * AutoNode ($stable_auto_node_pypi_version) python3 library and all dependencies"
   echo "           * autonode-service.py service script in $HOME/bin"
   echo "           * auto-node.sh in $HOME/bin"
   echo "           * harmony_validator_config.json config file in $HOME"

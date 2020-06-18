@@ -10,10 +10,17 @@ E-mail support at auto-node@harmony.one.
 make install
 ```
 ### Release:
+**THE RELEASE BRANCH IS MASTER.**
+> Use [pypi](https://www.python.org/dev/peps/pep-0440/) version convention.
+>
+> DO NOT release pre-release versions.
 1) Bump the AutoNode version in `./setup.py`
-2) Bump the AutoNode version in `./scripts/install.py`
-3) Release AutoNode to pypi with `make release`
-4) If any scripts are needed for the install, they won't take effect until changes are merged to master. 
+2) Bump the AutoNode version in `./scripts/install.sh`
+3) Bump the AutoNode version in `./scripts/auto-node.sh`
+> For consistency, **make all versions the same** for all 3 files. 
+4) Release AutoNode to pypi with `make release`
+5) Make a release on github and upload `./scripts/install.sh` *without* changing the file name.
+> Make the release tag the **SAME** as the 3 versions for the scripts above. 
 
 
 ## Importing notes and assumptions

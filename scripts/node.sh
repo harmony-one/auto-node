@@ -32,6 +32,11 @@ case "${1}" in
 "name")
   echo "$node_daemon"
   ;;
+"version")
+  node_dir=$(python3 -c "from AutoNode import common; print(common.node_dir)")
+  owd=$(pwd)
+  cd "$node_dir" && ./node.sh -V && ./node.sh -v && cd "$owd" || echo "[AutoNode] Node files not found..."
+  ;;
 "info")
   python3 -u -c "from pyhmy import blockchain; import json; print(json.dumps(blockchain.get_node_metadata('http://localhost:9500'), indent=2))"
   ;;
@@ -48,6 +53,7 @@ case "${1}" in
   journal <opts> View the journal of your current Harmony Node daemon
   restart        Manually restart your current Harmony Node daemon
   name           Get the name of your current Harmony Node deamon
+  version        Display the version of the Harmony Node
   info           Get the node's current metadata
   "
   exit

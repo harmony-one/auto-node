@@ -1,6 +1,8 @@
 #!/bin/bash
 set -e
 
+version="0.6.4"
+
 # TODO: convert auto-node.sh into python3 click CLI since lib is in python3.
 function yes_or_exit() {
   read -r reply
@@ -9,11 +11,20 @@ function yes_or_exit() {
   fi
 }
 
+verlte() {
+  [ "$1" = "$(echo -e "$1\n$2" | sort -V | head -n1)" ]
+}
+
 # Do not import python lib for performance, should change when converted to python3 click CLI.
 if ! systemctl list-unit-files --user | grep autonode >/dev/null; then
   echo "[AutoNode] systemd services not found, maybe wrong user? exiting..."
   exit 1
 fi
+
+release_info=$(curl --silent "https://api.github.com/repos/harmony-one/auto-node/releases/latest")
+release_version=$(echo "$release_info" | jq ".tag_name" -r)
+run_cmd="auto-node update"
+verlte "$release_version" "$version" || echo -e "[AutoNode] There is an update! Install with \e[38;5;0;48;5;255m$run_cmd\e[0m"
 
 case "${1}" in
 "run")
@@ -85,9 +96,7 @@ case "${1}" in
   python3 -u -c "from AutoNode import validator; validator.collect_reward()"
   ;;
 "version")
-  node_dir=$(python3 -c "from AutoNode import common; print(common.node_dir)")
-  owd=$(pwd)
-  cd "$node_dir" && ./node.sh -V && ./node.sh -v && cd "$owd" || echo "[AutoNode] Node files not found..."
+  echo "$version"
   ;;
 "header")
   python3 -u -c "from pyhmy import blockchain; import json; print(json.dumps(blockchain.get_latest_header(), indent=2))"
@@ -112,6 +121,22 @@ case "${1}" in
 "hmy-update")
   cli_bin=$(python3 -c "from AutoNode import common; print(common.cli_bin_path)")
   python3 -u -c "from pyhmy import cli; cli.download(\"$cli_bin\", replace=True, verbose=True)"
+  ;;
+"update")
+  if verlte "$release_version" "$version"; then
+    echo "[AutoNode] Running latest, no update needed!"
+    exit 0
+  fi
+  can_safe_stop=$(python3 -c "from AutoNode import validator; print(validator.can_safe_stop_node())")
+  if [ "$can_safe_stop" == "False" ]; then
+    echo "[AutoNode] Validator is still elected and node is still signing."
+    echo "[AutoNode] Continue to update? (y/n)"
+    yes_or_exit
+  fi
+  temp_install_script_path="/tmp/auto-node-install.sh"
+  install_script=$(echo "$release_info" | jq ".assets" | jq '[.[]|select(.name="isntall.sh")][0].browser_download_url' -r)
+  wget "$install_script" -O "$temp_install_script_path"
+  bash "$temp_install_script_path" && exit 0
   ;;
 "kill")
   can_safe_stop=$(python3 -c "from AutoNode import validator; print(validator.can_safe_stop_node())")
@@ -158,13 +183,14 @@ case "${1}" in
       bls-shard <pub-key>  Get shard for given public BLS key
       balances             Display balances for validator associated with node
       collect-rewards      Collect rewards for the associated validator
-      version              Display the version of the node
+      version              Display the version of autonode
       header               Display the latest header (shard chain) for the node
       headers              Display the latest headers (beacon and shard chain) for the node
       clear-node-bls       Remove the BLS key directory used by the node.
       hmy <command>        Execute the Harmony CLI with the given command.
                             Use '-h' param to view help msg
       hmy-update           Update the Harmony CLI used for AutoNode
+      update               Update autonode (if possible)
       kill                 Safely kill AutoNode & its monitor (if alive)
     "
   exit
