@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -e
 
-stable_auto_node_version="0.5.7"
+stable_auto_node_version="0.5.8"
 
 if command -v auto-node >/dev/null; then
   first_install=False
@@ -30,7 +30,7 @@ function _fix_user_systemd() {
 Description=User Manager for UID %i
 After=systemd-user-sessions.service
 
-[Service]
+[Service]1
 User=%i
 PAMName=systemd-user
 Type=notify
