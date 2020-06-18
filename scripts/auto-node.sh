@@ -46,7 +46,7 @@ case "${1}" in
   fi
   ;;
 "bls-shard")
-  python3 -u -c "from AutoNode import util; print(util.shard_for_bls($2))"
+  python3 -u -c "from AutoNode import util; print(util.shard_for_bls(\"$2\"))"
   ;;
 "create-validator")
   python3 -u -c "from AutoNode import validator; validator.setup(hard_reset_recovery=False)"
