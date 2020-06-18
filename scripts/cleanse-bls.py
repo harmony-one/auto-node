@@ -52,6 +52,7 @@ def hard_cleanse(yes=False):
                      f"{Typgpy.OKGREEN}{key}{Typgpy.HEADER}?{Typgpy.ENDC} [Y]/n\n> "
             if not yes and util.input_with_print(prompt).lower() not in {'y', 'yes'}:
                 continue
+            common.log(f"{Typgpy.OKBLUE}Removing BLS key...{Typgpy.ENDC}")
             proc = cli.expect_call(['hmy', '--node', endpoint, 'staking', 'edit-validator',
                                     '--validator-addr', validator_addr,
                                     '--remove-bls-key', key, '--passphrase'])
@@ -79,6 +80,7 @@ def shard_cleanse(yes=False):
                      f"{Typgpy.OKGREEN}{key}{Typgpy.HEADER}?{Typgpy.ENDC} [Y]/n\n> "
             if not yes and util.input_with_print(prompt).lower() not in {'y', 'yes'}:
                 continue
+            common.log(f"{Typgpy.OKBLUE}Removing BLS key...{Typgpy.ENDC}")
             proc = cli.expect_call(['hmy', '--node', endpoint, 'staking', 'edit-validator',
                                     '--validator-addr', validator_addr,
                                     '--remove-bls-key', key, '--passphrase'])
@@ -119,6 +121,7 @@ def reward_cleanse(yes=False):
                          f"{Typgpy.OKGREEN}{key}{Typgpy.HEADER}?{Typgpy.ENDC} [Y]/n\n> "
                 if not yes and util.input_with_print(prompt).lower() not in {'y', 'yes'}:
                     continue
+                common.log(f"{Typgpy.OKBLUE}Removing BLS key...{Typgpy.ENDC}")
                 proc = cli.expect_call(['hmy', '--node', endpoint, 'staking', 'edit-validator',
                                         '--validator-addr', validator_addr,
                                         '--remove-bls-key', key, '--passphrase'])
