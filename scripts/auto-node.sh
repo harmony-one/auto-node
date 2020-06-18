@@ -11,8 +11,27 @@ function yes_or_exit() {
   fi
 }
 
-verlte() {
+function verlte() {
   [ "$1" = "$(echo -e "$1\n$2" | sort -V | head -n1)" ]
+}
+
+function _kill() {
+  can_safe_stop=$(python3 -c "from AutoNode import validator; print(validator.can_safe_stop_node())")
+  if [ "$can_safe_stop" == "False" ]; then
+    echo "[AutoNode] Validator is still elected and node is still signing."
+    echo "[AutoNode] Continue to kill? (y/n)"
+    yes_or_exit
+  fi
+  node_conf_path=$(python3 -u -c "from AutoNode import common; common.reset_node_config(); print(common.saved_node_config_path)")
+  daemon_name=$(python3 -c "from AutoNode import daemon; print(daemon.name)")
+  systemctl --user stop "$daemon_name"*
+  rm -f "$node_conf_path"
+  if ! pgrep harmony >/dev/null; then
+    echo "[AutoNode] Successfully killed auto-node"
+  else
+    echo "[AutoNode] FAILED TO KILL! Check node and/or monitor status."
+    exit 1
+  fi
 }
 
 # Do not import python lib for performance, should change when converted to python3 click CLI.
@@ -127,34 +146,17 @@ case "${1}" in
     echo "[AutoNode] Running latest, no update needed!"
     exit 0
   fi
-  can_safe_stop=$(python3 -c "from AutoNode import validator; print(validator.can_safe_stop_node())")
-  if [ "$can_safe_stop" == "False" ]; then
-    echo "[AutoNode] Validator is still elected and node is still signing."
-    echo "[AutoNode] Continue to update? (y/n)"
-    yes_or_exit
-  fi
+  echo "[AutoNode] Must shutdown node to update..."
+  _kill
   temp_install_script_path="/tmp/auto-node-install.sh"
   install_script=$(echo "$release_info" | jq ".assets" | jq '[.[]|select(.name="install.sh")][0].browser_download_url' -r)
   wget "$install_script" -O "$temp_install_script_path"
-  bash "$temp_install_script_path" && exit 0
+  bash "$temp_install_script_path"
+  echo "[AutoNode] Install Complete! Don't forget to re-run your AutoNode!"
+  exit 0
   ;;
 "kill")
-  can_safe_stop=$(python3 -c "from AutoNode import validator; print(validator.can_safe_stop_node())")
-  if [ "$can_safe_stop" == "False" ]; then
-    echo "[AutoNode] Validator is still elected and node is still signing."
-    echo "[AutoNode] Continue to kill? (y/n)"
-    yes_or_exit
-  fi
-  node_conf_path=$(python3 -u -c "from AutoNode import common; common.reset_node_config(); print(common.saved_node_config_path)")
-  daemon_name=$(python3 -c "from AutoNode import daemon; print(daemon.name)")
-  systemctl --user stop "$daemon_name"*
-  rm -f "$node_conf_path"
-  if ! pgrep harmony >/dev/null; then
-    echo "[AutoNode] Successfully killed auto-node"
-  else
-    echo "[AutoNode] FAILED TO KILL! Check node and/or monitor status."
-    exit 1
-  fi
+  _kill
   ;;
 *)
   echo "
