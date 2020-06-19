@@ -1,9 +1,12 @@
+"""
+Library of common values and functions used by all other libraries in AutoNode.
+"""
+
+import getpass
 import json
 import logging
 import os
-import getpass
 import pickle
-import subprocess
 
 from pyhmy import (
     Typgpy,

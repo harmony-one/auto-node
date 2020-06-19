@@ -1,15 +1,21 @@
+"""
+Library of common utils used by most function libraries of AutoNode.
+
+To prevent cyclic import minimize the importing of other libraries in AutoNode.
+"""
+
 import gzip
-import os
 import logging
 import logging.handlers
+import os
 import sys
 
 import pexpect
-from pyhmy import cli
 from pyhmy import (
     Typgpy,
     json_load
 )
+from pyhmy import cli
 
 from .common import (
     log,
@@ -18,12 +24,12 @@ from .common import (
     msg_tag,
     bls_key_len
 )
+from .exceptions import (
+    InvalidWalletPassphrase
+)
 from .passphrase import (
     decrypt_wallet_passphrase,
     is_valid_passphrase
-)
-from .exceptions import (
-    InvalidWalletPassphrase
 )
 
 

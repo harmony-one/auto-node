@@ -1,15 +1,18 @@
-import os
-import stat
-import subprocess
+"""
+Library for all things related to running a Harmony node with AutoNode.
+"""
+
 import glob
 import json
-import time
-import shutil
 import logging
-
-import requests
+import os
+import shutil
+import stat
+import subprocess
+import time
 
 import pyhmy.rpc.exceptions as rpc_exception
+import requests
 from pyhmy import (
     blockchain,
     cli,
@@ -25,7 +28,6 @@ from .common import (
     bls_key_dir,
     harmony_dir
 )
-
 from .util import (
     input_with_print,
     get_simple_rotating_log_handler,
@@ -37,7 +39,7 @@ node_sh_err_path = f"{node_sh_log_dir}/err.log"
 
 log_path = f"{harmony_dir}/autonode_node.log"
 
-rclone_space_buffer = 5 * 2**30  # 5GB in bytes
+rclone_space_buffer = 5 * 2 ** 30  # 5GB in bytes
 rclone_config = "harmony"
 
 
@@ -170,7 +172,8 @@ def _get_node_shard():
             log(f'{Typgpy.WARNING}[!] Failed to get shard for bls key {bls_key}!{Typgpy.ENDC}')
     if not key_shards:
         return None
-    assert len(set(key_shards)) == 1, f"Node BLS keys can only be for 1 shard. BLS keys: {node_config['public-bls-keys']}"
+    assert len(
+        set(key_shards)) == 1, f"Node BLS keys can only be for 1 shard. BLS keys: {node_config['public-bls-keys']}"
     return key_shards[0]
 
 
@@ -270,7 +273,8 @@ def assert_no_invalid_blocks():
         files = glob.glob(f"{node_dir}/latest/zero*.log")
         if files:
             log_path = files[-1]
-            assert not has_invalid_block(log_path), f"`invalid merkle root` present in {log_path}, restart AutoNode with clean option"
+            assert not has_invalid_block(
+                log_path), f"`invalid merkle root` present in {log_path}, restart AutoNode with clean option"
 
 
 def is_signing(count=1500):
@@ -281,7 +285,8 @@ def is_signing(count=1500):
         files = glob.glob(f"{node_dir}/latest/zero*.log")
         if files:
             log_path = files[-1]
-            content = subprocess.check_output(["tail", "-n", str(count), str(log_path)], env=os.environ).decode().split("\n")
+            content = subprocess.check_output(["tail", "-n", str(count), str(log_path)], env=os.environ).decode().split(
+                "\n")
             for line in content:
                 line = line.rstrip()
                 if "BINGO" in line or "HOORAY" in line:
@@ -326,7 +331,7 @@ def assert_valid_bls_key_directory():
 
     conf_keys_count = len(node_config['public-bls-keys'])
     if conf_keys_count != found_keys_count:
-        raise AssertionError(f"number of configured BLS key(s) ({conf_keys_count}) not equal to number of BLS key(s) "
+        raise AssertionError(f"number of configured BLS keys ({conf_keys_count}) not equal to number of BLS keys "
                              f"keys ({found_keys_count}) in {bls_key_dir}")
     for key in node_config['public-bls-keys']:
         assert key in bls_pub_keys, f"configured BLS key {key} not found in {bls_key_dir}"

@@ -1,9 +1,13 @@
-import time
-import json
+"""
+Library for all things related to running the monitor for AutoNode.
+"""
+
 import datetime
-import traceback
-import os
+import json
 import logging
+import os
+import time
+import traceback
 
 from pyhmy import (
     blockchain,
@@ -23,9 +27,8 @@ from .common import (
     load_node_config,
     saved_node_config_path
 )
-from .validator import (
-    check_and_activate,
-    get_validator_information
+from .exceptions import (
+    ResetNode
 )
 from .node import (
     wait_for_node_response,
@@ -34,8 +37,9 @@ from .node import (
 from .util import (
     get_simple_rotating_log_handler
 )
-from .exceptions import (
-    ResetNode
+from .validator import (
+    check_and_activate,
+    get_validator_information
 )
 
 log_path = f"{harmony_dir}/autonode_monitor.log"

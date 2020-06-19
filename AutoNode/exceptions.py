@@ -1,11 +1,14 @@
+"""
+Library of custom exceptions raised by AutNode
+"""
+
 from cryptography.fernet import InvalidToken
+from pyhmy import Typgpy
 
 from .common import (
     node_config,
     save_node_config
 )
-
-from pyhmy import Typgpy
 
 
 class ResetNode(Exception):

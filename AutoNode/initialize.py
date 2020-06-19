@@ -1,9 +1,13 @@
-import os
+"""
+Library for initializing AutoNode configs.
+"""
+
 import getpass
-import shutil
-import time
 import json
+import os
+import shutil
 import subprocess
+import time
 
 from pyhmy import (
     cli,
@@ -21,7 +25,6 @@ from .common import (
     node_config,
     save_node_config,
     b32_addr_len,
-    bls_key_len,
     bls_key_dir,
     imported_wallet_pass_file_dir,
     cli_bin_path,
@@ -31,14 +34,14 @@ from .common import (
     node_dir,
     node_sh_log_dir
 )
+from .passphrase import (
+    encrypt_wallet_passphrase,
+    is_valid_passphrase
+)
 from .util import (
     input_with_print,
     shard_for_bls,
     is_bls_file
-)
-from .passphrase import (
-    encrypt_wallet_passphrase,
-    is_valid_passphrase
 )
 
 
@@ -186,7 +189,8 @@ def _import_bls(passphrase):
     elif node_config['shard'] is not None:
         assert isinstance(node_config['shard'], int), f"shard: {node_config['shard']} is not an integer."
         while True:
-            key = json_load(cli.single_call(['hmy', 'keys', 'generate-bls-key', '--passphrase-file', tmp_bls_pass_path]))
+            key = json_load(
+                cli.single_call(['hmy', 'keys', 'generate-bls-key', '--passphrase-file', tmp_bls_pass_path]))
             public_bls_key, bls_file_path = key['public-key'], key['encrypted-private-key-path']
             shard_id = json_load(cli.single_call(['hmy', '--node', f'{node_config["endpoint"]}', 'utility',
                                                   'shard-for-bls', public_bls_key]))['shard-id']

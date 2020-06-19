@@ -2,16 +2,15 @@
 This library takes care of all validator related commands.
 """
 
-import sys
-import time
 import json
 import logging
 import subprocess
+import sys
+import time
 import traceback
-import pexpect
-
 from decimal import Decimal
 
+import pexpect
 from pyhmy import (
     blockchain,
     cli,
@@ -29,16 +28,16 @@ from .common import (
     validator_config,
     check_interval,
 )
+from .initialize import (
+    setup_validator_config,
+    setup_wallet_passphrase,
+)
 from .node import (
     log_path,
     wait_for_node_response,
     assert_no_invalid_blocks,
     assert_started as assert_node_started,
     is_signing
-)
-from .initialize import (
-    setup_validator_config,
-    setup_wallet_passphrase,
 )
 from .util import (
     check_min_bal_on_s0,

@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-version="0.6.5"
+version="0.6.6"
 
 # TODO: convert auto-node.sh into python3 click CLI since lib is in python3.
 function yes_or_exit() {

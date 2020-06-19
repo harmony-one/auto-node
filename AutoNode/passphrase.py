@@ -1,6 +1,10 @@
-import subprocess
-import os
+"""
+Library to take care of all passphrase encryption used by AutoNode.
+"""
+
 import base64
+import os
+import subprocess
 
 import pexpect
 from cryptography.fernet import Fernet

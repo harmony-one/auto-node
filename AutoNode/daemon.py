@@ -1,6 +1,7 @@
 """
 Library of tools to be used by the AutoNode Daemon.
 """
+
 import os
 import subprocess
 import time
@@ -12,25 +13,25 @@ from .common import (
     bls_key_dir,
     node_config,
 )
-from .node import (
-    start as start_node
+from .exceptions import (
+    InvalidWalletPassphrase
 )
-from .validator import (
-    setup as setup_validator,
-    assert_node_started
+from .initialize import (
+    save_wallet_passphrase
 )
 from .monitor import (
     start as start_monitor,
     ResetNode
 )
-from .initialize import (
-    save_wallet_passphrase
+from .node import (
+    start as start_node
 )
 from .util import (
     get_wallet_passphrase,
 )
-from .exceptions import (
-    InvalidWalletPassphrase
+from .validator import (
+    setup as setup_validator,
+    assert_node_started
 )
 
 name = f"autonoded"

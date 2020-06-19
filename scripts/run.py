@@ -2,6 +2,7 @@
 import argparse
 import os
 import time
+import glob
 from argparse import RawTextHelpFormatter
 import subprocess
 
@@ -13,7 +14,8 @@ from AutoNode import (
     validator,
     common,
     monitor,
-    node
+    node,
+    util
 )
 
 
@@ -51,6 +53,17 @@ def start_monitor():
     AutoNode.common.log(f"{Typgpy.HEADER}Started monitor!{Typgpy.ENDC}")
 
 
+def clean_up_bls_pass(is_auto_reset):
+    prompt = f"Remove BLS passphrase file? [Y]/n"
+    if is_auto_reset:
+        prompt += f"\n{Typgpy.WARNING}Note: 'auto-recover' option will not work if files are removed{Typgpy.ENDC}"
+    prompt += "\n> "
+    if util.input_with_print(prompt).lower not in {'y', 'yes'}:
+        return
+    for file_path in glob.glob(f"{common.bls_key_dir}/*.pass"):
+        os.remove(file_path)
+
+
 def tail_monitor_log():
     if os.path.exists(monitor.log_path):
         subprocess.call(["tail", "-f", monitor.log_path], env=os.environ)
@@ -82,13 +95,12 @@ def _parse_args():
                         help='Show this help message and exit')
     parser.add_argument("--auto-active", action="store_true",
                         help="Always try to set active when EPOS status is inactive.")
-    parser.add_argument("--auto-reset", action="store_true", help="Automatically reset node during hard resets.")
+    parser.add_argument("--auto-reset", action="store_true", help="Automatically reset node during hard resets.\n"
+                                                                  "Only available with test networks.")
     parser.add_argument("--no-validator", action="store_true", help="Disable validator automation.")
     parser.add_argument("--archival", action="store_true", help="Run node with archival mode.")
     parser.add_argument("--no-download", action="store_true", help="Run node with existing binary.")
-    parser.add_argument("--update-cli", action="store_true", help="Toggle upgrading the Harmony CLI used by AutoNode")
-    parser.add_argument("--clean", action="store_true", help="Clean shared node directory before starting node.\n "
-                                                             "Only available with test networks.")
+    parser.add_argument("--clean", action="store_true", help="Clean shared node directory before starting node.")
     parser.add_argument("--fast-sync", action="store_true", help="Rclone existing db snapshot(s)")
     parser.add_argument("--shard", default=None,
                         help="Specify shard of generated bls key.\n  "
@@ -126,14 +138,13 @@ if __name__ == "__main__":
         "_is_recovering": False  # Never recovering from a hard reset on a run
     })
     common.save_node_config()
-    if args.update_cli:
-        initialize.update_cli()
     initialize.setup_node_config()
     node.assert_valid_bls_key_directory()
     start_node()
     try:
         validator.setup(hard_reset_recovery=False)
     finally:
+        clean_up_bls_pass(is_auto_reset=args.auto_reset)
         start_monitor()
         start_time = time.time()
         while time.time() - start_time < 5:

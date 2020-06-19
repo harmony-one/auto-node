@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -e
 
-stable_auto_node_pypi_version="0.6.5"
+stable_auto_node_pypi_version="0.6.6"
 release_branch="mainnet-pt2"
 
 if command -v auto-node >/dev/null; then
