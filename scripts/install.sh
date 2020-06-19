@@ -4,12 +4,6 @@ set -e
 stable_auto_node_pypi_version="0.6.6"
 release_branch="mainnet-pt2"
 
-if command -v auto-node >/dev/null; then
-  first_install=False
-else
-  first_install=True
-fi
-
 function yes_or_exit() {
   read -r reply
   if [[ ! $reply =~ ^[Yy]$ ]]; then
@@ -56,7 +50,7 @@ function check_min_dependencies() {
     echo "[AutoNode] Distro does not have systemd, exiting."
     exit
   fi
-  systemctl >/dev/null # Check if systemd is ran with PID 1
+  systemctl > /dev/null # Check if systemd is ran with PID 1
   if ! systemctl --user >/dev/null; then
     echo "[AutoNode] Cannot access systemd in user mode"
     _fix_user_systemd
@@ -219,7 +213,6 @@ function main() {
   check_min_dependencies
 
   docs_link="https://docs.harmony.one/home/validators/autonode"
-  cli_doc_link="https://docs.harmony.one/home/wallets/harmony-cli"
   echo "[AutoNode] Starting installation for user $USER (with home: $HOME)"
   echo "[AutoNode] Will install the following:"
   echo "           * Python 3.6 if needed and upgrade pip3"
@@ -247,41 +240,14 @@ function main() {
   install_python_lib
   install
 
-  # TODO: add optimization check (like first install) & only execute if needed...
-  echo ""
-  echo "[AutoNode] Optimize OS for running a harmony node (y/n)?"
-  read -r reply
-  if [[ $reply =~ ^[Yy]$ ]]; then
-    auto-node tune kernel --save || true
-    auto-node tune network --save || true
-    run_cmd="auto-node tune restore"
-    echo -e "[AutoNode] Note that all optimizations can be undone with \e[38;5;0;48;5;255m$run_cmd\e[0m"
+  release_info=$(curl --silent "https://api.github.com/repos/harmony-one/auto-node/releases/tags/$stable_auto_node_pypi_version")
+  body=$(echo "$release_info" | jq ".body" -r)
+  if [ "$body" != "null" ]; then
+    echo ""
+    echo -e "[AutoNode] Release Notes:"
+    echo "$body"
     echo ""
   fi
-
-  echo "[AutoNode] Installation complete!"
-  echo -e "[AutoNode] Help message for \033[0;92mauto-node\033[0m"
-  auto-node -h
-  echo ""
-  # shellcheck disable=SC2016
-  run_cmd="export PATH=\$PATH:$HOME/bin"
-  if [ "$first_install" == "True" ]; then
-    echo -e "[AutoNode] Before you can use the \033[0;92mauto-node\033[0m command, you must add \033[0;92mauto-node\033[0m to path."
-    echo -e "[AutoNode] You can do so by reloading your shell, or execute the following command: \e[38;5;0;48;5;255m$run_cmd\e[0m"
-    echo ""
-  fi
-
-  # TODO: add wallet count check & only print if needed...
-  echo -e "[AutoNode] \033[1;33mNote that you have to import/generate your validator wallet using"
-  echo -e "           the Harmony CLI before you can use validator features.\033[0m"
-  run_cmd="auto-node hmy keys add example-validator-wallet-name"
-  echo -e "           Generate a wallet with the following command: \e[38;5;0;48;5;255m$run_cmd\e[0m"
-  echo -e "           Import a wallet following the documentation here: $cli_doc_link"
-  echo ""
-
-  run_cmd="auto-node run --fast-sync"
-  echo -e "[AutoNode] Start your node with: \e[38;5;0;48;5;255m$run_cmd\e[0m"
-  echo "[AutoNode] Reference the documentation here: $docs_link"
 }
 
 if [ "$1" != "source" ]; then
