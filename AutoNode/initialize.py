@@ -167,51 +167,52 @@ def _import_bls(passphrase):
                 raise e
         return [k.replace('.key', '').replace('0x', '') for k in bls_keys]
 
+    # TODO: convert to interactive passphrase input via pexpect
     tmp_bls_pass_path = f"{os.environ['HOME']}/.bls_pass"
     _save_protected_file(passphrase, tmp_bls_pass_path, verbose=False)
-    if len(bls_keys):
-        if node_config['shard'] is not None:
-            log(f"{Typgpy.WARNING}[!] Shard option ignored since BLS keys were imported.{Typgpy.ENDC}")
-            time.sleep(3)  # Sleep so user can read message
-        for k in bls_keys:
-            try:
-                cli.single_call(['hmy', 'keys', 'recover-bls-key', f'{bls_key_dir}/{k}',
-                                 '--passphrase-file', tmp_bls_pass_path])
-            except RuntimeError as e:
-                log(f"{Typgpy.FAIL}Passphrase for {k} is not correct. Error: {e}{Typgpy.ENDC}")
-                raise e
-            _save_protected_file(passphrase, f"{bls_key_dir}/{k.replace('.key', '.pass')}")
-        os.remove(tmp_bls_pass_path)
-        return [k.replace('.key', '').replace('0x', '') for k in bls_keys]
-    elif node_config['shard'] is not None:
-        assert isinstance(node_config['shard'], int), f"shard: {node_config['shard']} is not an integer."
-        while True:
-            key = json_load(
-                cli.single_call(['hmy', 'keys', 'generate-bls-key', '--passphrase-file', tmp_bls_pass_path]))
-            public_bls_key, bls_file_path = key['public-key'], key['encrypted-private-key-path']
+    try:
+        if len(bls_keys):
+            if node_config['shard'] is not None:
+                log(f"{Typgpy.WARNING}[!] Shard option ignored since BLS keys were imported.{Typgpy.ENDC}")
+                time.sleep(3)  # Sleep so user can read message
+            for k in bls_keys:
+                try:
+                    cli.single_call(['hmy', 'keys', 'recover-bls-key', f'{bls_key_dir}/{k}',
+                                     '--passphrase-file', tmp_bls_pass_path])
+                except RuntimeError as e:
+                    log(f"{Typgpy.FAIL}Passphrase for {k} is not correct. Error: {e}{Typgpy.ENDC}")
+                    raise e
+                _save_protected_file(passphrase, f"{bls_key_dir}/{k.replace('.key', '.pass')}")
+            return [k.replace('.key', '').replace('0x', '') for k in bls_keys]
+        elif node_config['shard'] is not None:
+            assert isinstance(node_config['shard'], int), f"shard: {node_config['shard']} is not an integer."
+            while True:
+                key = json_load(
+                    cli.single_call(['hmy', 'keys', 'generate-bls-key', '--passphrase-file', tmp_bls_pass_path]))
+                public_bls_key, bls_file_path = key['public-key'], key['encrypted-private-key-path']
+                shard_id = json_load(cli.single_call(['hmy', '--node', f'{node_config["endpoint"]}', 'utility',
+                                                      'shard-for-bls', public_bls_key]))['shard-id']
+                if int(shard_id) != node_config['shard']:
+                    os.remove(bls_file_path)
+                else:
+                    log(f"{Typgpy.OKGREEN}Generated BLS key for shard {shard_id}: "
+                        f"{Typgpy.OKBLUE}{public_bls_key}{Typgpy.ENDC}")
+                    break
+            shutil.move(bls_file_path, bls_key_dir)
+            _save_protected_file(passphrase, f"{bls_key_dir}/{key['public-key'].replace('0x', '')}.pass")
+            return [public_bls_key]
+        else:
+            key = json_load(cli.single_call(['hmy', 'keys', 'generate-bls-key', '--passphrase-file', tmp_bls_pass_path]))
+            public_bls_key = key['public-key']
+            bls_file_path = key['encrypted-private-key-path']
             shard_id = json_load(cli.single_call(['hmy', '--node', f'{node_config["endpoint"]}', 'utility',
                                                   'shard-for-bls', public_bls_key]))['shard-id']
-            if int(shard_id) != node_config['shard']:
-                os.remove(bls_file_path)
-            else:
-                log(f"{Typgpy.OKGREEN}Generated BLS key for shard {shard_id}: "
-                    f"{Typgpy.OKBLUE}{public_bls_key}{Typgpy.ENDC}")
-                break
-        shutil.move(bls_file_path, bls_key_dir)
-        _save_protected_file(passphrase, f"{bls_key_dir}/{key['public-key'].replace('0x', '')}.pass")
+            log(f"{Typgpy.OKGREEN}Generated BLS key for shard {shard_id}: {Typgpy.OKBLUE}{public_bls_key}{Typgpy.ENDC}")
+            shutil.move(bls_file_path, bls_key_dir)
+            _save_protected_file(passphrase, f"{bls_key_dir}/{key['public-key'].replace('0x', '')}.pass")
+            return [public_bls_key]
+    finally:
         os.remove(tmp_bls_pass_path)
-        return [public_bls_key]
-    else:
-        key = json_load(cli.single_call(['hmy', 'keys', 'generate-bls-key', '--passphrase-file', tmp_bls_pass_path]))
-        public_bls_key = key['public-key']
-        bls_file_path = key['encrypted-private-key-path']
-        shard_id = json_load(cli.single_call(['hmy', '--node', f'{node_config["endpoint"]}', 'utility',
-                                              'shard-for-bls', public_bls_key]))['shard-id']
-        log(f"{Typgpy.OKGREEN}Generated BLS key for shard {shard_id}: {Typgpy.OKBLUE}{public_bls_key}{Typgpy.ENDC}")
-        shutil.move(bls_file_path, bls_key_dir)
-        _save_protected_file(passphrase, f"{bls_key_dir}/{key['public-key'].replace('0x', '')}.pass")
-        os.remove(tmp_bls_pass_path)
-        return [public_bls_key]
 
 
 def _assert_same_shard_bls_keys(public_keys):
