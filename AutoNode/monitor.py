@@ -138,6 +138,7 @@ def start(duration=float('inf')):
     Start a monitor for duration seconds.
 
     Will throw a RestartNode exception to signal a need to restart the node.
+    Otherwise it will exit gracefully, despite any exceptions (though exceptions are logged).
     """
     old_logging_handlers = logging.getLogger('AutoNode').handlers.copy()
     logging.getLogger('AutoNode').addHandler(get_simple_rotating_log_handler(log_path))

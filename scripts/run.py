@@ -58,9 +58,10 @@ def clean_up_bls_pass(is_auto_reset):
     if is_auto_reset:
         prompt += f"\n{Typgpy.WARNING}Note: 'auto-recover' option will not work if files are removed{Typgpy.ENDC}"
     prompt += "\n> "
-    if util.input_with_print(prompt).lower not in {'y', 'yes'}:
+    if util.input_with_print(prompt).lower() not in {'y', 'yes'}:
         return
     for file_path in glob.glob(f"{common.bls_key_dir}/*.pass"):
+        common.log(f"{Typgpy.WARNING}Removing: {file_path}{Typgpy.ENDC}")
         os.remove(file_path)
 
 
@@ -144,6 +145,8 @@ if __name__ == "__main__":
     try:
         if not args.no_validator:
             validator.setup(hard_reset_recovery=False)
+        common.log("Waiting for node to start...")
+        node.assert_started(timeout=10, do_log=False)
     finally:
         clean_up_bls_pass(is_auto_reset=args.auto_reset)
         start_monitor()
