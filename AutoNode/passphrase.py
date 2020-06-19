@@ -62,7 +62,7 @@ def _derive_wallet_encryption_key():
     """
     pid = _get_harmony_pid().strip()
     proc_info = _get_process_info(pid).strip()
-    salt = _get_node_based_salt()
+    salt = _get_node_based_salt().strip()
     kdf = PBKDF2HMAC(
         algorithm=hashes.SHA256(),
         length=32,

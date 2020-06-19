@@ -13,6 +13,6 @@ setup(
         'requests==2.23.0',
         'pexpect==4.8.0',
         'cryptography==2.9.2',
-        'pyhmy',
+        'pyhmy==20.5.15',
     ]
 )
