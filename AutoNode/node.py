@@ -28,7 +28,8 @@ from .common import (
 
 from .util import (
     input_with_print,
-    get_simple_rotating_log_handler
+    get_simple_rotating_log_handler,
+    is_bls_file,
 )
 
 node_sh_out_path = f"{node_sh_log_dir}/out.log"
@@ -189,6 +190,7 @@ def start(auto=False, verbose=True):
             f"this is not recommended, continue? [Y]/n{Typgpy.ENDC}")
         if input_with_print("> ") not in {'Y', 'y', 'yes', 'Yes'}:
             raise SystemExit()
+    assert_valid_bls_key_directory()
     os.chdir(node_dir)
     if os.path.isfile(f"{node_dir}/node.sh"):
         os.remove(f"{node_dir}/node.sh")
@@ -204,7 +206,7 @@ def start(auto=False, verbose=True):
     st = os.stat("node.sh")
     os.chmod("node.sh", st.st_mode | stat.S_IEXEC)
     node_args = ["./node.sh", "-N", node_config["network"], "-z", "-f", bls_key_dir, "-M", "-S"]
-    if node_config['clean'] and node_config['network'] != 'mainnet':
+    if node_config['clean']:
         if verbose:
             log(f"{Typgpy.WARNING}[!] Cleaning up old files before starting node.{Typgpy.ENDC}")
         _node_clean(verbose=verbose)
@@ -298,6 +300,36 @@ def has_invalid_block(log_file_path):
     except (UnicodeDecodeError, IOError):
         log(f"{Typgpy.WARNING}WARNING: failed to read `{log_file_path}` to check for invalid block{Typgpy.ENDC}")
     return False
+
+
+def assert_valid_bls_key_directory():
+    """
+    Asserts that the BLS keys directory contains the BLS keys for the
+    given node config.
+
+    Note that this must match EXACTLY.
+
+    Will raise assertion error if one BLS key is missing OR
+    if there is 1 BLS key more than what is in the node config.
+    """
+    bls_keys = list(filter(lambda e: is_bls_file(e, '.key'), os.listdir(bls_key_dir)))
+    bls_pass = list(filter(lambda e: is_bls_file(e, '.pass'), os.listdir(bls_key_dir)))
+
+    assert len(bls_keys) == len(bls_pass), f"number of BLS keys and BLS pass files must be equal in {bls_key_dir}."
+    bls_pub_keys = set(x.replace('.key', '') for x in bls_keys)
+    assert len(bls_pub_keys) == len(bls_keys), f"sanity check: cannot contain duplicate BLS keys in {bls_key_dir}"
+    found_keys_count = len(bls_pub_keys)
+
+    for key in bls_pass:
+        bls_key = key.replace('.pass', '')
+        assert bls_key in bls_pub_keys, f"got BLS pass for {bls_key}, but BLS key not found in {bls_key_dir}"
+
+    conf_keys_count = len(node_config['public-bls-keys'])
+    if conf_keys_count != found_keys_count:
+        raise AssertionError(f"number of configured BLS key(s) ({conf_keys_count}) not equal to number of BLS key(s) "
+                             f"keys ({found_keys_count}) in {bls_key_dir}")
+    for key in node_config['public-bls-keys']:
+        assert key in bls_pub_keys, f"configured BLS key {key} not found in {bls_key_dir}"
 
 
 def assert_started(timeout=60, do_log=False):

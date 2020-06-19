@@ -129,6 +129,7 @@ if __name__ == "__main__":
     if args.update_cli:
         initialize.update_cli()
     initialize.setup_node_config()
+    node.assert_valid_bls_key_directory()
     start_node()
     try:
         validator.setup(hard_reset_recovery=False)

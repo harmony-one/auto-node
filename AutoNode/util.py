@@ -15,7 +15,8 @@ from .common import (
     log,
     node_config,
     validator_config,
-    msg_tag
+    msg_tag,
+    bls_key_len
 )
 from .passphrase import (
     decrypt_wallet_passphrase,
@@ -111,3 +112,12 @@ def shard_for_bls(public_bls_key):
     """
     return json_load(cli.single_call(['hmy', '--node', f'{node_config["endpoint"]}', 'utility',
                                       'shard-for-bls', public_bls_key]))['shard-id']
+
+
+def is_bls_file(file_name, suffix):
+    if file_name.startswith('.') or not file_name.endswith(suffix):
+        return False
+    tok = file_name.split(".")
+    if len(tok) != 2 or len(tok[0]) != bls_key_len:
+        return False
+    return True

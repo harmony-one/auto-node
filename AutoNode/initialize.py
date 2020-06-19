@@ -27,14 +27,14 @@ from .common import (
     cli_bin_path,
     protect_file,
     save_protected_file,
-    user,
     harmony_dir,
     node_dir,
     node_sh_log_dir
 )
 from .util import (
     input_with_print,
-    shard_for_bls
+    shard_for_bls,
+    is_bls_file
 )
 from .passphrase import (
     encrypt_wallet_passphrase,
@@ -95,15 +95,6 @@ def _display_warning(field_name):
     log(f'{Typgpy.WARNING}{field_name} can not be changed after creation!{Typgpy.ENDC}')
 
 
-def _bls_filter(file_name, suffix):
-    if file_name.startswith('.') or not file_name.endswith(suffix):
-        return False
-    tok = file_name.split(".")
-    if len(tok) != 2 or len(tok[0]) != bls_key_len:
-        return False
-    return True
-
-
 def _wallet_pass_filter(file_name):
     if not file_name.startswith('one1') or not file_name.endswith(".pass"):
         return False
@@ -128,8 +119,8 @@ def _import_bls_passphrase():
     NOTE: .pass files are SUBJECT TO CHANGE as they are files used
     by node.sh & CLI layer of the harmony program.
     """
-    bls_keys = list(filter(lambda e: _bls_filter(e, '.key'), os.listdir(bls_key_dir)))
-    bls_pass = list(filter(lambda e: _bls_filter(e, '.pass'), os.listdir(bls_key_dir)))
+    bls_keys = list(filter(lambda e: is_bls_file(e, '.key'), os.listdir(bls_key_dir)))
+    bls_pass = list(filter(lambda e: is_bls_file(e, '.pass'), os.listdir(bls_key_dir)))
     imported_bls_keys, imported_bls_pass = set(), set()
     for k in bls_keys:
         imported_bls_keys.add(k.split('.')[0])
@@ -160,7 +151,7 @@ def _import_bls(passphrase):
 
     Assumes that imported BLS key files and passphrase have been validated.
     """
-    bls_keys = list(filter(lambda e: _bls_filter(e, '.key'), os.listdir(bls_key_dir)))
+    bls_keys = list(filter(lambda e: is_bls_file(e, '.key'), os.listdir(bls_key_dir)))
     if passphrase is None:  # Assumes passphrase files were imported when passphrase is None.
         if node_config['shard'] is not None:
             log(f"{Typgpy.WARNING}[!] Shard option ignored since BLS keys were imported.{Typgpy.ENDC}")
