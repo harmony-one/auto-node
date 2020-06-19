@@ -60,7 +60,6 @@ function import_wallet_message() {
 }
 
 function start_message() {
-  echo "[AutoNode] Installation complete!"
   echo -e "[AutoNode] Help message for \033[0;92mauto-node\033[0m"
   auto-node -h
   echo ""
@@ -92,6 +91,7 @@ function install() {
 check_and_install_dependencies
 install
 optimize
-import_wallet_message
+echo -e "\n[AutoNode] Installation complete!\n"
 start_message
+import_wallet_message
 src_message
