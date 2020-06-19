@@ -42,6 +42,7 @@ This is the main python3 package for AutoNode. Each component is its own library
 * `install.sh` is the main install script that people will be running to install AutoNode. This should handle most linux distros and common setups.
 * `dev-install.sh` is the shell script to locally install auto-node. Any changes in the daemon installation needs to be done manually.
 **Note that the version of AutoNode is hard-coded in this script and needs to be bumped if a new version is desired**
+* `first-install.sh` is the shell script that will be used for the first installation of AutoNode.
 ### `./setup.py`
 This is the pypi setup script that is needed for distribution upload. 
 **Note that the version needs to be bumped manually and the install script must be updated accordingly.**
