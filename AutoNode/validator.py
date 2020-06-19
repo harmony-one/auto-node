@@ -494,6 +494,8 @@ def can_safe_stop_node():
     """
     if node_config['no-validator']:
         return True
-    if not get_validator_information()['currently-in-committee']:
+    addr = validator_config['validator-addr']
+    all_val_address = staking.get_all_validator_addresses(endpoint=node_config['endpoint'])
+    if addr in all_val_address and not get_validator_information()['currently-in-committee']:
         return True
     return not is_signing()
