@@ -146,8 +146,8 @@ case "${1}" in
     echo "[AutoNode] Running latest, no update needed!"
     exit 0
   fi
-  echo "[AutoNode] Must shutdown node to update..."
-  sleep 2  # Sleep to read message
+  echo "[AutoNode] Must shutdown node to update, kill node and update now? (y/n)"
+  yes_or_exit
   _kill
   temp_install_script_path="/tmp/auto-node-install.sh"
   install_script=$(echo "$release_info" | jq ".assets" | jq '[.[]|select(.name="install.sh")][0].browser_download_url' -r)
