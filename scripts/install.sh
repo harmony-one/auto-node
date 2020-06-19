@@ -244,7 +244,7 @@ function main() {
   body=$(echo "$release_info" | jq ".body" -r)
   if [ "$body" != "null" ]; then
     echo ""
-    echo -e "[AutoNode] Release Notes:"
+    echo -e "[AutoNode] Release Notes"
     echo "$body"
     echo ""
   fi

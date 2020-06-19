@@ -4,6 +4,39 @@ set -e
 docs_link="https://docs.harmony.one/home/validators/autonode"
 cli_doc_link="https://docs.harmony.one/home/wallets/harmony-cli"
 
+function setup_check_and_install() {
+  unset PKG_INSTALL
+  if command -v yum >/dev/null; then
+    sudo yum update -y
+    PKG_INSTALL='sudo yum install -y'
+  fi
+  if command -v apt-get >/dev/null; then
+    sudo apt update -y
+    PKG_INSTALL='sudo apt-get install -y'
+  fi
+}
+
+function check_and_install() {
+  pkg=$1
+  if ! command -v "$pkg" >/dev/null; then
+    if [ -z "$PKG_INSTALL" ]; then
+      echo "[AutoNode] Unknown package manager, please install $pkg and run install again."
+      exit 2
+    else
+      echo "[AutoNode] Installing $pkg"
+      $PKG_INSTALL "$pkg"
+    fi
+  fi
+}
+
+function check_and_install_dependencies() {
+  echo "[AutoNode] Checking dependencies..."
+  setup_check_and_install
+  for dependency in "jq" "wget"; do
+    check_and_install "$dependency"
+  done
+}
+
 function optimize() {
   echo ""
   echo "[AutoNode] Optimize OS for running a harmony node (y/n)?"
@@ -45,7 +78,7 @@ function src_message() {
   echo ""
 }
 
-function install(){
+function install() {
   release_info=$(curl --silent "https://api.github.com/repos/harmony-one/auto-node/releases/latest")
   temp_install_script_path="/tmp/auto-node-install.sh"
   install_script=$(echo "$release_info" | jq ".assets" | jq '[.[]|select(.name="install.sh")][0].browser_download_url' -r)
@@ -56,6 +89,7 @@ function install(){
 
 ## MAIN IS BELOW ##
 
+check_and_install_dependencies
 install
 optimize
 import_wallet_message
