@@ -147,7 +147,7 @@ def _verify_account_balance(amount):
             log(f"{Typgpy.FAIL}Cannot create validator, {validator_config['validator-addr']} "
                 f"does not have sufficient funds (need {amount} ONE). Checked {count} time(s).{Typgpy.ENDC}")
             if not _hard_reset_recovery:
-                raise SystemExit("Create Validator Error")
+                raise RuntimeError("Create Validator Error")
             log(f"{Typgpy.WARNING}Checking again in {check_interval} seconds.{Typgpy.ENDC}")
             time.sleep(check_interval)
         else:
@@ -235,7 +235,7 @@ def _verify_node_sync():
         log(f"{Typgpy.FAIL}Node epoch (shard: {curr_epoch_shard} beacon: {curr_epoch_beacon}) is greater than network "
             f"epoch ({ref_epoch}) which is not possible, is config correct?{Typgpy.ENDC}")
         if not _hard_reset_recovery:
-            raise SystemExit("Invalid node sync")
+            raise RuntimeError("Invalid node sync")
     if has_looped:
         log("")
     log(f"{Typgpy.OKGREEN}Node synced to current epoch...{Typgpy.ENDC}")
@@ -445,7 +445,7 @@ def setup(hard_reset_recovery=False):
         log(traceback.format_exc())
         logging.getLogger('AutoNode').handlers = old_logging_handlers
         if not _hard_reset_recovery:
-            raise SystemExit(e)
+            raise e
         else:
             log(f"{Typgpy.FAIL}{Typgpy.BOLD}Validator creation error: {e}{Typgpy.ENDC}")
             log(f"{Typgpy.WARNING}{Typgpy.BOLD}Continuing...{Typgpy.ENDC}")
@@ -461,7 +461,7 @@ def update_info(hard_reset_recovery=False):
                 f"{Typgpy.OKGREEN}{address}{Typgpy.WARNING} is not a validator!{Typgpy.ENDC}")
             if hard_reset_recovery:
                 return  # clean exit for hard resets
-            raise SystemExit("Validator does not exist")
+            raise RuntimeError("Validator does not exist")
         fields = _get_edit_validator_options()
         if fields:
             log(f"{Typgpy.OKBLUE}Updating validator information for {address}: "
@@ -481,7 +481,7 @@ def update_info(hard_reset_recovery=False):
         log(traceback.format_exc())
         logging.getLogger('AutoNode').handlers = old_logging_handlers
         if not _hard_reset_recovery:
-            raise SystemExit(e)
+            raise e
         else:
             log(f"{Typgpy.FAIL}{Typgpy.BOLD}Edit-validator error: {e}{Typgpy.ENDC}")
             log(f"{Typgpy.WARNING}{Typgpy.BOLD}Continuing...{Typgpy.ENDC}")

@@ -142,7 +142,8 @@ if __name__ == "__main__":
     node.assert_valid_bls_key_directory()
     start_node()
     try:
-        validator.setup(hard_reset_recovery=False)
+        if not args.no_validator:
+            validator.setup(hard_reset_recovery=False)
     finally:
         clean_up_bls_pass(is_auto_reset=args.auto_reset)
         start_monitor()

@@ -51,14 +51,14 @@ def _import_validator_address():
     if validator_config['validator-addr'] not in cli.get_accounts_keystore().values():
         log(f"{Typgpy.FAIL}Cannot create validator, {validator_config['validator-addr']} "
             f"not in shared CLI keystore.{Typgpy.ENDC}")
-        raise SystemExit("Bad wallet import or validator config.")
+        raise RuntimeError("Bad wallet import or validator config.")
 
 
 def _input_validator_address():
     keys_list = list(sorted(cli.get_accounts_keystore().values()))
     if not keys_list:
         log(f"{Typgpy.FAIL}CLI keystore has no wallets.{Typgpy.ENDC}")
-        raise SystemExit("Bad wallet import.")
+        raise RuntimeError("Bad wallet import.")
     log(f"{Typgpy.HEADER}Keystore Wallet Addresses:{Typgpy.ENDC}")
     for i, addr in enumerate(keys_list):
         log(f"{Typgpy.BOLD}{Typgpy.OKBLUE}#{i}{Typgpy.ENDC}\t{Typgpy.OKGREEN}{addr}{Typgpy.ENDC}")
@@ -108,10 +108,7 @@ def _wallet_pass_filter(file_name):
 
 
 def _save_protected_file(file_content, file_path, verbose=True):
-    try:
-        save_protected_file(file_content, file_path, verbose=verbose)
-    except Exception as e:
-        raise SystemExit(e)
+    save_protected_file(file_content, file_path, verbose=verbose)
 
 
 def _import_bls_passphrase():
@@ -139,7 +136,7 @@ def _import_bls_passphrase():
             if k not in imported_bls_pass:
                 log(f"{Typgpy.FAIL}Imported BLS key file for {k} "
                     f"does not have an imported passphrase file.{Typgpy.ENDC}")
-                raise SystemExit("Bad BLS import, missing BLS passphrase file.")
+                raise RuntimeError("Bad BLS import, missing BLS passphrase file.")
         return None
     if bls_keys:
         return getpass.getpass(f"Enter passphrase for all {Typgpy.UNDERLINE}{len(bls_keys)} "
@@ -167,7 +164,7 @@ def _import_bls(passphrase):
                                  '--passphrase-file', passphrase_file])
             except RuntimeError as e:
                 log(f"{Typgpy.FAIL}Passphrase file for {k} is not correct. Error: {e}{Typgpy.ENDC}")
-                raise SystemExit("Bad BLS import")
+                raise e
         return [k.replace('.key', '').replace('0x', '') for k in bls_keys]
 
     tmp_bls_pass_path = f"{os.environ['HOME']}/.bls_pass"
@@ -182,7 +179,7 @@ def _import_bls(passphrase):
                                  '--passphrase-file', tmp_bls_pass_path])
             except RuntimeError as e:
                 log(f"{Typgpy.FAIL}Passphrase for {k} is not correct. Error: {e}{Typgpy.ENDC}")
-                raise SystemExit("Bad BLS import")
+                raise e
             _save_protected_file(passphrase, f"{bls_key_dir}/{k.replace('.key', '.pass')}")
         os.remove(tmp_bls_pass_path)
         return [k.replace('.key', '').replace('0x', '') for k in bls_keys]
