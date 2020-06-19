@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -e
 
-stable_auto_node_pypi_version="0.7.0"
+stable_auto_node_pypi_version="0.7.1"
 release_branch="mainnet-pt2"
 
 function yes_or_exit() {

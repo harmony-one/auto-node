@@ -1,7 +1,8 @@
 #!/bin/bash
 set -e
 
-version="0.7.0"
+version="0.7.1"
+SCRIPT_PATH=$(realpath -s "$0")
 
 # TODO: convert auto-node.sh into python3 click CLI since lib is in python3.
 function yes_or_exit() {
@@ -15,9 +16,13 @@ function verlte() {
   [ "$1" = "$(echo -e "$1\n$2" | sort -V | head -n1)" ]
 }
 
+function echoerr() {
+  echo -e "$@" 1>&2;
+}
+
 function _kill() {
   can_safe_stop="False"
-  can_safe_stop=$(python3 -c "from AutoNode import validator; print(validator.can_safe_stop_node())") || true
+  can_safe_stop=$(python3 -c "from AutoNode import validator; print(validator.can_safe_stop_node(safe=True))")
   if [ "$can_safe_stop" == "False" ]; then
     echo "[AutoNode] Validator is still elected and node is still signing."
     echo "[AutoNode] Continue to kill? (y/n)"
@@ -44,7 +49,7 @@ fi
 release_info=$(curl --silent "https://api.github.com/repos/harmony-one/auto-node/releases/latest")
 release_version=$(echo "$release_info" | jq ".tag_name" -r)
 run_cmd="auto-node update"
-verlte "$release_version" "$version" || echo -e "[AutoNode] There is an update! Install with \e[38;5;0;48;5;255m$run_cmd\e[0m"
+verlte "$release_version" "$version" || echoerr "[AutoNode] There is an update! Install with \e[38;5;0;48;5;255m$run_cmd\e[0m"
 
 case "${1}" in
 "run")
@@ -143,17 +148,28 @@ case "${1}" in
   python3 -u -c "from pyhmy import cli; cli.download(\"$cli_bin\", replace=True, verbose=True)"
   ;;
 "update")
-  if verlte "$release_version" "$version"; then
-    echo "[AutoNode] Running latest, no update needed!"
-    exit 0
+  cmd_path=$(command -v auto-node)
+  temp_instll_wrapper_script_path="/tmp/auto-node-temp-install-wrapper.sh"
+  temp_install_script_path="/tmp/auto-node-temp-install.sh"
+  if [ "$cmd_path" == "$SCRIPT_PATH" ]; then
+    if verlte "$release_version" "$version"; then
+      echo "[AutoNode] Running latest, no update needed!"
+      exit 0
+    fi
+    echo "[AutoNode] Must shutdown node to update, kill node and update now? (y/n)"
+    yes_or_exit
+    _kill
+    cp "$cmd_path" "$temp_instll_wrapper_script_path"
+    bash "$temp_instll_wrapper_script_path" "${1}" 2> /dev/null
+  else
+    install_script=$(echo "$release_info" | jq ".assets" | jq '[.[]|select(.name="install.sh")][0].browser_download_url' -r)
+    wget "$install_script" -O "$temp_install_script_path"
+    bash "$temp_install_script_path"
+    echo -e "[AutoNode] Update Complete. \033[1;33mREMEMBER TO RESTART YOUR AUTONODE!\033[0m"
+    echo ""
+    rm -f $temp_install_script_path
+    rm -f $temp_instll_wrapper_script_path
   fi
-  echo "[AutoNode] Must shutdown node to update, kill node and update now? (y/n)"
-  yes_or_exit
-  _kill
-  temp_install_script_path="/tmp/auto-node-install.sh"
-  install_script=$(echo "$release_info" | jq ".assets" | jq '[.[]|select(.name="install.sh")][0].browser_download_url' -r)
-  wget "$install_script" -O "$temp_install_script_path"
-  bash "$temp_install_script_path"
   ;;
 "kill")
   _kill

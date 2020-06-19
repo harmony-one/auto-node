@@ -487,15 +487,22 @@ def update_info(hard_reset_recovery=False):
             log(f"{Typgpy.WARNING}{Typgpy.BOLD}Continuing...{Typgpy.ENDC}")
 
 
-def can_safe_stop_node():
+def can_safe_stop_node(safe=False):
     """
     Determine if a node can be stopped. Conditions:
     If elected, BLS keys must not be earning (if present), otherwise can shutdown.
+
+    If `safe`, return false on exception, otherwise raise any exception
     """
-    if node_config['no-validator']:
-        return True
-    addr = validator_config['validator-addr']
-    all_val_address = staking.get_all_validator_addresses(endpoint=node_config['endpoint'])
-    if addr in all_val_address and not get_validator_information()['currently-in-committee']:
-        return True
-    return not is_signing()
+    try:
+        if node_config['no-validator']:
+            return True
+        addr = validator_config['validator-addr']
+        all_val_address = staking.get_all_validator_addresses(endpoint=node_config['endpoint'])
+        if addr in all_val_address and not get_validator_information()['currently-in-committee']:
+            return True
+        return not is_signing()
+    except Exception as e:
+        if safe:
+            return False
+        raise e
