@@ -13,19 +13,19 @@ function yes_or_exit() {
 
 function _fix_user_systemd() {
   if systemctl | grep user@ >/dev/null; then
-    echo "[AutoNode] try starting systemd for user? (y/n)"
+    echo "[AutoNode] try starting systemd for user (requires sudo access)? (y/n)"
     yes_or_exit
     sudo systemctl start user@$UID.service
     sudo systemctl enable user@$UID.service
   fi
   if ! systemctl --user >/dev/null; then
-    echo "[AutoNode] install user service for systemd? (y/n)"
+    echo "[AutoNode] install user service for systemd (requires sudo access)? (y/n)"
     yes_or_exit
     user_service="[Unit]
 Description=User Manager for UID %i
 After=systemd-user-sessions.service
 
-[Service]1
+[Service]
 User=%i
 PAMName=systemd-user
 Type=notify
