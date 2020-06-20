@@ -11,36 +11,6 @@ function yes_or_exit() {
   fi
 }
 
-function _fix_user_systemd() {
-  if systemctl | grep user@ >/dev/null; then
-    echo "[AutoNode] try starting systemd for user (requires sudo access)? (y/n)"
-    yes_or_exit
-    sudo systemctl start user@$UID.service
-    sudo systemctl enable user@$UID.service
-  fi
-  if ! systemctl --user >/dev/null; then
-    echo "[AutoNode] install user service for systemd (requires sudo access)? (y/n)"
-    yes_or_exit
-    user_service="[Unit]
-Description=User Manager for UID %i
-After=systemd-user-sessions.service
-
-[Service]
-User=%i
-PAMName=systemd-user
-Type=notify
-ExecStart=/usr/lib/systemd/systemd --user
-Slice=user-%i.slice
-KillMode=mixed
-Delegate=yes
-TasksMax=infinity"
-    sudo echo "$user_service" | sudo tee /etc/systemd/system/user@.service >/dev/null
-    sudo systemctl daemon-reload
-    sudo systemctl enable user@$UID.service
-    sudo systemctl start user@$UID.service
-  fi
-}
-
 function check_min_dependencies() {
   if [ "$(uname)" != "Linux" ]; then
     echo "[AutoNode] Not on a Linux machine, exiting."
@@ -52,14 +22,9 @@ function check_min_dependencies() {
   fi
   systemctl > /dev/null # Check if systemd is ran with PID 1
   if ! systemctl --user >/dev/null; then
-    echo "[AutoNode] Cannot access systemd in user mode"
-    _fix_user_systemd
-    if ! systemctl --user >/dev/null; then
-      echo "[AutoNode] Unable to fix access to systemd in user mode, exiting."
-      exit
-    else
-      echo "[AutoNode] Successfully fixed access to systemd in user mode."
-    fi
+    echo "[AutoNode] Cannot access systemd in user mode, maybe systemd is out of date?"
+    echo "[AutoNode] Suggest to update systemd or use different OS. Ubuntu 18+ is known to work."
+    exit 1
   fi
 }
 
