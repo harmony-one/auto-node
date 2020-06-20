@@ -148,6 +148,7 @@ if __name__ == "__main__":
         common.log("Waiting for node to start...")
         node.assert_started(timeout=10, do_log=False)
     finally:
+        print("")
         clean_up_bls_pass(is_auto_reset=args.auto_reset)
         start_monitor()
         start_time = time.time()
