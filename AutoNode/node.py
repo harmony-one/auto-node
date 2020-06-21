@@ -209,6 +209,10 @@ def start(auto=False, verbose=True):
     st = os.stat("node.sh")
     os.chmod("node.sh", st.st_mode | stat.S_IEXEC)
     node_args = ["./node.sh", "-N", node_config["network"], "-z", "-f", bls_key_dir, "-M", "-S"]
+    if node_config['expose-rpc']:
+        if verbose:
+            log(f"{Typgpy.WARNING}[!] Starting node with exposed RPC ports.{Typgpy.ENDC}")
+        node_args.append("-P")
     if node_config['clean']:
         if verbose:
             log(f"{Typgpy.WARNING}[!] Cleaning up old files before starting node.{Typgpy.ENDC}")

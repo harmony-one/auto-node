@@ -66,6 +66,7 @@ _node_config_default = {
     "archival": False,
     "no-download": False,
     "fast-sync": False,
+    "expose-rpc": False,
     "public-bls-keys": [],
     "encrypted-wallet-passphrase": b'',
     "_is_recovering": False  # Only used for auto hard-reset

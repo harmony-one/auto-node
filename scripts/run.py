@@ -103,6 +103,7 @@ def _parse_args():
     parser.add_argument("--no-download", action="store_true", help="Run node with existing binary.")
     parser.add_argument("--clean", action="store_true", help="Clean shared node directory before starting node.")
     parser.add_argument("--fast-sync", action="store_true", help="Rclone existing db snapshot(s)")
+    parser.add_argument("--expose-rpc", action="store_true", help="Expose RPC ports for endpoint utility.")
     parser.add_argument("--shard", default=None,
                         help="Specify shard of generated bls key.\n  "
                              "Only used if no BLS keys are not provided.", type=int)
@@ -136,6 +137,7 @@ if __name__ == "__main__":
         "no-download": args.no_download,
         "fast-sync": args.fast_sync,
         "archival": args.archival,
+        "expose-rpc": args.expose_rpc,
         "_is_recovering": False  # Never recovering from a hard reset on a run
     })
     common.save_node_config()
