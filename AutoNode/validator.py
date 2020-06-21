@@ -487,6 +487,26 @@ def update_info(hard_reset_recovery=False):
             log(f"{Typgpy.WARNING}{Typgpy.BOLD}Continuing...{Typgpy.ENDC}")
 
 
+def remove_bls_key(key):
+    """
+    Remove the BLS key (if present) from the validator
+    """
+    assert isinstance(key, str)
+    key = key.replace("0x", "").strip()
+    keys_on_chain = [x.replace("0x", "").strip() for x in get_validator_information()['validator']['bls-public-keys']]
+    if key not in keys_on_chain:
+        log(f"{Typgpy.WARNING}BLS key {key} is not present on validator!")
+        return
+    passphrase = get_wallet_passphrase()
+    proc = cli.expect_call(['hmy', '--node', node_config['endpoint'], 'staking', 'edit-validator',
+                            '--validator-addr', validator_config['validator_addr'],
+                            '--remove-bls-key', key, '--passphrase'])
+    pexpect_input_wallet_passphrase(proc, passphrase)
+    proc.expect(pexpect.EOF)
+    response = proc.before.decode()
+    log(f"{Typgpy.OKGREEN}Edit-validator transaction response: {response}{Typgpy.ENDC}")
+
+
 def can_safe_stop_node(safe=False):
     """
     Determine if a node can be stopped. Conditions:

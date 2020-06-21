@@ -2,7 +2,6 @@
 import argparse
 import time
 import json
-import pexpect
 from argparse import RawTextHelpFormatter
 
 from pyhmy import (
@@ -45,7 +44,6 @@ def hard_cleanse(yes=False):
     """
     # WARNING: Assumption that chain BLS keys are not 0x strings
     keys_on_chain = validator.get_validator_information()['validator']['bls-public-keys']
-    passphrase = util.get_wallet_passphrase()
     for key in keys_on_chain:
         if key not in bls_keys:
             prompt = f"{Typgpy.HEADER}Remove BLS key that is not use by this node: " \
@@ -53,13 +51,7 @@ def hard_cleanse(yes=False):
             if not yes and util.input_with_print(prompt).lower() not in {'y', 'yes'}:
                 continue
             common.log(f"{Typgpy.OKBLUE}Removing BLS key...{Typgpy.ENDC}")
-            proc = cli.expect_call(['hmy', '--node', endpoint, 'staking', 'edit-validator',
-                                    '--validator-addr', validator_addr,
-                                    '--remove-bls-key', key, '--passphrase'])
-            util.pexpect_input_wallet_passphrase(proc, passphrase)
-            proc.expect(pexpect.EOF)
-            response = proc.before.decode()
-            common.log(f"{Typgpy.OKGREEN}Edit-validator transaction response: {response}{Typgpy.ENDC}")
+            validator.remove_bls_key(key)
             removed_keys.append(key)
 
 
@@ -71,7 +63,6 @@ def shard_cleanse(yes=False):
     keys_on_chain = validator.get_validator_information()['validator']['bls-public-keys']
     shard = json_load(cli.single_call(['hmy', 'utility', 'shard-for-bls', list(bls_keys)[0],
                                        '--node', endpoint]))['shard-id']
-    passphrase = util.get_wallet_passphrase()
     for key in keys_on_chain:
         key_shard = json_load(cli.single_call(['hmy', 'utility', 'shard-for-bls', key,
                                                '--node', endpoint]))['shard-id']
@@ -81,13 +72,7 @@ def shard_cleanse(yes=False):
             if not yes and util.input_with_print(prompt).lower() not in {'y', 'yes'}:
                 continue
             common.log(f"{Typgpy.OKBLUE}Removing BLS key...{Typgpy.ENDC}")
-            proc = cli.expect_call(['hmy', '--node', endpoint, 'staking', 'edit-validator',
-                                    '--validator-addr', validator_addr,
-                                    '--remove-bls-key', key, '--passphrase'])
-            util.pexpect_input_wallet_passphrase(proc, passphrase)
-            proc.expect(pexpect.EOF)
-            response = proc.before.decode()
-            common.log(f"{Typgpy.OKGREEN}Edit-validator transaction response: {response}{Typgpy.ENDC}")
+            validator.remove_bls_key(key)
             removed_keys.append(key)
 
 
@@ -112,7 +97,6 @@ def reward_cleanse(yes=False):
     bls_metrics = validator.get_validator_information()['metrics']['by-bls-key']
     common.log(f"{Typgpy.OKBLUE}BLS key metrics: {Typgpy.OKGREEN}{json.dumps(bls_metrics, indent=2)}{Typgpy.ENDC}")
     keys_on_chain = validator.get_validator_information()['validator']['bls-public-keys']
-    passphrase = util.get_wallet_passphrase()
     for metric in bls_metrics:
         if metric['earned-reward'] == 0:
             key = metric['key']['bls-public-key']
@@ -122,13 +106,7 @@ def reward_cleanse(yes=False):
                 if not yes and util.input_with_print(prompt).lower() not in {'y', 'yes'}:
                     continue
                 common.log(f"{Typgpy.OKBLUE}Removing BLS key...{Typgpy.ENDC}")
-                proc = cli.expect_call(['hmy', '--node', endpoint, 'staking', 'edit-validator',
-                                        '--validator-addr', validator_addr,
-                                        '--remove-bls-key', key, '--passphrase'])
-                util.pexpect_input_wallet_passphrase(proc, passphrase)
-                proc.expect(pexpect.EOF)
-                response = proc.before.decode()
-                common.log(f"{Typgpy.OKGREEN}Edit-validator transaction response: {response}{Typgpy.ENDC}")
+                validator.remove_bls_key(key)
                 removed_keys.append(key)
 
 
