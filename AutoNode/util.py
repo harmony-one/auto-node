@@ -5,6 +5,8 @@ To prevent cyclic import minimize the importing of other libraries in AutoNode.
 """
 
 import gzip
+import signal
+import getpass
 import logging
 import logging.handlers
 import os
@@ -33,6 +35,22 @@ from .passphrase import (
 )
 
 
+class Timeout:
+    def __init__(self, seconds=1, error_message='Timeout'):
+        self.seconds = seconds
+        self.error_message = error_message
+
+    def handle_timeout(self, signum, frame):
+        raise TimeoutError(self.error_message)
+
+    def __enter__(self):
+        signal.signal(signal.SIGALRM, self.handle_timeout)
+        signal.alarm(self.seconds)
+
+    def __exit__(self, type, value, traceback):
+        signal.alarm(0)
+
+
 class _GZipRotator:
     """A simple zip rotator for logging"""
 
@@ -52,7 +70,11 @@ def get_wallet_passphrase():
 
     Raises InvalidWalletPassphrase if encrypted passphrase is invalid.
     """
-    passphrase = decrypt_wallet_passphrase(node_config["encrypted-wallet-passphrase"])
+    try:
+        passphrase = decrypt_wallet_passphrase(node_config["encrypted-wallet-passphrase"])
+    except InvalidWalletPassphrase:
+        with Timeout(seconds=60*2, error_message="Timeout for user input"):
+            passphrase = getpass.getpass(f"Enter wallet passphrase for {validator_config['validator-addr']}\n> ")
     if not is_valid_passphrase(passphrase, validator_config["validator-addr"]):
         raise InvalidWalletPassphrase()
     return passphrase
