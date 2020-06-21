@@ -2,7 +2,7 @@
 set -e
 
 stable_auto_node_pypi_version="0.7.5"
-release_branch="mainnet-pt2"  # TODO: Release and change backt to master for everyone to use
+release_branch="master"
 
 function yes_or_exit() {
   read -r reply
