@@ -170,8 +170,6 @@ case "${1}" in
     bash "$temp_install_script_path"
     echo -e "[AutoNode] Update Complete. \033[1;33mREMEMBER TO RESTART YOUR AUTONODE!\033[0m"
     echo ""
-    rm -f $temp_install_script_path
-    rm -f $temp_instll_wrapper_script_path
   fi
   ;;
 "kill")
