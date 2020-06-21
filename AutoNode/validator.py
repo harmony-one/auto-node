@@ -498,6 +498,7 @@ def remove_bls_key(key):
         log(f"{Typgpy.WARNING}BLS key {key} is not present on validator!")
         return
     passphrase = get_wallet_passphrase()
+    log(f"{Typgpy.OKBLUE}Removing BLS key {Typgpy.OKGREEN}{key}{Typgpy.ENDC}")
     proc = cli.expect_call(['hmy', '--node', node_config['endpoint'], 'staking', 'edit-validator',
                             '--validator-addr', validator_config['validator-addr'],
                             '--remove-bls-key', key, '--passphrase'])

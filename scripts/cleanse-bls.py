@@ -50,7 +50,6 @@ def hard_cleanse(yes=False):
                      f"{Typgpy.OKGREEN}{key}{Typgpy.HEADER}?{Typgpy.ENDC} [Y]/n\n> "
             if not yes and util.input_with_print(prompt).lower() not in {'y', 'yes'}:
                 continue
-            common.log(f"{Typgpy.OKBLUE}Removing BLS key...{Typgpy.ENDC}")
             validator.remove_bls_key(key)
             removed_keys.append(key)
 
@@ -71,7 +70,6 @@ def shard_cleanse(yes=False):
                      f"{Typgpy.OKGREEN}{key}{Typgpy.HEADER}?{Typgpy.ENDC} [Y]/n\n> "
             if not yes and util.input_with_print(prompt).lower() not in {'y', 'yes'}:
                 continue
-            common.log(f"{Typgpy.OKBLUE}Removing BLS key...{Typgpy.ENDC}")
             validator.remove_bls_key(key)
             removed_keys.append(key)
 
@@ -105,7 +103,6 @@ def reward_cleanse(yes=False):
                          f"{Typgpy.OKGREEN}{key}{Typgpy.HEADER}?{Typgpy.ENDC} [Y]/n\n> "
                 if not yes and util.input_with_print(prompt).lower() not in {'y', 'yes'}:
                     continue
-                common.log(f"{Typgpy.OKBLUE}Removing BLS key...{Typgpy.ENDC}")
                 validator.remove_bls_key(key)
                 removed_keys.append(key)
 
