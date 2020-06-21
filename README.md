@@ -1,7 +1,8 @@
 # AutoNode - Run a Harmony node with 1 command!
 
 User documentation can be found [here](https://docs.harmony.one/home/validators/autonode)
-E-mail support at auto-node@harmony.one.
+
+E-mail support at autonode@harmony.one.
 
 ## Dev Setup
 **Note that you must be in a linux machine to test most things, though some dev can be done on a mac machine.**
