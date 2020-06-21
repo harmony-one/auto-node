@@ -159,8 +159,10 @@ case "${1}" in
       echo "[AutoNode] Running latest, no update needed!"
       exit 0
     fi
-    echo "[AutoNode] Must shutdown node to update, kill node and update now? (y/n)"
-    yes_or_exit
+    if pgrep harmony > /dev/null; then
+      echo "[AutoNode] Must shutdown node to update, kill node and update now? (y/n)"
+      yes_or_exit
+    fi
     _kill
     cp "$cmd_path" "$temp_instll_wrapper_script_path"
     bash "$temp_instll_wrapper_script_path" "${1}" 2> /dev/null
