@@ -499,7 +499,7 @@ def remove_bls_key(key):
         return
     passphrase = get_wallet_passphrase()
     proc = cli.expect_call(['hmy', '--node', node_config['endpoint'], 'staking', 'edit-validator',
-                            '--validator-addr', validator_config['validator_addr'],
+                            '--validator-addr', validator_config['validator-addr'],
                             '--remove-bls-key', key, '--passphrase'])
     pexpect_input_wallet_passphrase(proc, passphrase)
     proc.expect(pexpect.EOF)

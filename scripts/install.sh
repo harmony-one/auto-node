@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -e
 
-stable_auto_node_pypi_version="0.7.2"
+stable_auto_node_pypi_version="0.7.3"
 release_branch="mainnet-pt2"  # TODO: Release and change backt to master for everyone to use
 
 function yes_or_exit() {
@@ -184,7 +184,7 @@ function main() {
   echo "           * AutoNode ($stable_auto_node_pypi_version) python3 library and all dependencies"
   echo "           * autonode-service.py service script in $HOME/bin"
   echo "           * auto-node.sh in $HOME/bin"
-  echo "           * harmony_validator_config.json config file in $HOME"
+  echo "           * harmony_validator_config.json config file in $HOME (if not present)"
   echo "           * harmony node files generated in $HOME/harmony_node"
   echo "           * supporting script, saved configs, and BLS key(s) will be generated/saved in $HOME/.hmy"
   echo "           * add \"$HOME/bin\" to path in .bashrc or .zshrc (if possible)"

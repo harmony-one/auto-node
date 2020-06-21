@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-version="0.7.2"
+version="0.7.3"
 SCRIPT_PATH=$(realpath -s "$0")
 
 # TODO: convert auto-node.sh into python3 click CLI since lib is in python3.
@@ -199,8 +199,8 @@ case "${1}" in
                              Note that this may not work as intended if auto-active is enabled
       info                  Display information for validator associated with node
       cleanse-bls <opts>    Remove BLS keys from validator that are not earning. Use '-h' param to view help msg
-      bls-shard <pub-key>   Get shard for given public BLS key
       remove-bls <pub-key>  Remove a given public BLS key from validator
+      bls-shard <pub-key>   Get shard for given public BLS key
       balances              Display balances for validator associated with node
       collect-rewards       Collect rewards for the associated validator
       version               Display the version of autonode
