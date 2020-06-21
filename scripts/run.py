@@ -147,6 +147,7 @@ if __name__ == "__main__":
             validator.setup(hard_reset_recovery=False)
         common.log("Waiting for node to start...")
         node.assert_started(timeout=10, do_log=False)
+        common.log("Node started!")
     finally:
         print("")
         clean_up_bls_pass(is_auto_reset=args.auto_reset)
