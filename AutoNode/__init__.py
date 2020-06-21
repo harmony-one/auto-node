@@ -1,10 +1,11 @@
-import os
-import sys
 import json
-import warnings
-import requests
 import logging
+import os
+import pickle
+import sys
+import warnings
 
+import requests
 from pyhmy import (
     cli,
     Typgpy
@@ -20,9 +21,11 @@ from .common import (
     saved_validator_path,
     imported_wallet_pass_file_dir,
     cli_bin_path,
-    saved_node_path,
+    saved_node_config_path,
     validator_config,
     node_config,
+    load_validator_config,
+    load_node_config
 )
 
 if sys.version_info.major < 3:
@@ -72,20 +75,16 @@ def _init():
         raise SystemExit(e)
 
     try:  # Config file that should exist on setup
-        with open(saved_validator_path, 'r', encoding='utf8') as f:
-            imported_val_config = json.load(f)
-            validator_config.update(imported_val_config)
-    except (json.decoder.JSONDecodeError, IOError, PermissionError) as e:
-        print(f"{Typgpy.WARNING}Could not import validator config from {saved_validator_path}. Error: {e}\n"
-              f"Using default config: {json.dumps(validator_config, indent=4)}{Typgpy.ENDC}", file=sys.stderr)
+        load_validator_config()
+    except (json.decoder.JSONDecodeError, IOError, PermissionError):
+        warnings.simplefilter("once", ImportWarning)
+        warnings.warn(ImportWarning("Could not import validator config, using defaults."))
 
-    if os.path.isfile(saved_node_path):  # Internal file that could not exist.
+    if os.path.isfile(saved_node_config_path):  # Internal file that could not exist.
         try:
-            with open(saved_node_path, 'r', encoding='utf8') as f:
-                imported_node_config = json.load(f)
-                node_config.update(imported_node_config)
-        except (json.decoder.JSONDecodeError, IOError, PermissionError) as e:
-            raise SystemExit(f"Could not import saved node config from {saved_node_path}, error: {e}")
+            load_node_config()
+        except (pickle.PickleError, IOError, PermissionError) as e:
+            raise SystemExit(f"Could not import saved node config from {saved_node_config_path}, error: {e}")
 
 
 _init()

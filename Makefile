@@ -21,7 +21,7 @@ clean-py:
 	find . -name '*~' -exec rm -f {} +
 
 install:
-	bash ./scripts/dev_install.sh
+	bash ./scripts/dev-install.sh
 
 release: clean
 	python3 setup.py sdist bdist_wheel

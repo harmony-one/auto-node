@@ -1,19 +1,21 @@
-import os
-import stat
-import subprocess
+"""
+Library for all things related to running a Harmony node with AutoNode.
+"""
+
 import glob
 import json
-import time
-import shutil
 import logging
-
-import requests
+import os
+import shutil
+import stat
+import subprocess
+import time
 
 import pyhmy.rpc.exceptions as rpc_exception
+import requests
 from pyhmy import (
     blockchain,
     cli,
-    json_load,
     Typgpy
 )
 
@@ -24,13 +26,12 @@ from .common import (
     node_config,
     node_dir,
     bls_key_dir,
-    sync_dir_map,
     harmony_dir
 )
-
 from .util import (
     input_with_print,
-    get_simple_rotating_log_handler
+    get_simple_rotating_log_handler,
+    is_bls_file,
 )
 
 node_sh_out_path = f"{node_sh_log_dir}/out.log"
@@ -38,7 +39,8 @@ node_sh_err_path = f"{node_sh_log_dir}/err.log"
 
 log_path = f"{harmony_dir}/autonode_node.log"
 
-rclone_space_buffer = 5 * 2**30  # 5GB in bytes
+rclone_space_buffer = 5 * 2 ** 30  # 5GB in bytes
+rclone_config = "harmony"
 
 
 def _node_clean(verbose=True):
@@ -68,7 +70,8 @@ def _rclone(rclone_sync_dir, shard, verbose=True):
     node_sh_rclone_out_path = f"{node_sh_log_dir}/rclone_out_{shard}.log"
 
     try:
-        rclone_path = f'hmy://pub.harmony.one/{rclone_sync_dir}/harmony_db_{shard}'
+        # Assumption made on installed rclone config.
+        rclone_path = f'harmony://pub.harmony.one/{rclone_sync_dir}/harmony_db_{shard}'
         if verbose:
             log(f"{Typgpy.WARNING}rclone harmony_db_{shard} from {rclone_path} in progress...{Typgpy.ENDC}")
         with open(node_sh_rclone_out_path, 'w') as fo:
@@ -83,8 +86,8 @@ def _rclone(rclone_sync_dir, shard, verbose=True):
                 shutil.rmtree(db_dir)
 
 
-def _rclone_space_required(rclone_sync_dir, shard, verbose=True):
-    rclone_path = f'hmy://pub.harmony.one/{rclone_sync_dir}/harmony_db_{shard}'
+def _rclone_space_required(rclone_sync_dir, shard):
+    rclone_path = f'{rclone_config}://pub.harmony.one/{rclone_sync_dir}/harmony_db_{shard}'
     try:
         space_output = subprocess.check_output(['rclone', 'size', rclone_path, '--json'], env=os.environ)
         return int(json.loads(space_output.decode('utf8'))['bytes'])
@@ -92,17 +95,20 @@ def _rclone_space_required(rclone_sync_dir, shard, verbose=True):
         log(f"{Typgpy.WARNING}Failed to get rclone db size requirement, error {e}{Typgpy.ENDC}")
         return 0
 
+
 def _rclone_db(shard, verbose=True):
-    rclone_sync_dir = sync_dir_map[node_config['network']]
-    if node_config['network'] == 'mainnet' and not node_config['archival']:
-        rclone_sync_dir = rclone_sync_dir + '.min'
+    # WARNING: rclone sync directory naming convention may change in the future
+    if node_config['archival']:
+        rclone_sync_dir = node_config['network'] + '.archival'
+    else:
+        rclone_sync_dir = node_config['network'] + '.min'
 
     _, _, free_space = shutil.disk_usage(os.environ['HOME'])
     free_space = free_space + rclone_space_buffer
 
     rclone_processes = []
     if shard == 0:
-        required_space = _rclone_space_required(rclone_sync_dir, shard, verbose=verbose)
+        required_space = _rclone_space_required(rclone_sync_dir, shard)
         if required_space == 0:
             log(f"{Typgpy.WARNING}Fast-sync db not available.\n"
                 f"Skipping rclone shard {shard}...{Typgpy.ENDC}")
@@ -114,8 +120,8 @@ def _rclone_db(shard, verbose=True):
             return
         rclone_processes.append(_rclone(rclone_sync_dir, shard, verbose=verbose))
     else:
-        required_beacon_space = _rclone_space_required(rclone_sync_dir, 0, verbose=verbose)
-        required_shard_space = _rclone_space_required(rclone_sync_dir, shard, verbose=verbose)
+        required_beacon_space = _rclone_space_required(rclone_sync_dir, 0)
+        required_shard_space = _rclone_space_required(rclone_sync_dir, shard)
         total_required_space = required_beacon_space + required_shard_space
         if total_required_space > free_space:
             log(f"{Typgpy.WARNING}[!] Insufficient disk space. Required: {total_required_space}, Free: {free_space} \n"
@@ -150,20 +156,35 @@ def _rclone_db(shard, verbose=True):
         raise SystemExit('Fast sync failed.')
 
 
-def _get_node_shard(verbose=True):
+def _get_node_shard():
+    """
+    Returns node shard based on config.
+    Returns None if 0 or > 1 shards are derived from the node's BLS keys.
+    """
     key_shards = []
+    if not node_config['public-bls-keys']:
+        log(f"{Typgpy.WARNING}No saved BLS keys for node!{Typgpy.ENDC}")
     for bls_key in node_config['public-bls-keys']:
         try:
             key_shards.append(json.loads(cli.single_call(['hmy', 'utility', 'shard-for-bls', bls_key,
                                                           '--node', f'{node_config["endpoint"]}']))['shard-id'])
-        except json.decoder.JSONDecodeError as e:
+        except json.decoder.JSONDecodeError:
             log(f'{Typgpy.WARNING}[!] Failed to get shard for bls key {bls_key}!{Typgpy.ENDC}')
-            key_shards.append(None)
-    if len(set(key_shards)) == 1:
-        return key_shards[0]
+    if not key_shards:
+        return None
+    assert len(
+        set(key_shards)) == 1, f"Node BLS keys can only be for 1 shard. BLS keys: {node_config['public-bls-keys']}"
+    return key_shards[0]
 
 
 def start(auto=False, verbose=True):
+    """
+    Start the harmony process and return the PID.
+
+    Note that process is running after function return.
+    """
+    if subprocess.call(["pgrep", "harmony"], env=os.environ) == 0:
+        raise RuntimeError("Harmony process is already running, can only start 1 node on machine with AutoNode.")
     old_logging_handlers = logging.getLogger('AutoNode').handlers.copy()
     logging.getLogger('AutoNode').addHandler(get_simple_rotating_log_handler(log_path))
     log(f"{Typgpy.HEADER}Starting node...{Typgpy.ENDC}")
@@ -172,6 +193,7 @@ def start(auto=False, verbose=True):
             f"this is not recommended, continue? [Y]/n{Typgpy.ENDC}")
         if input_with_print("> ") not in {'Y', 'y', 'yes', 'Yes'}:
             raise SystemExit()
+    assert_valid_bls_key_directory()
     os.chdir(node_dir)
     if os.path.isfile(f"{node_dir}/node.sh"):
         os.remove(f"{node_dir}/node.sh")
@@ -187,15 +209,19 @@ def start(auto=False, verbose=True):
     st = os.stat("node.sh")
     os.chmod("node.sh", st.st_mode | stat.S_IEXEC)
     node_args = ["./node.sh", "-N", node_config["network"], "-z", "-f", bls_key_dir, "-M", "-S"]
-    if node_config['clean'] and node_config['network'] != 'mainnet':
+    if node_config['expose-rpc']:
+        if verbose:
+            log(f"{Typgpy.WARNING}[!] Starting node with exposed RPC ports.{Typgpy.ENDC}")
+        node_args.append("-P")
+    if node_config['clean']:
         if verbose:
             log(f"{Typgpy.WARNING}[!] Cleaning up old files before starting node.{Typgpy.ENDC}")
         _node_clean(verbose=verbose)
     if node_config['fast-sync']:
         if verbose:
             log(f'{Typgpy.WARNING}[!] Fast syncing before starting node.{Typgpy.ENDC}')
-        shard = _get_node_shard(verbose=verbose)
-        if shard:
+        shard = _get_node_shard()
+        if shard is not None:
             _rclone_db(shard, verbose=verbose)
         else:
             log(f'{Typgpy.WARNING}[!] Unable to determine node shard.\n'
@@ -246,22 +272,93 @@ def wait_for_node_response(endpoint, verbose=True, tries=float("inf"), sleep=0.5
         log(f"{Typgpy.HEADER}[!] {endpoint} is alive!{Typgpy.ENDC}")
 
 
-def assert_no_bad_blocks():
+def assert_no_invalid_blocks():
     if os.path.isdir(f"{node_dir}/latest"):
-        files = [x for x in os.listdir(f"{node_dir}/latest") if x.endswith(".log")]
+        files = glob.glob(f"{node_dir}/latest/zero*.log")
         if files:
-            log_path = f"{node_dir}/latest/{files[-1]}"
-            assert not has_bad_block(log_path), f"`BAD BLOCK` present in {log_path}, restart AutoNode with clean option"
+            log_path = files[-1]
+            assert not has_invalid_block(
+                log_path), f"`invalid merkle root` present in {log_path}, restart AutoNode with clean option"
 
 
-def has_bad_block(log_file_path):
-    assert os.path.isfile(log_file_path)
+def is_signing(count=1500):
+    """
+    Read the last `count` lines and check for signing logs.
+    """
+    if os.path.isdir(f"{node_dir}/latest"):
+        files = glob.glob(f"{node_dir}/latest/zero*.log")
+        if files:
+            log_path = files[-1]
+            content = subprocess.check_output(["tail", "-n", str(count), str(log_path)], env=os.environ).decode().split(
+                "\n")
+            for line in content:
+                line = line.rstrip()
+                if "BINGO" in line or "HOORAY" in line:
+                    return True
+    return False
+
+
+def has_invalid_block(log_file_path):
+    assert os.path.isfile(log_file_path), f"{log_file_path} is not a file"
     try:
         with open(log_file_path, 'r', encoding='utf8') as f:
             for line in f:
                 line = line.rstrip()
-                if "## BAD BLOCK ##" in line:
+                if "invalid merkle root" in line:
                     return True
     except (UnicodeDecodeError, IOError):
-        log(f"{Typgpy.WARNING}WARNING: failed to read `{log_file_path}` to check for bad block{Typgpy.ENDC}")
+        log(f"{Typgpy.WARNING}WARNING: failed to read `{log_file_path}` to check for invalid block{Typgpy.ENDC}")
     return False
+
+
+def assert_valid_bls_key_directory():
+    """
+    Asserts that the BLS keys directory contains the BLS keys for the
+    given node config.
+
+    Note that this must match EXACTLY.
+
+    Will raise assertion error if one BLS key is missing OR
+    if there is 1 BLS key more than what is in the node config.
+    """
+    bls_keys = list(filter(lambda e: is_bls_file(e, '.key'), os.listdir(bls_key_dir)))
+    bls_pass = list(filter(lambda e: is_bls_file(e, '.pass'), os.listdir(bls_key_dir)))
+
+    assert len(bls_keys) == len(bls_pass), f"number of BLS keys and BLS pass files must be equal in {bls_key_dir}."
+    bls_pub_keys = set(x.replace('.key', '') for x in bls_keys)
+    assert len(bls_pub_keys) == len(bls_keys), f"sanity check: cannot contain duplicate BLS keys in {bls_key_dir}"
+    found_keys_count = len(bls_pub_keys)
+
+    for key in bls_pass:
+        bls_key = key.replace('.pass', '')
+        assert bls_key in bls_pub_keys, f"got BLS pass for {bls_key}, but BLS key not found in {bls_key_dir}"
+
+    conf_keys_count = len(node_config['public-bls-keys'])
+    if conf_keys_count != found_keys_count:
+        raise AssertionError(f"number of configured BLS keys ({conf_keys_count}) not equal to number of BLS keys "
+                             f"keys ({found_keys_count}) in {bls_key_dir}")
+    for key in node_config['public-bls-keys']:
+        assert key in bls_pub_keys, f"configured BLS key {key} not found in {bls_key_dir}"
+
+
+def assert_started(timeout=60, do_log=False):
+    """
+    Assert the node has started within the given timeout.
+    Node that rclone does NOT count towards timeout.
+    """
+    has_informed_rclone = False
+    start_time = time.time()
+    while time.time() - start_time < timeout:
+        if subprocess.call(["pgrep", "rclone"], env=os.environ, stdout=subprocess.DEVNULL) == 0:
+            timeout += 1
+            if not has_informed_rclone and do_log:
+                log(f"{Typgpy.WARNING}Fast-sync (rclone) is in progress...{Typgpy.ENDC}")
+                has_informed_rclone = True
+        elif subprocess.call(["pgrep", "harmony"], env=os.environ, stdout=subprocess.DEVNULL) == 0:
+            if do_log:
+                log(f"{Typgpy.OKGREEN}Harmony node is running...{Typgpy.ENDC}")
+            return
+        time.sleep(1)
+    if do_log:
+        log(f"{Typgpy.FAIL}Harmony node is NOT running!{Typgpy.ENDC}")
+    raise AssertionError("Node failed to start")

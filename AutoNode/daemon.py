@@ -1,58 +1,61 @@
+"""
+Library of tools to be used by the AutoNode Daemon.
+"""
+
 import os
 import subprocess
 import time
-import logging
-
-from pyhmy import (
-    Typgpy,
-)
 
 from .common import (
-    saved_node_path,
+    saved_node_config_path,
+    save_node_config,
     saved_validator_path,
-    saved_wallet_pass_path,
     bls_key_dir,
     node_config,
-    harmony_dir,
-    log,
-    user
 )
-from .node import (
-    start as node_start
+from .exceptions import (
+    InvalidWalletPassphrase
 )
-from .validator import (
-    setup as validator_setup
+from .initialize import (
+    save_wallet_passphrase
 )
 from .monitor import (
     start as start_monitor,
     ResetNode
 )
+from .node import (
+    start as start_node
+)
 from .util import (
-    get_simple_rotating_log_handler
+    get_wallet_passphrase,
+)
+from .validator import (
+    setup as setup_validator,
+    assert_node_started
 )
 
+name = f"autonoded"
+services = [
+    "monitor",
+    "node",
+]
 
-class Daemon:
-    """Main AutoNode daemon logic"""
 
-    name = f"{user}-autonoded"
-    services = {
-        "node",
-        "node_recovered",
-        "monitor"
-    }
-
-    @staticmethod
-    def validate_config():
-        required_files = [
-            saved_node_path,
-            saved_validator_path,
-            saved_wallet_pass_path
-        ]
-        if any(not os.path.isfile(p) for p in required_files):
-            raise SystemExit(f"AutoNode was not initialized properly. "
-                             f"One or more files are missing: {required_files}")
-
+def _validate_config(for_node=False):
+    """
+    Validates the given config.
+    Should be used prior to running a major AutoNode operation.
+    """
+    required_files = [
+        saved_node_config_path,
+    ]
+    if not for_node:
+        required_files.append(saved_validator_path)
+    if any(not os.path.isfile(p) for p in required_files):
+        raise SystemExit(f"AutoNode was not initialized properly. "
+                         f"One or more files are missing: {required_files}")
+    if for_node:
+        # Assumes that .pass files are always present -- artifact of node.sh, should be amended in the future
         files_in_bls_dir = set(os.listdir(bls_key_dir))
         for bls_key in node_config['public-bls-keys']:
             key_file, pass_file = f"{bls_key}.key", f"{bls_key}.pass"
@@ -63,77 +66,92 @@ class Daemon:
                 raise SystemExit(f"{bls_key} in node config, but {pass_file} not found in "
                                  f"BLS key directory at {bls_key_dir}")
 
-    def __init__(self, service):
-        if service not in self.services:
-            raise ValueError(f"{service} is not a valid service. Valid services: {self.services}")
-        self.node_sh_pid = None
-        self.service = service
-        self.log_path = f"{harmony_dir}/daemon@{service}.log"
-        self.old_logging_handlers = logging.getLogger('AutoNode').handlers.copy()
-        logging.getLogger('AutoNode').addHandler(get_simple_rotating_log_handler(self.log_path))
 
-    def __del__(self):
-        logging.getLogger('AutoNode').handlers = self.old_logging_handlers
-        if self.node_sh_pid is not None:
-            subprocess.call(f"kill -2 {self.node_sh_pid}", shell=True, env=os.environ)
+def run_node(hard_reset_recovery=False, duration=float('inf')):
+    """
+    Main function to run a harmony node.
+    Will block for the `duration`.
+    """
+    print(f"Running node for {duration} seconds. Hard reset: {hard_reset_recovery}")
+    start_time = time.time()
+    _validate_config(for_node=True)
+    pid = None
+    try:
+        pid = start_node(auto=True, verbose=True)
+        if hard_reset_recovery:
+            setup_validator(hard_reset_recovery=True)
+        while time.time() - start_time < duration:
+            time.sleep(1)
+    finally:
+        if pid is not None:
+            print(f"Killing harmony process, pid: {pid}")
+            subprocess.check_call(["kill", "-2", str(pid)], env=os.environ)
 
-    def start_node(self):
-        if not self.service.startswith("node"):
-            raise SystemExit(f"Attempted to start node service as {self.service} service.")
-        self.node_sh_pid = node_start(auto=True, verbose=True)
-        if self.service == "node_recovered":  # only automatically create validator if in recovered service
-            validator_setup(recover_interaction=True)
 
-    def start_monitor(self):
-        if self.service != "monitor":
-            raise SystemExit(f"Attempted to start monitor service as {self.service} service.")
-        count = 0
-        while True:
-            count += 1
-            try:
-                log(f"{Typgpy.HEADER}[!] Starting monitor, restart number {count}{Typgpy.ENDC}")
-                # Invariant: Monitor will raise a ResetNode exception to trigger a node reset,
-                # otherwise it will gracefully exit to restart monitor
-                start_monitor()
-                if not node_config['auto-reset']:
-                    log(f"{Typgpy.WARNING}Terminating monitor...{Typgpy.ENDC}")
-                    return
-            except ResetNode as e:  # All other errors should blow up
-                log(f"{Typgpy.FAIL}Resetting Node: {e}{Typgpy.ENDC}")
-                if not node_config['auto-reset']:
-                    log(f"{Typgpy.WARNING}Auto-reset is disabled, Terminating monitor...{Typgpy.ENDC}")
-                    return
-                self.stop_all_daemons(ignore_self=True)
-                subprocess.call(f"killall harmony", shell=True, env=os.environ)  # OK if this fails
-                time.sleep(5)  # wait for node shutdown
-                daemon_name = f"{self.name}@node_recovered.service"
-                log(f"{Typgpy.WARNING}Starting daemon {daemon_name}{Typgpy.ENDC}")
-                subprocess.check_call(f"sudo systemctl start {daemon_name}", shell=True, env=os.environ)
+def _reset_node(recover_service_name, error):
+    """
+    Internal function to reset a node during hard reset.
+    """
+    assert isinstance(error, ResetNode)
+    assert recover_service_name in services, f"{recover_service_name} is not a valid service."
 
-    def start(self):
-        if self.service == 'monitor':
-            self.start_monitor()
-        else:
-            self.start_node()
+    print(f"Resetting Node: {error}")
+    if node_config['network'] == 'mainnet':
+        print("WARNING: cannot reset mainnet node, ignoring...")
+        return
 
-    def stop_all_daemons(self, ignore_self=True):
-        """
-        Let stopping daemons blow up here to at-least allow initial execution of node.
-        """
-        for service in self.services:
-            if ignore_self and service == self.service:
-                continue
-            daemon_name = f"{self.name}@{service}.service"
-            log(f"{Typgpy.WARNING}Stopping daemon {daemon_name}{Typgpy.ENDC}")
-            command = f"sudo systemctl stop {daemon_name}"
-            try:
-                subprocess.check_call(command, shell=True, env=os.environ)
-            except subprocess.CalledProcessError as e:
-                log(f"{Typgpy.FAIL}Unable to stop service {daemon_name} because of error: {e}{Typgpy.ENDC}")
-                raise SystemExit("Unable to kill AutoNode daemons!")
+    passphrase = get_wallet_passphrase()
 
-    def block(self):
-        log("Blocking process...")
-        if self.service == 'monitor':
-            return
-        subprocess.call("tail -f /dev/null", shell=True, env=os.environ)
+    # Set flags to indicate that node is in hard-reset recovery mode.
+    node_config['_is_recovering'] = True
+    save_node_config()
+
+    for service in filter(lambda e: e.startswith("node"), services):
+        daemon_name = f"{name}@{service}.service"
+        command = ["systemctl", "--user", "stop", daemon_name]
+        print(f"Stopping daemon {daemon_name}")
+        try:
+            subprocess.check_call(command, env=os.environ)
+        except subprocess.CalledProcessError as e:
+            print(f"Unable to stop service '{daemon_name}'")
+            raise e
+
+    subprocess.call(["killall", "harmony"], env=os.environ)  # OK if this fails, so use subprocess.call
+    time.sleep(5)  # wait for node shutdown
+
+    daemon_name = f"{name}@{recover_service_name}.service"
+    command = ["systemctl", "--user", "start", daemon_name]
+    print(f"Starting daemon {daemon_name}")
+    try:
+        subprocess.check_call(command, env=os.environ)
+    except subprocess.CalledProcessError as e:
+        print(f"Unable to start service '{daemon_name}'")
+        raise e
+
+    try:
+        assert_node_started()
+        save_wallet_passphrase(passphrase)
+    except (AssertionError, InvalidWalletPassphrase) as e:
+        print(f"Could not re-auth wallet, error {e}")
+        print(f"Continuing...")
+    finally:
+        # Set flags to indicate that node finished with hard-reset recovery.
+        node_config['_is_recovering'] = False
+        save_node_config()
+
+
+def run_monitor(duration=float('inf')):
+    """
+    Main function to run the monitor.
+    """
+    print(f"Running monitor for {duration} seconds.")
+    _validate_config(for_node=False)
+    while True:
+        try:
+            # Monitor will raise a ResetNode exception to trigger a node reset, otherwise it will gracefully exit.
+            start_monitor(duration=duration)
+            break
+        except ResetNode as error:
+            if node_config['auto-reset']:
+                _reset_node("node", error)
+    print("Terminating monitor.")

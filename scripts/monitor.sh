@@ -1,29 +1,29 @@
 #!/bin/bash
 set -e
 
-daemon_name=$(python3 -c "from AutoNode.daemon import Daemon; print(Daemon.name)")
+daemon_name=$(python3 -c "from AutoNode import daemon; print(daemon.name)")
 monitor_daemon="$daemon_name"@monitor.service
 case "${1}" in
-  "status")
-  systemctl status "$monitor_daemon"
+"status")
+  systemctl --user status "$monitor_daemon"
   ;;
-  "log")
+"log")
   tail -f "$(python3 -c "from AutoNode import monitor; print(monitor.log_path)")"
   ;;
-  "journal")
-  journalctl -u "$monitor_daemon" "${@:2}"
+"journal")
+  journalctl _SYSTEMD_USER_UNIT="$monitor_daemon" "${@:2}"
   ;;
-  "restart")
-  sudo systemctl restart "$monitor_daemon"
+"restart")
+  systemctl --user restart "$monitor_daemon"
   ;;
-  "name")
+"name")
   echo "$monitor_daemon"
   ;;
-  *)
-    echo "
+*)
+  echo "
   == AutoNode node monitor command help ==
 
-  Usage: auto_node.sh monitor <cmd>
+  Usage: auto-node monitor <cmd>
 
   Cmd:            Help:
 
@@ -33,5 +33,6 @@ case "${1}" in
   restart         Manually restart your Harmony Monitor daemon
   name            Get the name of your Harmony Monitor deamon
     "
-    exit
+  exit
+  ;;
 esac

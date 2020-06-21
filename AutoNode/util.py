@@ -1,20 +1,54 @@
+"""
+Library of common utils used by most function libraries of AutoNode.
+
+To prevent cyclic import minimize the importing of other libraries in AutoNode.
+"""
+
 import gzip
-import os
+import signal
+import getpass
 import logging
 import logging.handlers
+import os
 import sys
 
-from pyhmy import cli
+import pexpect
 from pyhmy import (
     Typgpy,
     json_load
 )
+from pyhmy import cli
 
 from .common import (
     log,
     node_config,
-    msg_tag
+    validator_config,
+    msg_tag,
+    bls_key_len
 )
+from .exceptions import (
+    InvalidWalletPassphrase
+)
+from .passphrase import (
+    decrypt_wallet_passphrase,
+    is_valid_passphrase
+)
+
+
+class Timeout:
+    def __init__(self, seconds=1, error_message='Timeout'):
+        self.seconds = seconds
+        self.error_message = error_message
+
+    def handle_timeout(self, signum, frame):
+        raise TimeoutError(self.error_message)
+
+    def __enter__(self):
+        signal.signal(signal.SIGALRM, self.handle_timeout)
+        signal.alarm(self.seconds)
+
+    def __exit__(self, type, value, traceback):
+        signal.alarm(0)
 
 
 class _GZipRotator:
@@ -30,16 +64,39 @@ class _GZipRotator:
         os.remove(dest)
 
 
-def process_passphrase(proc, passphrase, double_take=False):
+def get_wallet_passphrase():
+    """
+    Gets encrypted passphrase from node_config, unencrypt, validate, and return.
+
+    Raises InvalidWalletPassphrase if encrypted passphrase is invalid.
+    """
+    try:
+        passphrase = decrypt_wallet_passphrase(node_config["encrypted-wallet-passphrase"])
+    except InvalidWalletPassphrase:
+        with Timeout(seconds=60*2, error_message="Timeout for user input"):
+            passphrase = getpass.getpass(f"Enter wallet passphrase for {validator_config['validator-addr']}\n> ")
+    if not is_valid_passphrase(passphrase, validator_config["validator-addr"]):
+        raise InvalidWalletPassphrase()
+    return passphrase
+
+
+def pexpect_input_wallet_passphrase(proc, passphrase, prompt="Enter wallet keystore passphrase:\r\n"):
+    """
+    Interactively input the wallet passphrase to the given pexpect child process
+    """
+    assert isinstance(proc, pexpect.pty_spawn.spawn)
+    proc.expect(prompt)
+    proc.sendline(passphrase)
+
+
+def pexpect_input_wallet_creation_passphrase(proc, passphrase):
     """
     This will enter the `passphrase` interactively given the pexpect child program, `proc`.
     """
-    proc.expect("Enter passphrase:\r\n")
-    proc.sendline(passphrase)
-    if double_take:
-        proc.expect("Repeat the passphrase:\r\n")
-        proc.sendline(passphrase)
-        proc.expect("\n")
+    assert isinstance(proc, pexpect.pty_spawn.spawn)
+    pexpect_input_wallet_passphrase(proc, passphrase, prompt="Enter passphrase:\r\n")
+    pexpect_input_wallet_passphrase(proc, passphrase, prompt="Repeat the passphrase:\r\n")
+    proc.expect("\n")
 
 
 def input_with_print(prompt_str, auto_interaction=None):
@@ -59,15 +116,36 @@ def check_min_bal_on_s0(address, amount, endpoint=node_config['endpoint'], timeo
             return bal['amount'] >= amount
 
 
-def get_simple_rotating_log_handler(log_file_path):
+def get_simple_rotating_log_handler(log_file_path, max_size=5 * 1024 * 1024):
     """
     A simple log handler with no level support.
     Used purely for the output rotation.
+
+    `max_size` of log file is in bytes.
     """
     log_formatter = logging.Formatter(f'{msg_tag} %(message)s')
-    handler = logging.handlers.TimedRotatingFileHandler(log_file_path, when='h', interval=1,
-                                                        backupCount=5, encoding='utf8')
+    handler = logging.handlers.RotatingFileHandler(log_file_path, mode='a', maxBytes=max_size,
+                                                   backupCount=5, encoding=None, delay=0)
     handler.setLevel(logging.DEBUG)
     handler.setFormatter(log_formatter)
     handler.rotator = _GZipRotator()
     return handler
+
+
+def shard_for_bls(public_bls_key):
+    """
+    Fetch the shard for the BLS key.
+
+    NOTE: Expect to be invalid one we have resharding.
+    """
+    return json_load(cli.single_call(['hmy', '--node', f'{node_config["endpoint"]}', 'utility',
+                                      'shard-for-bls', public_bls_key]))['shard-id']
+
+
+def is_bls_file(file_name, suffix):
+    if file_name.startswith('.') or not file_name.endswith(suffix):
+        return False
+    tok = file_name.split(".")
+    if len(tok) != 2 or len(tok[0]) != bls_key_len:
+        return False
+    return True

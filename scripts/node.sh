@@ -1,71 +1,62 @@
 #!/bin/bash
 set -e
 
-daemon_name=$(python3 -c "from AutoNode.daemon import Daemon; print(Daemon.name)")
-if systemctl --type=service --state=active | grep -e ^"$daemon_name"@node.service; then
-  node_daemon="$daemon_name"@node.service
-else
-  node_daemon="$daemon_name"@node_recovered.service
-fi
-case "${1}" in
-  "status")
-  if [ "${2}" == "init" ]; then
-    systemctl status "$daemon_name"@node.service
-  else
-    systemctl status "$node_daemon"
+function yes_or_exit() {
+  read -r reply
+  if [[ ! $reply =~ ^[Yy]$ ]]; then
+    exit 1
   fi
+}
+
+daemon_name=$(python3 -c "from AutoNode import daemon; print(daemon.name)")
+node_daemon="$daemon_name"@node.service
+case "${1}" in
+"status")
+  systemctl --user status "$node_daemon"
   ;;
-  "log")
+"log")
   tail -f "$(python3 -c "from AutoNode import node; print(node.log_path)")"
   ;;
-  "journal")
-  if [ "${2}" == "init" ]; then
-    journalctl -u "$daemon_name"@node.service "${@:3}"
-  else
-    journalctl -u "$node_daemon" "${@:2}"
+"journal")
+  journalctl _SYSTEMD_USER_UNIT="$node_daemon" "${@:2}"
+  ;;
+"restart")
+  can_safe_stop="False"
+  can_safe_stop=$(python3 -c "from AutoNode import validator; print(validator.can_safe_stop_node())") || true
+  if [ "$can_safe_stop" == "False" ]; then
+    echo "[AutoNode] Validator is still elected and node is still signing."
+    echo "[AutoNode] Continue to restart node? (y/n)"
+    yes_or_exit
   fi
+  systemctl --user restart "$node_daemon"
   ;;
-  "restart")
-  if [ "${2}" == "init" ]; then
-    systemctl restart "$daemon_name"@node.service
-  else
-    systemctl restart "$node_daemon"
-  fi
+"name")
+  echo "$node_daemon"
   ;;
-  "name")
-  if [ "${2}" == "init" ]; then
-    echo "$daemon_name"@node.service
-  else
-    echo "$node_daemon"
-  fi
+"version")
+  node_dir=$(python3 -c "from AutoNode import common; print(common.node_dir)")
+  owd=$(pwd)
+  cd "$node_dir" && ./node.sh -V && ./node.sh -v && cd "$owd" || echo "[AutoNode] Node files not found..."
   ;;
-  "info")
-  curl --location --request POST 'http://localhost:9500/' \
-  --header 'Content-Type: application/json' \
-  --data-raw '{
-      "jsonrpc": "2.0",
-      "method": "hmy_getNodeMetadata",
-      "params": [],
-      "id": 1
-  }' | jq
+"info")
+  python3 -u -c "from pyhmy import blockchain; import json; print(json.dumps(blockchain.get_node_metadata('http://localhost:9500'), indent=2))"
   ;;
-  *)
-    echo "
+*)
+  echo "
   == AutoNode node command help ==
 
-  Usage: auto_node.sh node <cmd>
+  Usage: auto-node node <cmd>
 
-  Cmd:                  Help:
+  Cmd:           Help:
 
-  log                   View the current log of your Harmony Node
-  status [init]         View the status of your current Harmony Node daemon
-  journal [init] <opts> View the journal of your current Harmony Node daemon
-  restart [init]        Manually restart your current Harmony Node daemon
-  name [init]           Get the name of your current Harmony Node deamon
-  info                  Get the node's current metadata
-
-  'init' is a special option for the inital node daemon, may be needed for debugging.
-  Otherwise not needed.
-    "
-    exit
+  log            View the current log of your Harmony Node
+  status         View the status of your current Harmony Node daemon
+  journal <opts> View the journal of your current Harmony Node daemon
+  restart        Manually restart your current Harmony Node daemon
+  name           Get the name of your current Harmony Node deamon
+  version        Display the version of the Harmony Node
+  info           Get the node's current metadata
+  "
+  exit
+  ;;
 esac
