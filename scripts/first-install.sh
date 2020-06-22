@@ -79,7 +79,7 @@ function src_message() {
 
 function install() {
   release_info=$(curl --silent "https://api.github.com/repos/harmony-one/auto-node/releases/latest")
-  temp_install_script_path="/tmp/auto-node-install.sh"
+  temp_install_script_path="/tmp/auto-node-install.$(date +'%s').sh"
   install_script=$(echo "$release_info" | jq ".assets" | jq '[.[]|select(.name="install.sh")][0].browser_download_url' -r)
   wget "$install_script" -O "$temp_install_script_path"
   bash "$temp_install_script_path"

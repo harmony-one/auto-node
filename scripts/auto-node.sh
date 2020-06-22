@@ -157,8 +157,8 @@ case "${1}" in
   ;;
 "update")
   cmd_path=$(command -v auto-node)
-  temp_instll_wrapper_script_path="/tmp/auto-node-temp-install-wrapper.sh"
-  temp_install_script_path="/tmp/auto-node-temp-install.sh"
+  temp_instll_wrapper_script_path="/tmp/auto-node-temp-install-wrapper.$(date +'%s').sh"
+  temp_install_script_path="/tmp/auto-node-temp-install.$(date +'%s').sh"
   if [ "$cmd_path" == "$SCRIPT_PATH" ]; then
     if verlte "$release_version" "$version"; then
       echo "[AutoNode] Running latest, no update needed!"
