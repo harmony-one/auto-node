@@ -147,7 +147,7 @@ if __name__ == "__main__":
     try:
         if not args.no_validator:
             validator.setup(hard_reset_recovery=False)
-        common.log("Waiting for node to start...")
+        common.log("Waiting for node to finish starting...")
         node.assert_started(timeout=10, do_log=False)
         common.log("Node started!")
     finally:
