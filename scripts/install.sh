@@ -11,23 +11,6 @@ function yes_or_exit() {
   fi
 }
 
-function check_min_dependencies() {
-  if [ "$(uname)" != "Linux" ]; then
-    echo "[AutoNode] Not on a Linux machine, exiting."
-    exit
-  fi
-  if ! command -v systemctl >/dev/null; then
-    echo "[AutoNode] Distro does not have systemd, exiting."
-    exit
-  fi
-  systemctl > /dev/null # Check if systemd is ran with PID 1
-  if ! systemctl --user >/dev/null; then
-    echo "[AutoNode] Cannot access systemd in user mode, maybe systemd is out of date?"
-    echo "[AutoNode] Suggest to update systemd or use different OS. Ubuntu 18+ is known to work."
-    exit 1
-  fi
-}
-
 function setup_check_and_install() {
   unset PKG_INSTALL
   if command -v yum >/dev/null; then
@@ -52,6 +35,40 @@ function check_and_install() {
     fi
   fi
 }
+
+function _fix_user_systemd() {
+  setup_check_and_install
+  check_and_install libpam-systemd
+  sudo loginctl enable-linger "$USER"
+  sudo systemctl start "user@$UID.service"
+  export XDG_RUNTIME_DIR="/run/user/$UID"
+  export DBUS_SESSION_BUS_ADDRESS="unix:path=${XDG_RUNTIME_DIR}/bus"
+}
+
+function check_min_dependencies() {
+  if [ "$(uname)" != "Linux" ]; then
+    echo "[AutoNode] Not on a Linux machine, exiting."
+    exit
+  fi
+  if ! command -v systemctl >/dev/null; then
+    echo "[AutoNode] Distro does not have systemd, exiting."
+    exit
+  fi
+  systemctl > /dev/null # Check if systemd is ran with PID 1
+  if ! systemctl --user >/dev/null; then
+    echo "[AutoNode] Cannot access systemd in user mode"
+    echo "[AutoNode] Attepmting to fix systemd in user mode for user: $USER"
+    _fix_user_systemd
+    if ! systemctl --user >/dev/null; then
+      echo "[AutoNode] Cannot access systemd in user mode, after attempted fix, maybe too old systemd version?"
+      echo "[AutoNode] Suggest updating systemd or use different OS. Ubuntu 18+ is known to work."
+      exit 1
+    else
+      echo "[AutoNode] Fixed access to systemd in user mode..."
+    fi
+  fi
+}
+
 
 function check_and_install_dependencies() {
   echo "[AutoNode] Checking dependencies..."
@@ -163,12 +180,26 @@ WantedBy=multi-user.target
     if ! grep 'PATH=$PATH:~/bin' "$HOME/.zshrc" >/dev/null; then
       echo 'export PATH=$PATH:~/bin' >>"$HOME/.zshrc"
     fi
+    if ! grep 'XDG_RUNTIME_DIR="/run/user/$id"' "$HOME/.zshrc" >/dev/null; then
+      echo 'export XDG_RUNTIME_DIR="/run/user/$UID"' >>"$HOME/.zshrc"
+    fi
+    if ! grep 'DBUS_SESSION_BUS_ADDRESS="unix:path=${XDG_RUNTIME_DIR}/bus"' "$HOME/.zshrc" >/dev/null; then
+      echo 'export DBUS_SESSION_BUS_ADDRESS="unix:path=${XDG_RUNTIME_DIR}/bus"' >>"$HOME/.zshrc"
+    fi
   elif [ -f "$HOME/.bashrc" ]; then
     if ! grep 'PATH=$PATH:~/bin' "$HOME/.bashrc" >/dev/null; then
       echo 'export PATH=$PATH:~/bin' >>"$HOME/.bashrc"
     fi
+    if ! grep 'XDG_RUNTIME_DIR="/run/user/$UID"' "$HOME/.bashrc" >/dev/null; then
+      echo 'export XDG_RUNTIME_DIR="/run/user/$UID"' >>"$HOME/.bashrc"
+    fi
+    if ! grep 'DBUS_SESSION_BUS_ADDRESS="unix:path=${XDG_RUNTIME_DIR}/bus"' "$HOME/.bashrc" >/dev/null; then
+      echo 'export DBUS_SESSION_BUS_ADDRESS="unix:path=${XDG_RUNTIME_DIR}/bus"' >> "$HOME/.bashrc"
+    fi
   else
     echo "[AutoNode] Could not add \"export PATH=\$PATH:~/bin\" to rc shell file, please do so manually!"
+    echo "[AutoNode] Could not add \"export XDG_RUNTIME_DIR=\"/run/user/\$UID\"\" to rc shell file, please do so manually!"
+    echo "[AutoNode] Could not add \"export DBUS_SESSION_BUS_ADDRESS=\"unix:path=\${XDG_RUNTIME_DIR}/bus\"\" to rc shell file, please do so manually!"
     sleep 3
   fi
   auto-node tui update || echo "[AutoNode] Failed to install TUI, continuing..."

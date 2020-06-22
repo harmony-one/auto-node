@@ -40,6 +40,11 @@ function _kill() {
   fi
 }
 
+if ! systemctl --user > /dev/null; then
+  export XDG_RUNTIME_DIR="/run/user/$UID"
+  export DBUS_SESSION_BUS_ADDRESS="unix:path=${XDG_RUNTIME_DIR}/bus"
+fi
+
 # Do not import python lib for performance, should change when converted to python3 click CLI.
 if ! systemctl list-unit-files --user | grep autonode >/dev/null; then
   echo "[AutoNode] systemd services not found, maybe wrong user? exiting..."

@@ -84,6 +84,7 @@ function install() {
   wget "$install_script" -O "$temp_install_script_path"
   bash "$temp_install_script_path"
   export PATH=$PATH:~/bin
+  sudo loginctl enable-linger "$USER"
 }
 
 ## MAIN IS BELOW ##
