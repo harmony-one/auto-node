@@ -128,10 +128,10 @@ function install() {
   systemd_service="[Unit]
 Description=Harmony AutoNode %I service
 After=network.target
-After=user@.service
 
 [Service]
 Type=simple
+Restart=no
 ExecStart=$(command -v python3) -u $HOME/bin/autonode-service.py %I
 StandardError=syslog
 

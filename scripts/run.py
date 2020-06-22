@@ -3,6 +3,7 @@ import argparse
 import os
 import time
 import glob
+import traceback
 from argparse import RawTextHelpFormatter
 import subprocess
 
@@ -148,6 +149,9 @@ if __name__ == "__main__":
         common.log("Waiting for node to finish starting...")
         node.assert_started(timeout=10, do_log=False)
         common.log("Node started!")
+    except Exception as e:
+        print(traceback.format_exc())
+        print(f"Exception: {e}")
     finally:
         print("")
         clean_up_bls_pass(is_auto_reset=args.auto_reset)
