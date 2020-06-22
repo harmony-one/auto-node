@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-version="0.7.5"
+version="1.0.0"
 SCRIPT_PATH=$(realpath -s "$0")
 
 # TODO: convert auto-node.sh into python3 click CLI since lib is in python3.

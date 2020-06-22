@@ -107,12 +107,12 @@ def _parse_args():
     parser.add_argument("--shard", default=None,
                         help="Specify shard of generated bls key.\n  "
                              "Only used if no BLS keys are not provided.", type=int)
-    parser.add_argument("--network", help="Network to connect to (mainnet, testnet).\n  "
-                                          "Default: 'testnet'.", type=str, default='testnet',
+    parser.add_argument("--network", help="Network to connect to.\n  "
+                                          "Default: 'mainnet'.", type=str, default='mainnet',
                         choices=['mainnet', 'testnet', 'partner', 'stress', 'staking'])
-    parser.add_argument("--beacon-endpoint", dest="endpoint", type=str, default="https://api.s0.b.hmny.io/",
+    parser.add_argument("--beacon-endpoint", dest="endpoint", type=str, default="https://api.s0.t.hmny.io/",
                         help=f"Beacon chain (shard 0) endpoint for staking transactions.\n  "
-                             f"Default is https://api.s0.b.hmny.io/")
+                             f"Default is https://api.s0.t.hmny.io/")
     return parser.parse_args()
 
 
@@ -124,8 +124,6 @@ if __name__ == "__main__":
     if args.network == 'mainnet':
         if args.auto_reset:
             raise SystemExit(f"Cannot use --auto-reset with 'mainnet' network")
-        if args.clean:
-            raise SystemExit(f"Cannot use --clean with 'mainnet' network")
     common.node_config.update({
         "endpoint": args.endpoint,
         "network": args.network,
