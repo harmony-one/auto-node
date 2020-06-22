@@ -104,7 +104,7 @@ def _rclone_db(shard, verbose=True):
         rclone_sync_dir = node_config['network'] + '.min'
 
     _, _, free_space = shutil.disk_usage(os.environ['HOME'])
-    free_space = free_space + rclone_space_buffer
+    free_space = free_space - rclone_space_buffer
 
     rclone_processes = []
     if shard == 0:
