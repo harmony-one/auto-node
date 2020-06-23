@@ -152,6 +152,18 @@ if __name__ == "__main__":
     except Exception as e:
         print(traceback.format_exc())
         print(f"Exception: {e}")
+        if os.path.isfile(node.node_sh_out_path):
+            with open(node.node_sh_out_path, 'r', encoding='utf8') as f:
+                print(f"\nnode.sh output: (last modified: {time.ctime(os.path.getmtime(node.node_sh_out_path))})")
+                print('=' * 80)
+                print(f.read())
+                print('=' * 80)
+        if os.path.isfile(node.node_sh_err_path):
+            with open(node.node_sh_err_path, 'r', encoding='utf8') as f:
+                print(f"\nnode.sh error output: (last modified: {time.ctime(os.path.getmtime(node.node_sh_out_path))})")
+                print('=' * 80)
+                print(f.read())
+                print('=' * 80)
     finally:
         print("")
         clean_up_bls_pass(is_auto_reset=args.auto_reset)
