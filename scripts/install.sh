@@ -73,7 +73,7 @@ function check_min_dependencies() {
 function check_and_install_dependencies() {
   echo "[AutoNode] Checking dependencies..."
   setup_check_and_install
-  for dependency in "python3" "python3-pip" "unzip" "nano" "curl" "bc" "jq" "sort" "wget"; do
+  for dependency in "python3" "python3-pip" "unzip" "nano" "curl" "bc" "jq" "sort" "wget" "expr"; do
     check_and_install "$dependency"
   done
 

@@ -3,6 +3,7 @@ set -e
 
 version="1.0.1"
 SCRIPT_PATH=$(realpath -s "$0")
+cached_release_info_path="/tmp/.$USER-autonode-version-cache"
 
 # TODO: convert auto-node.sh into python3 click CLI since lib is in python3.
 function yes_or_exit() {
@@ -18,6 +19,33 @@ function verlte() {
 
 function echoerr() {
   echo -e "$@" 1>&2;
+}
+
+function version_precheck(){
+  got_cached=False
+
+  if [ -f "$cached_release_info_path" ]; then
+    tmp_release_info=$(cat "$cached_release_info_path")
+    date_cached=$(echo "$tmp_release_info" | jq .time)
+    if [ "$date_cached" != "null" ]; then
+      diff_cache=$(expr "$(date +'%s')" - "$date_cached")
+      if [ "$(expr "$diff_cache" \> 3600)" == "0" ]; then
+        release_info=$(echo "$tmp_release_info" | jq .data)
+        [ "$release_info" != "null" ] && got_cached=True
+      fi
+    fi
+  fi
+
+  if [ $got_cached != "True" ]; then
+    release_info=$(curl --silent "https://api.github.com/repos/harmony-one/auto-node/releases/latest")
+    echo "{\"time\": $(date +'%s'), \"data\": $release_info }" > "$cached_release_info_path"
+  fi
+
+  release_version=$(echo "$release_info" | jq ".tag_name" -r)
+  if [ "$release_version" != "null" ]; then
+    run_cmd="auto-node update"
+    verlte "$release_version" "$version" || echoerr "[AutoNode] There is an update! Install with \e[38;5;0;48;5;255m$run_cmd\e[0m"
+  fi
 }
 
 function _kill() {
@@ -51,10 +79,7 @@ if ! systemctl list-unit-files --user | grep autonode >/dev/null; then
   exit 1
 fi
 
-release_info=$(curl --silent "https://api.github.com/repos/harmony-one/auto-node/releases/latest")
-release_version=$(echo "$release_info" | jq ".tag_name" -r)
-run_cmd="auto-node update"
-verlte "$release_version" "$version" || echoerr "[AutoNode] There is an update! Install with \e[38;5;0;48;5;255m$run_cmd\e[0m"
+version_precheck
 
 case "${1}" in
 "run")
