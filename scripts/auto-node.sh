@@ -195,7 +195,7 @@ case "${1}" in
     fi
     _kill
     cp "$cmd_path" "$temp_instll_wrapper_script_path"
-    bash "$temp_instll_wrapper_script_path" "${1}" 2> /dev/null
+    bash "$temp_instll_wrapper_script_path" "${1}"
   else
     install_script=$(echo "$release_info" | jq ".assets" | jq '[.[]|select(.name="install.sh")][0].browser_download_url' -r)
     wget "$install_script" -O "$temp_install_script_path"
