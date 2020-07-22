@@ -149,6 +149,10 @@ if __name__ == "__main__":
         common.log("Waiting for node to finish starting...")
         node.assert_started(timeout=10, do_log=False)
         common.log("Node started!")
+        # Force reset config to be false if node daemon is restarted manually
+        common.node_config["fast-sync"] = False
+        common.node_config["clean"] = False
+        common.save_node_config()
     except Exception as e:
         print(traceback.format_exc())
         print(f"Exception: {e}")
