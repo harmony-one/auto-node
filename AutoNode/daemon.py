@@ -73,15 +73,16 @@ def run_node(hard_reset_recovery=False, duration=float('inf')):
     Will block for the `duration`.
     """
     print(f"Running node for {duration} seconds. Hard reset: {hard_reset_recovery}")
-    start_time = time.time()
     _validate_config(for_node=True)
     pid = None
     try:
         pid = start_node(auto=True, verbose=True)
         if hard_reset_recovery:
             setup_validator(hard_reset_recovery=True)
-        while time.time() - start_time < duration:
-            time.sleep(1)
+        if duration == float('inf'):
+            subprocess.call(["tail", "-f", "/dev/null"])
+        else:
+            time.sleep(duration)
     finally:
         if pid is not None:
             print(f"Killing harmony process, pid: {pid}")
