@@ -134,6 +134,8 @@ Type=simple
 Restart=no
 ExecStart=$(command -v python3) -u $HOME/bin/autonode-service.py %I
 StandardError=syslog
+LimitNOFILE=65536
+LimitNPROC=65536
 
 [Install]
 WantedBy=multi-user.target
