@@ -187,7 +187,8 @@ case "${1}" in
   if [ "$cmd_path" == "$SCRIPT_PATH" ]; then
     if verlte "$release_version" "$version"; then
       echo "[AutoNode] Running latest, no update needed!"
-      exit 0
+      echo "[AutoNode] Would you like to reinstall anyways?"
+      yes_or_exit
     fi
     if pgrep harmony > /dev/null; then
       echo "[AutoNode] Must shutdown node to update, kill node and update now? (y/n)"
