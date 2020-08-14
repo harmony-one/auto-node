@@ -154,7 +154,10 @@ case "${1}" in
   python3 -u -c "from AutoNode import validator; validator.collect_reward()"
   ;;
 "version")
-  echo "$version"
+  echo "AutoNode: $version"
+  harmony_dir=$(python3 -c "from AutoNode import common; print(common.harmony_dir)")
+  bash "$harmony_dir"/node.sh -v
+  bash "$harmony_dir"/node.sh -V
   ;;
 "header")
   python3 -u -c "from pyhmy import blockchain; import json; print(json.dumps(blockchain.get_latest_header(), indent=2))"
@@ -236,7 +239,7 @@ case "${1}" in
       info                  Display information for validator associated with node
       balances              Display balances for validator associated with node
       collect-rewards       Collect rewards for the associated validator
-      version               Display the version of autonode
+      version               Display the version of Autonode, node.sh, & harmony binary
       header                Display the latest header (shard chain) for the node
       headers               Display the latest headers (beacon and shard chain) for the node
       clear-node-bls        Remove the BLS key directory used by the node.
