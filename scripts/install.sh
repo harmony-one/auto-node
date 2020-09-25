@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -e
 
-stable_auto_node_pypi_version="1.0.3"
+stable_auto_node_pypi_version="1.0.4"
 release_branch="master"
 
 function yes_or_exit() {
