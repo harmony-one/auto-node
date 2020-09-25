@@ -147,7 +147,7 @@ if __name__ == "__main__":
         if not args.no_validator:
             validator.setup(hard_reset_recovery=False)
         common.log("Waiting for node to finish starting...")
-        node.assert_started(timeout=10, do_log=False)
+        node.assert_started(timeout=90, do_log=False)
         common.log("Node started!")
         # Force reset config to be false if node daemon is restarted manually
         common.node_config["fast-sync"] = False
