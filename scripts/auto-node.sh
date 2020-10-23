@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-version="1.0.4"
+version="1.0.5"
 SCRIPT_PATH=$(realpath -s "$0")
 cached_release_info_path="/tmp/.$USER-autonode-version-cache"
 
