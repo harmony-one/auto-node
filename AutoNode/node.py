@@ -203,6 +203,7 @@ def start(auto=False, verbose=True):
             node_sh = r.content.decode()
             # WARNING: Hack until node.sh is changed for auto-node.
             node_sh = node_sh.replace("save_pass_file=false", 'save_pass_file=true')
+            node_sh = node_sh.replace('err 1 "NO valid public IP found: $PUB_IP"', 'msg "NO valid public IP found: $PUB_IP"')
             f.write(node_sh)
     except requests.exceptions.RequestException as e:
         raise SystemExit(e)
