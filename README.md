@@ -1,6 +1,6 @@
 # AutoNode - Run a Harmony node with 1 command!
 
-User documentation can be found [here](https://docs.harmony.one/home/validators/autonode)
+User documentation can be found [here](https://docs.harmony.one/home/network/validators/node-setup/installing-updating/installing-node/using-autonode)
 
 E-mail support at autonode@harmony.one.
 
