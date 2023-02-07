@@ -12,7 +12,7 @@ setup(
     install_requires=[
         'requests==2.23.0',
         'pexpect==4.8.0',
-        'cryptography==2.9.2',
+        'cryptography==39.0.1',
         'pyhmy==20.5.20',
     ]
 )
