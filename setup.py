@@ -10,7 +10,7 @@ setup(
     url="http://harmony.one/auto-node",
     packages=['AutoNode'],
     install_requires=[
-        'requests==2.23.0',
+        'requests==2.31.0',
         'pexpect==4.8.0',
         'cryptography==2.9.2',
         'pyhmy==20.5.20',
